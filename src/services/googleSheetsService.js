@@ -4,6 +4,13 @@ import { dbService } from './indexedDBService.js';
 const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
+console.log('Environment check:', {
+    hasSpreadsheetId: !!SPREADSHEET_ID,
+    hasApiKey: !!API_KEY,
+    spreadsheetId: SPREADSHEET_ID ? `${SPREADSHEET_ID.substring(0, 10)}...` : 'undefined',
+    apiKey: API_KEY ? `${API_KEY.substring(0, 10)}...` : 'undefined'
+});
+
 export const fetchGoogleSheetData = async (forceRefresh = false) => {
     try {
         // Initialize IndexedDB
@@ -21,6 +28,10 @@ export const fetchGoogleSheetData = async (forceRefresh = false) => {
         console.log('Fetching fresh data from Google Sheets...');
         
         if (!SPREADSHEET_ID || !API_KEY) {
+            console.error('Missing environment variables:', {
+                VITE_GOOGLE_SHEET_ID: SPREADSHEET_ID || 'undefined',
+                VITE_GOOGLE_API_KEY: API_KEY || 'undefined'
+            });
             throw new Error('Missing Google Sheets configuration. Please check your environment variables.');
         }
 
