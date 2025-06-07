@@ -97,6 +97,7 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
-# PWA files
-sw.js
-workbox-*.js
+# PWA files (only if using vite-plugin-pwa)
+# sw.js
+# workbox-*.js
+# dev-sw.js
