@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vinod-electronics-v1';
+const CACHE_NAME = 'vinod-electronics-v1.0.0';
 const urlsToCache = [
   '/',
   '/static/css/main.css',
@@ -7,6 +7,9 @@ const urlsToCache = [
   '/icon-192x192.png',
   '/icon-512x512.png'
 ];
+
+// Add production-specific caching strategies
+const RUNTIME_CACHE = 'runtime-cache-v1';
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -42,6 +45,22 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  // Cache Google Fonts
+  if (event.request.url.includes('fonts.googleapis.com') || 
+      event.request.url.includes('fonts.gstatic.com')) {
+    event.respondWith(
+      caches.open(RUNTIME_CACHE).then(cache => {
+        return cache.match(event.request).then(response => {
+          return response || fetch(event.request).then(fetchResponse => {
+            cache.put(event.request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        });
+      })
+    );
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

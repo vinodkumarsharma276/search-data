@@ -9,7 +9,20 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/sheets\.googleapis\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'google-sheets-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              }
+            }
+          }
+        ]
       },
       manifest: {
         name: 'Vinod Electronics Search',
@@ -18,7 +31,8 @@ export default defineConfig({
         theme_color: '#007bff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/',scope: '/',
+        orientation: 'portrait-primary',
         icons: [
           {
             src: 'icon-192x192.png',
@@ -31,7 +45,31 @@ export default defineConfig({
             type: 'image/png'
           }
         ]
+      },
+      devOptions: {
+        enabled: true
       }
     })
-  ]
+  ],
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          utils: ['axios']
+        }
+      }
+    },
+    target: 'esnext',
+    minify: 'terser'
+  },
+  base: '/',
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'axios']
+  }
 })

@@ -101,3 +101,15 @@ jspm_packages/
 # sw.js
 # workbox-*.js
 # dev-sw.js
+
+# Azure Static Web Apps
+.azure/
+swa-cli.config.json
+
+# Environment files (but keep .env.example)
+.env.production
+
+# Build outputs
+dist/
+.output/
+dev-dist/
