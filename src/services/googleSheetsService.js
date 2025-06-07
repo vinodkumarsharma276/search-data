@@ -1,26 +1,33 @@
 import axios from 'axios';
+import { dbService } from './indexedDBService.js';
 
 const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
-export const fetchGoogleSheetData = async () => {
+export const fetchGoogleSheetData = async (forceRefresh = false) => {
     try {
-        console.log('SPREADSHEET_ID:', SPREADSHEET_ID);
-        console.log('API_KEY exists:', !!API_KEY);
+        // Initialize IndexedDB
+        await dbService.init();
+        
+        // Check IndexedDB cache first (unless force refresh)
+        if (!forceRefresh) {
+            const cachedData = await dbService.getData();
+            if (cachedData && cachedData.length > 0) {
+                console.log('Using cached data from IndexedDB, records:', cachedData.length);
+                return cachedData;
+            }
+        }
+
+        console.log('Fetching fresh data from Google Sheets...');
         
         if (!SPREADSHEET_ID || !API_KEY) {
             throw new Error('Missing Google Sheets configuration. Please check your environment variables.');
         }
 
-        // Updated range to include all columns A through I
         const range = 'Sheet1!A:L';
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
         
-        console.log('Fetching from URL:', url);
-
         const response = await axios.get(url);
-        console.log('API Response:', response.data);
-        
         const rows = response.data.values;
 
         if (!rows || rows.length === 0) {
@@ -28,11 +35,7 @@ export const fetchGoogleSheetData = async () => {
             return [];
         }
 
-        // Assuming first row contains headers
         const headers = rows[0];
-        console.log('Headers:', headers);
-        
-        // Map data according to your column structure
         const data = rows.slice(1).map((row, index) => ({
             id: row[0] || '',
             account: row[1] || '',
@@ -46,20 +49,31 @@ export const fetchGoogleSheetData = async () => {
             product: row[9] || '',
             brand: row[10] || '',
             model: row[11] || '',
-            // For backward compatibility
             name: row[2] || '',
             phone: row[4] || '',
         }));
 
-        console.log('Processed data:', data);
+        // Save to IndexedDB
+        await dbService.saveData(data);
+        
+        console.log('Fresh data fetched and cached in IndexedDB, records:', data.length);
         return data;
     } catch (error) {
         console.error('Error fetching Google Sheets data:', error);
         
+        // If API fails, try to return cached data as fallback
+        try {
+            const cachedData = await dbService.getData();
+            if (cachedData && cachedData.length > 0) {
+                console.log('API failed, using cached data as fallback, records:', cachedData.length);
+                return cachedData;
+            }
+        } catch (cacheError) {
+            console.error('Failed to get fallback cache data:', cacheError);
+        }
+        
+        // If no cached data available, throw the original error
         if (error.response) {
-            console.error('Error response:', error.response.data);
-            console.error('Error status:', error.response.status);
-            
             if (error.response.status === 403) {
                 throw new Error('API key is invalid or Google Sheets API is not enabled');
             } else if (error.response.status === 400) {
@@ -82,19 +96,29 @@ export const searchGoogleSheetData = (data, searchQuery, searchField) => {
     
     return data.filter(row => {
         if (searchField === 'all') {
-            // Search in all fields
             return Object.values(row).some(value => 
                 value && value.toString().toLowerCase().includes(query)
             );
         } else {
-            // Search in specific field
             const fieldValue = row[searchField]?.toLowerCase() || '';
             return fieldValue.includes(query);
         }
     });
 };
 
+// Add function to clear cache
+export const clearCache = async () => {
+    await dbService.clearData();
+};
+
+// Add function to check cache status
+export const getCacheInfo = async () => {
+    return await dbService.getCacheInfo();
+};
+
 export default {
     fetchGoogleSheetData,
-    searchGoogleSheetData
+    searchGoogleSheetData,
+    clearCache,
+    getCacheInfo
 };

@@ -8,7 +8,7 @@ const urlsToCache = [
   '/icon-512x512.png'
 ];
 
-// Install event - Cache resources
+// Install event
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...');
   event.waitUntil(
@@ -23,7 +23,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - Clean up old caches
+// Activate event
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activating...');
   event.waitUntil(
@@ -40,24 +40,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Serve cached content when offline
+// Fetch event
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
         if (response) {
-          console.log('Serving from cache:', event.request.url);
           return response;
         }
         
         // For Google Sheets API calls, always try network first
+        // IndexedDB will handle offline data
         if (event.request.url.includes('sheets.googleapis.com')) {
           return fetch(event.request).catch(() => {
-            // If offline, return a custom offline response
             return new Response(
-              JSON.stringify({ error: 'Offline - Cannot fetch data' }),
-              { headers: { 'Content-Type': 'application/json' } }
+              JSON.stringify({ 
+                error: 'Offline - Check IndexedDB cache',
+                offline: true 
+              }),
+              { 
+                headers: { 'Content-Type': 'application/json' },
+                status: 503
+              }
             );
           });
         }
@@ -65,7 +69,6 @@ self.addEventListener('fetch', (event) => {
         return fetch(event.request);
       })
       .catch(() => {
-        // If both cache and network fail, return offline page
         if (event.request.destination === 'document') {
           return caches.match('/');
         }

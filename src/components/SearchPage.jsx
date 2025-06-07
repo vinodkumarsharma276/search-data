@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchGoogleSheetData, searchGoogleSheetData } from '../services/googleSheetsService';
+import { fetchGoogleSheetData, searchGoogleSheetData, clearCache, getCacheInfo } from '../services/googleSheetsService';
 import SearchBox from './SearchBox';
 import ResultsList from './ResultsList';
 import Pagination from './Pagination';
@@ -16,6 +16,7 @@ const SearchPage = () => {
     const [cachedSearchData, setCachedSearchData] = useState([]);
     const [lastSearchQuery, setLastSearchQuery] = useState('');
     const [lastFilterOption, setLastFilterOption] = useState('');
+    const [cacheInfo, setCacheInfo] = useState(null);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -24,22 +25,44 @@ const SearchPage = () => {
     const RESULTS_PER_PAGE = 50;
 
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                setLoading(true);
-                const data = await fetchGoogleSheetData();
-                setAllData(data);
-                setError('');
-            } catch (err) {
-                setError('Failed to load data from Google Sheets');
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadData();
     }, []);
+
+    const loadData = async (forceRefresh = false) => {
+        try {
+            setLoading(true);
+            const data = await fetchGoogleSheetData(forceRefresh);
+            setAllData(data);
+            
+            // Update cache info
+            const info = await getCacheInfo();
+            setCacheInfo(info);
+            
+            setError('');
+        } catch (err) {
+            setError('Failed to load data from Google Sheets');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Add refresh handler
+    const handleRefresh = async () => {
+        await loadData(true);
+    };
+
+    // Add clear cache handler
+    const handleClearCache = async () => {
+        try {
+            await clearCache();
+            const info = await getCacheInfo();
+            setCacheInfo(info);
+            await loadData(true);
+        } catch (error) {
+            console.error('Failed to clear cache:', error);
+        }
+    };
 
     // Debounced search function
     const debounce = (func, wait) => {
@@ -208,6 +231,17 @@ const SearchPage = () => {
         <div className="search-container">
             <div className="search-header-title-only">
                 <h1>Vinod Electronics</h1>
+                <div className="header-actions">
+                    <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
+                        {loading ? 'Refreshing...' : '🔄 Refresh'}
+                    </button>
+                    {cacheInfo?.cached && (
+                        <div className="cache-info">
+                            <span>Last updated: {cacheInfo.lastUpdated}</span>
+                            <span>Size: {Math.round(cacheInfo.dataSize / 1024)} KB</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <SearchBox 
