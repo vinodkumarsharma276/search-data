@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { dbService } from './indexedDBService.js';
 
-const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+// const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
+// const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+
+const SPREADSHEET_ID = "1AsRV4LoyuHnqVKQ-YOtIIaRf-z4VEeeQFVb6BimJxOs";
+const API_KEY = "AIzaSyCIeWZrrZM68Vp1Gf5E-D4Ew2IQFzl_UNQ";
 
 console.log('Environment check:', {
     hasSpreadsheetId: !!SPREADSHEET_ID,
