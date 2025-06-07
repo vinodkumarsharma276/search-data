@@ -2,12 +2,20 @@
     "name": "Vinod Electronics Search",
     "short_name": "VE Search",
     "description": "Search customer data from Google Sheets",
-    "start_url": "/",
+    "start_url": "/?source=pwa",
     "display": "standalone",
+    "display_override": [
+        "window-controls-overlay",
+        "standalone"
+    ],
     "background_color": "#ffffff",
     "theme_color": "#007bff",
     "orientation": "portrait-primary",
     "scope": "/",
+    "categories": [
+        "business",
+        "productivity"
+    ],
     "icons": [
         {
             "src": "/icon-192x192.png",
