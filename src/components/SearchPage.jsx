@@ -24,6 +24,8 @@ const SearchPage = () => {
     const [totalResults, setTotalResults] = useState(0);
     const RESULTS_PER_PAGE = 50;
 
+    console.log('🔍 SearchPage render');
+
     useEffect(() => {
         loadData();
     }, []);

@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev-https": "vite --host --https",
+    "dev-pwa": "npm run build && npm run preview-https",
     "build": "vite build",
     "preview": "vite preview",
+    "preview-https": "vite preview --host --https --port 4173",
     "test": "vitest",
     "build:azure": "vite build --mode production",
     "swa:build": "npm run build && npx @azure/static-web-apps-cli build",
