@@ -343,3 +343,25 @@
     padding: 12px 15px;
   }
 }
+
+.data-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.data-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.total-rows,
+.data-size {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 3px 6px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}

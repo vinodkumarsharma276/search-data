@@ -17,6 +17,7 @@ const SearchPage = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState('');
     const [cacheInfo, setCacheInfo] = useState(null);
+    const [totalRows, setTotalRows] = useState(0);
 
     // Use refs to store search cache data to avoid dependency issues
     const cachedSearchDataRef = useRef([]);
@@ -40,6 +41,7 @@ const SearchPage = () => {
             setLoading(true);
             const data = await fetchGoogleSheetData(forceRefresh);
             setAllData(data);
+            setTotalRows(data.length); // Add this line to track total rows
             
             // Update cache info
             const info = await getCacheInfo();
@@ -251,6 +253,10 @@ const SearchPage = () => {
                             {cacheInfo.lastUpdated}
                         </div>
                     )}
+                    <div className="data-stats">
+                        <span className="total-rows">📊 {totalRows.toLocaleString()}</span>
+                        <span className="data-size">💾 {Math.round((cacheInfo?.dataSize || 0) / 1024)}KB</span>
+                    </div>
                 </div>
                 
                 <div className="header-center">
