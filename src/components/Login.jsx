@@ -30,7 +30,7 @@ const Login = memo(() => {
         console.log('🔍 Login: Checking auth status...');
         if (authService.isAuthenticated()) {
             console.log('🚀 Login: User already authenticated, redirecting to search');
-            // navigate('/search', { replace: true });
+            navigate('/search', { replace: true });
         } else {
             console.log('❌ Login: User not authenticated, staying on login page');
         }
@@ -44,18 +44,18 @@ const Login = memo(() => {
         try {
             console.log('🔐 Attempting login with:', username);
             
-            const isValidUser = validateUser(username, password);
-            console.log('✔️ isValidUser:', isValidUser);
+            const result = await validateUser(username, password);
+            console.log('✔️ Login result:', result);
             
-            if (isValidUser) {
-                console.log('🎉 Login successful, user data stored automatically by validateUser');
+            if (result) {
+                console.log('🎉 Login successful, navigating to search page');
                 navigate('/search', { replace: true });
             } else {
                 setError('Invalid username or password');
             }
         } catch (err) {
             console.error('💥 Login error:', err);
-            setError('An error occurred during login');
+            setError(err.message || 'An error occurred during login');
         } finally {
             setLoading(false);
         }
@@ -63,7 +63,7 @@ const Login = memo(() => {
 
     return (
         <div className="login-container">
-            <h2>Login to Google Sheets Search</h2>
+            <h2>Login to Vinod Electronics Search</h2>
             {error && <div className="error">{error}</div>}
             <form onSubmit={handleLogin}>
                 <div>
@@ -95,10 +95,10 @@ const Login = memo(() => {
                 </button>
             </form>
             <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#666' }}>
-                <p>Test credentials:</p>
-                <p>Username: jagdishsharma, Password: jagdish123</p>
-                <p>Username: vinodsharma, Password: vinod123</p>
-                <p>Username: emp, Password: emp123</p>
+                <p>Available user roles:</p>
+                <p><strong>Admin:</strong> jagdishsharma / jagdish123</p>
+                <p><strong>Manager:</strong> vinodsharma / vinod123</p>
+                <p><strong>Employee:</strong> emp / emp123</p>
             </div>
         </div>
     );

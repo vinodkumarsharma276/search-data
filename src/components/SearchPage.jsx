@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchGoogleSheetData, searchGoogleSheetData, clearCache, getCacheInfo } from '../services/googleSheetsService';
+import { fetchGoogleSheetData, searchGoogleSheetData, refreshDataCache, getDataStats, getCacheInfo } from '../services/googleSheetsService';
 import SearchBox from './SearchBox';
 import ResultsList from './ResultsList';
 import Pagination from './Pagination';
@@ -18,6 +18,8 @@ const SearchPage = () => {
     const [error, setError] = useState('');
     const [cacheInfo, setCacheInfo] = useState(null);
     const [totalRows, setTotalRows] = useState(0);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [dataStats, setDataStats] = useState(null);
 
     // Use refs to store search cache data to avoid dependency issues
     const cachedSearchDataRef = useRef([]);
@@ -30,18 +32,36 @@ const SearchPage = () => {
     const [totalResults, setTotalResults] = useState(0);
     const RESULTS_PER_PAGE = 50;
 
-    console.log('🔍 SearchPage render');
-
+    console.log('🔍 SearchPage render');    
+    
     useEffect(() => {
         loadData();
+        loadUserData();
+        loadStats();
     }, []);
+
+    const loadUserData = () => {
+        const user = authService.getCurrentUser();
+        setCurrentUser(user);
+    };
+
+    const loadStats = async () => {
+        try {
+            const stats = await getDataStats();
+            console.log('📊 Data statistics loaded:', stats);
+            setDataStats(stats);
+        } catch (err) {
+            console.error('Failed to load stats:', err);
+        }
+    };
 
     const loadData = async (forceRefresh = false) => {
         try {
             setLoading(true);
             const data = await fetchGoogleSheetData(forceRefresh);
+            // console.log('📊 Data loaded from Google Sheets:', data);
             setAllData(data);
-            setTotalRows(data.length); // Add this line to track total rows
+            setTotalRows(data.length);
             
             // Update cache info
             const info = await getCacheInfo();
@@ -54,26 +74,56 @@ const SearchPage = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    // Add refresh handler
+    };    // Add refresh handler for backend API
     const handleRefresh = async () => {
-        await loadData(true);
-    };
-
-    // Add clear cache handler
-    const handleClearCache = async () => {
         try {
-            await clearCache();
-            const info = await getCacheInfo();
-            setCacheInfo(info);
+            await refreshDataCache();
             await loadData(true);
+            await loadStats();
         } catch (error) {
-            console.error('Failed to clear cache:', error);
+            console.error('Failed to refresh data:', error);
+            setError('Failed to refresh data');
         }
     };
 
-    // Debounced search function
+    // Update search to use backend API
+    const performSearch = useCallback(async (query, currentFilter, page = 1) => {
+        if (!query.trim() || query.trim().length < 1) {
+            setSearchResults([]);
+            setPaginatedResults([]);
+            setTotalResults(0);
+            setTotalPages(0);
+            setCurrentPage(1);
+            return;
+        }
+
+        setIsSearching(true);
+        
+        try {
+            console.log('🔍 Performing search:', { query, currentFilter, page });
+            
+            const result = await searchGoogleSheetData(
+                query.trim(), 
+                currentFilter, 
+                page, 
+                RESULTS_PER_PAGE
+            );
+
+            setSearchResults(result.data);
+            setPaginatedResults(result.data);
+            setTotalResults(result.pagination.totalResults);
+            setTotalPages(result.pagination.totalPages);
+            setCurrentPage(result.pagination.currentPage);
+            
+            console.log('✅ Search completed:', result.searchInfo);
+            
+        } catch (err) {
+            console.error('❌ Search error:', err);
+            setError(err.message || 'Error occurred during search');
+        } finally {
+            setIsSearching(false);
+        }
+    }, []);    // Debounced search function
     const debounce = (func, wait) => {
         let timeout;
         return function executedFunction(...args) {
@@ -86,103 +136,18 @@ const SearchPage = () => {
         };
     };
 
-    // Fixed performSearch with proper dependency management
-    const performSearch = useCallback(async (query, currentFilter, currentAllData) => {
-        if (!query.trim() || query.trim().length < 3) {
-            setSearchResults([]);
-            setPaginatedResults([]);
-            setTotalResults(0);
-            setTotalPages(0);
-            setCurrentPage(1);
-            cachedSearchDataRef.current = [];
-            lastSearchQueryRef.current = '';
-            return;
-        }
-
-        setIsSearching(true);
-        
-        try {
-            let resultsToFilter = [];
-            const queryTrimmed = query.trim();
-            const filterChanged = currentFilter !== lastFilterOptionRef.current;
-            
-            // Check if we need to fetch from API or can use cached data
-            const shouldFetchFromAPI = !lastSearchQueryRef.current || 
-                                     filterChanged || 
-                                     queryTrimmed.length < lastSearchQueryRef.current.length ||
-                                     !queryTrimmed.startsWith(lastSearchQueryRef.current) ||
-                                     queryTrimmed.length === 3;
-                        
-            console.log('Search Debug:', {
-                query: queryTrimmed,
-                lastQuery: lastSearchQueryRef.current,
-                filterChanged,
-                shouldFetchFromAPI,
-                cachedDataLength: cachedSearchDataRef.current.length
-            });
-
-            if (shouldFetchFromAPI) {
-                // Make fresh API call with minimum 3 characters
-                const minQuery = queryTrimmed.substring(0, 3);
-                const freshResults = searchGoogleSheetData(currentAllData, minQuery, currentFilter);
-                cachedSearchDataRef.current = freshResults;
-                lastSearchQueryRef.current = minQuery;
-                lastFilterOptionRef.current = currentFilter;
-                resultsToFilter = freshResults;
-            } else {
-                // Use cached data
-                resultsToFilter = cachedSearchDataRef.current;
-            }
-
-            // Filter cached results for current query
-            const finalResults = queryTrimmed.length > 3 ? 
-                resultsToFilter.filter(row => {
-                    const query = queryTrimmed.toLowerCase();
-                    if (currentFilter === 'all') {
-                        return Object.values(row).some(value => 
-                            value && value.toString().toLowerCase().includes(query)
-                        );
-                    } else {
-                        const fieldValue = row[currentFilter]?.toLowerCase() || '';
-                        return fieldValue.includes(query);
-                    }
-                }) : resultsToFilter;
-
-            setSearchResults(finalResults);
-            setTotalResults(finalResults.length);
-            
-            // Calculate pagination
-            const pages = Math.ceil(finalResults.length / RESULTS_PER_PAGE);
-            setTotalPages(pages);
-            
-            // Reset to first page when search changes
-            setCurrentPage(1);
-            
-            // Get first page results
-            const startIndex = 0;
-            const endIndex = Math.min(RESULTS_PER_PAGE, finalResults.length);
-            setPaginatedResults(finalResults.slice(startIndex, endIndex));
-            
-        } catch (err) {
-            console.error('Search error:', err);
-            setError('Error occurred during search');
-        } finally {
-            setIsSearching(false);
-        }
-    }, []); // Empty dependency array since we pass all needed values as parameters
-
     // Debounced search for real-time typing
     const debouncedSearchRef = useRef();
     
     useEffect(() => {
-        debouncedSearchRef.current = debounce((query, filter, data) => {
-            performSearch(query, filter, data);
+        debouncedSearchRef.current = debounce((query, filter) => {
+            performSearch(query, filter, 1);
         }, 300);
     }, [performSearch]);
 
     const handleSearch = (query = searchQuery) => {
-        if (query.trim().length >= 3) {
-            debouncedSearchRef.current(query, filterOption, allData);
+        if (query.trim().length >= 1) {
+            debouncedSearchRef.current(query, filterOption);
         }
     };
 
@@ -193,24 +158,20 @@ const SearchPage = () => {
         setTotalResults(0);
         setTotalPages(0);
         setCurrentPage(1);
-        cachedSearchDataRef.current = [];
-        lastSearchQueryRef.current = '';
-        lastFilterOptionRef.current = '';
     };
 
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-        const startIndex = (page - 1) * RESULTS_PER_PAGE;
-        const endIndex = Math.min(startIndex + RESULTS_PER_PAGE, searchResults.length);
-        setPaginatedResults(searchResults.slice(startIndex, endIndex));
+    const handlePageChange = async (page) => {
+        if (searchQuery.trim().length >= 1) {
+            await performSearch(searchQuery, filterOption, page);
+        }
     };
 
     // Trigger search when filter option changes
     useEffect(() => {
-        if (searchQuery.trim().length >= 3) {
-            performSearch(searchQuery, filterOption, allData);
+        if (searchQuery.trim().length >= 1) {
+            performSearch(searchQuery, filterOption, 1);
         }
-    }, [filterOption]); // Only depend on filterOption
+    }, [filterOption, performSearch]);
 
     const handleLogout = () => {
          // Use authService for proper logout
@@ -239,33 +200,43 @@ const SearchPage = () => {
                 <div className="error">{error}</div>
             </div>
         );
-    }
-
-    return (
+    }    return (
         <div className="search-container">
             <div className="search-header-redesigned">
                 <div className="header-left">
                     <button onClick={handleRefresh} className="icon-btn refresh-icon-btn" disabled={loading} title="Refresh Data">
                         🔄
                     </button>
-                    {cacheInfo?.cached && (
-                        <div className="cache-timestamp">
-                            {cacheInfo.lastUpdated}
+                    {cacheInfo?.hasCache && (
+                        <div className="cache-timestamp" title="Last data update">
+                            📅 {new Date(cacheInfo.lastUpdated).toLocaleString()}
                         </div>
                     )}
-                    <div className="data-stats">
-                        <span className="total-rows">📊 {totalRows.toLocaleString()}</span>
-                        <span className="data-size">💾 {Math.round((cacheInfo?.dataSize || 0) / 1024)}KB</span>
-                    </div>
+                    {dataStats && (
+                        <div className="data-stats">
+                            <span className="total-rows" title="Total records">📊 {dataStats.totalRecords.toLocaleString()}</span>
+                            <span className="unique-customers" title="Unique customers">👥 {dataStats.uniqueCustomers}</span>
+                        </div>
+                    )}
                 </div>
                 
                 <div className="header-center">
-                    <h1>Vinod Electronics</h1>
+                    <h1>Vinod Electronics Search</h1>
+                    {currentUser && (
+                        <div className="user-info">
+                            <span className="username">👤 {currentUser.username}</span>
+                            <span className="user-role" title="User role">
+                                {currentUser.role === 'admin' && '🔑 Admin'}
+                                {currentUser.role === 'manager' && '📋 Manager'}
+                                {currentUser.role === 'employee' && '👷 Employee'}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 
                 <div className="header-right">
                     <button onClick={handleLogout} className="icon-btn logout-icon-btn" title="Logout">
-                        🚪
+                        🚪 Logout
                     </button>
                 </div>
             </div>
@@ -283,13 +254,13 @@ const SearchPage = () => {
             <div className="results-section">
                 <div className="results-header">
                     <h3>
-                        {searchQuery.trim().length >= 3 ? (
+                        {searchQuery.trim().length >= 1 ? (
                             <>Results ({totalResults}) 
                             {totalResults > RESULTS_PER_PAGE && 
-                                ` - Showing ${((currentPage - 1) * RESULTS_PER_PAGE) + 1}-${Math.min(currentPage * RESULTS_PER_PAGE, totalResults)}`
+                                ` - Page ${currentPage} of ${totalPages}`
                             }</>
                         ) : (
-                            'Enter at least 3 characters to search'
+                            'Enter search terms to find records'
                         )}
                     </h3>
                 </div>
@@ -297,7 +268,7 @@ const SearchPage = () => {
                 <ResultsList 
                     results={paginatedResults} 
                     loading={isSearching}
-                    showNoResults={searchQuery.trim().length >= 3 && !isSearching}
+                    showNoResults={searchQuery.trim().length >= 1 && !isSearching}
                 />
                 
                 {totalPages > 1 && (

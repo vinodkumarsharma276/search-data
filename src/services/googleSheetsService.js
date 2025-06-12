@@ -1,138 +1,166 @@
 import axios from 'axios';
-import { dbService } from './indexedDBService.js';
 
-// const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
-// const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-const SPREADSHEET_ID = "1AsRV4LoyuHnqVKQ-YOtIIaRf-z4VEeeQFVb6BimJxOs";
-const API_KEY = "AIzaSyCIeWZrrZM68Vp1Gf5E-D4Ew2IQFzl_UNQ";
-
-console.log('Environment check:', {
-    hasSpreadsheetId: !!SPREADSHEET_ID,
-    hasApiKey: !!API_KEY,
-    spreadsheetId: SPREADSHEET_ID ? `${SPREADSHEET_ID.substring(0, 10)}...` : 'undefined',
-    apiKey: API_KEY ? `${API_KEY.substring(0, 10)}...` : 'undefined'
-});
-
-export const fetchGoogleSheetData = async (forceRefresh = false) => {
-    try {
-        // Initialize IndexedDB
-        await dbService.init();
-        
-        // Check IndexedDB cache first (unless force refresh)
-        if (!forceRefresh) {
-            const cachedData = await dbService.getData();
-            if (cachedData && cachedData.length > 0) {
-                console.log('Using cached data from IndexedDB, records:', cachedData.length);
-                return cachedData;
-            }
-        }
-
-        console.log('Fetching fresh data from Google Sheets...');
-        
-        if (!SPREADSHEET_ID || !API_KEY) {
-            console.error('Missing environment variables:', {
-                VITE_GOOGLE_SHEET_ID: SPREADSHEET_ID || 'undefined',
-                VITE_GOOGLE_API_KEY: API_KEY || 'undefined'
-            });
-            throw new Error('Missing Google Sheets configuration. Please check your environment variables.');
-        }
-
-        const range = 'Sheet1!A:L';
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
-        
-        const response = await axios.get(url);
-        const rows = response.data.values;
-
-        if (!rows || rows.length === 0) {
-            console.warn('No data found in the sheet');
-            return [];
-        }
-
-        const headers = rows[0];
-        const data = rows.slice(1).map((row, index) => ({
-            id: row[0] || '',
-            account: row[1] || '',
-            customerName: row[2] || '',
-            address: row[3] || '',
-            mobile: row[4] || '',
-            co: row[5] || '',
-            coMobile: row[6] || '',
-            area: row[7] || '',
-            purchaseDate: row[8] || '',
-            product: row[9] || '',
-            brand: row[10] || '',
-            model: row[11] || '',
-            name: row[2] || '',
-            phone: row[4] || '',
-        }));
-
-        // Save to IndexedDB
-        await dbService.saveData(data);
-        
-        console.log('Fresh data fetched and cached in IndexedDB, records:', data.length);
-        return data;
-    } catch (error) {
-        console.error('Error fetching Google Sheets data:', error);
-        
-        // If API fails, try to return cached data as fallback
-        try {
-            const cachedData = await dbService.getData();
-            if (cachedData && cachedData.length > 0) {
-                console.log('API failed, using cached data as fallback, records:', cachedData.length);
-                return cachedData;
-            }
-        } catch (cacheError) {
-            console.error('Failed to get fallback cache data:', cacheError);
-        }
-        
-        // If no cached data available, throw the original error
-        if (error.response) {
-            if (error.response.status === 403) {
-                throw new Error('API key is invalid or Google Sheets API is not enabled');
-            } else if (error.response.status === 400) {
-                throw new Error('Invalid sheet ID or range specified');
-            } else if (error.response.status === 404) {
-                throw new Error('Sheet not found. Make sure the sheet is public or shared correctly');
-            }
-        }
-        
-        throw new Error(`Failed to fetch data from Google Sheets: ${error.message}`);
-    }
-};
-
-export const searchGoogleSheetData = (data, searchQuery, searchField) => {
-    if (!searchQuery.trim() || searchQuery.trim().length < 3) {
-        return [];
-    }
-
-    const query = searchQuery.toLowerCase();
-    
-    return data.filter(row => {
-        if (searchField === 'all') {
-            return Object.values(row).some(value => 
-                value && value.toString().toLowerCase().includes(query)
-            );
-        } else {
-            const fieldValue = row[searchField]?.toLowerCase() || '';
-            return fieldValue.includes(query);
-        }
+// Create axios instance with auth token
+const createApiClient = () => {
+    const token = localStorage.getItem('authToken');
+    return axios.create({
+        baseURL: API_BASE_URL,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        },
     });
 };
 
-// Add function to clear cache
+export const fetchGoogleSheetData = async (forceRefresh = false) => {
+    try {
+        const apiClient = createApiClient();
+        const response = await apiClient.get('/data/search', {
+            params: {
+                forceRefresh,
+                page: 1,
+                limit: 10000 // Get all data for now
+            }
+        });
+
+        if (response.data.success) {
+            const data = response.data.data;
+            console.log('✅ Data fetched from backend API, records:', data.length);
+            return data;
+        } else {
+            throw new Error(response.data.error || 'Failed to fetch data');
+        }
+    } catch (error) {
+        console.error('❌ Error fetching data from backend:', error);
+        
+        if (error.response?.status === 401) {
+            // Authentication error - redirect to login
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+            return [];
+        }
+        
+        throw new Error(error.response?.data?.error || 'Failed to fetch data from server');
+    }
+};
+
+export const searchGoogleSheetData = async (searchQuery, searchField = 'all', page = 1, limit = 50) => {
+    try {
+        const apiClient = createApiClient();
+        const response = await apiClient.get('/data/search', {
+            params: {
+                searchQuery,
+                searchField,
+                page,
+                limit
+            }
+        });
+
+        if (response.data.success) {
+            return {
+                data: response.data.data,
+                pagination: response.data.pagination,
+                searchInfo: response.data.searchInfo,
+                metadata: response.data.metadata
+            };
+        } else {
+            throw new Error(response.data.error || 'Search failed');
+        }
+    } catch (error) {
+        console.error('❌ Error searching data:', error);
+        throw new Error(error.response?.data?.error || 'Search operation failed');
+    }
+};
+
+// Function to refresh data cache
+export const refreshDataCache = async () => {
+    try {
+        const apiClient = createApiClient();
+        const response = await apiClient.post('/data/refresh');
+        
+        if (response.data.success) {
+            console.log('✅ Data cache refreshed successfully');
+            return response.data;
+        } else {
+            throw new Error(response.data.error || 'Failed to refresh cache');
+        }
+    } catch (error) {
+        console.error('❌ Error refreshing cache:', error);
+        throw new Error(error.response?.data?.error || 'Failed to refresh data cache');
+    }
+};
+
+// Function to get data statistics
+export const getDataStats = async () => {
+    try {
+        const apiClient = createApiClient();
+        // Use the search endpoint to get metadata which includes stats
+        const response = await apiClient.get('/data/search', {
+            params: {
+                page: 1,
+                limit: 1 // Just need metadata, not actual data
+            }
+        });
+        
+        if (response.data.success) {
+            const metadata = response.data.metadata;
+            return {
+                totalRecords: metadata.totalRecords,
+                lastUpdated: metadata.lastUpdated,
+                fromCache: metadata.fromCache
+            };
+        } else {
+            throw new Error(response.data.error || 'Failed to get statistics');
+        }
+    } catch (error) {
+        console.error('❌ Error getting statistics:', error);
+        throw new Error(error.response?.data?.error || 'Failed to get data statistics');
+    }
+};
+
+// Add function to clear cache (admin only)
 export const clearCache = async () => {
-    await dbService.clearData();
+    try {
+        const apiClient = createApiClient();
+        const response = await apiClient.delete('/data/cache');
+        
+        if (response.data.success) {
+            console.log('✅ Cache cleared successfully');
+            return response.data;
+        } else {
+            throw new Error(response.data.error || 'Failed to clear cache');
+        }
+    } catch (error) {
+        console.error('❌ Error clearing cache:', error);
+        throw new Error(error.response?.data?.error || 'Failed to clear cache');
+    }
 };
 
 // Add function to check cache status
 export const getCacheInfo = async () => {
-    return await dbService.getCacheInfo();
+    try {
+        const apiClient = createApiClient();
+        const response = await apiClient.get('/data/cache/info');
+        
+        if (response.data.success) {
+            return response.data.data;
+        } else {
+            throw new Error(response.data.error || 'Failed to get cache info');
+        }
+    } catch (error) {
+        console.error('❌ Error getting cache info:', error);
+        return null;
+    }
 };
 
 export default {
     fetchGoogleSheetData,
     searchGoogleSheetData,
+    refreshDataCache,
+    getDataStats,
     clearCache,
     getCacheInfo
 };

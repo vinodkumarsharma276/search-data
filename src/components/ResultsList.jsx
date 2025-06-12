@@ -42,7 +42,7 @@ const ResultsList = ({ results, loading, showNoResults = true }) => {
                 <tbody>
                     {results.map((item, index) => (
                         <tr key={index} className="result-row">
-                            <td>{item.id || 'N/A'}</td>
+                            {/* <td>{item.id || 'N/A'}</td> */}
                             <td>{item.account || 'N/A'}</td>
                             <td>{item.customerName || 'N/A'}</td>
                             <td>{item.address || 'N/A'}</td>
