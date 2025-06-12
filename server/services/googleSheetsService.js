@@ -52,21 +52,21 @@ class GoogleSheetsService {    constructor() {
             // Process the data
             const headers = rows[0];
             const data = rows.slice(1).map((row, index) => ({
-                id: row[0] || `row_${index}`,
-                account: row[1] || '',
-                customerName: row[2] || '',
-                address: row[3] || '',
-                mobile: row[4] || '',
-                co: row[5] || '',
-                coMobile: row[6] || '',
-                area: row[7] || '',
-                purchaseDate: row[8] || '',
-                product: row[9] || '',
-                brand: row[10] || '',
-                model: row[11] || '',
+                // id: row[0] || `row_${index}`,
+                account: row[0] || '',
+                customerName: row[1] || '',
+                address: row[2] || '',
+                mobile: row[3] || '',
+                co: row[4] || '',
+                coMobile: row[5] || '',
+                area: row[6] || '',
+                purchaseDate: row[7] || '',
+                product: row[8] || '',
+                brand: row[9] || '',
+                model: row[10] || '',
                 // Aliases for backward compatibility
-                name: row[2] || '',
-                phone: row[4] || '',
+                name: row[1] || '',
+                phone: row[3] || '',
             }));
 
             // Cache the data

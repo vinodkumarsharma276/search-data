@@ -108,7 +108,7 @@ const SearchPage = () => {
                 page, 
                 RESULTS_PER_PAGE
             );
-
+            console.log('📊 Search results:', result.data);
             setSearchResults(result.data);
             setPaginatedResults(result.data);
             setTotalResults(result.pagination.totalResults);

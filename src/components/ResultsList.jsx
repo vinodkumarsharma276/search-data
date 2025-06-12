@@ -25,7 +25,7 @@ const ResultsList = ({ results, loading, showNoResults = true }) => {
             <table className="results-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        {/* <th>ID</th> */}
                         <th>Account</th>
                         <th>Customer Name</th>
                         <th>Address</th>
