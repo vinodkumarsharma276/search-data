@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef, memo } from 'react';
 
-const SearchBox = ({ 
+const SearchBox = memo(({ 
     searchQuery, 
     setSearchQuery, 
     filterOption, 
@@ -9,6 +9,8 @@ const SearchBox = ({
     handleClear,
     isSearching 
 }) => {
+    const inputRef = useRef(null);
+
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
             handleSearch();
@@ -18,19 +20,12 @@ const SearchBox = ({
     const handleInputChange = (e) => {
         const value = e.target.value;
         setSearchQuery(value);
-        
-        // Auto-search when user types 3 or more characters or deletes
-        if (value.trim().length >= 3) {
-            handleSearch(value);
-        } else if (value.trim().length === 0) {
-            // Clear results when query is empty
-            handleSearch('');
-        }
+        // No direct handleSearch here; let parent handle debounced search
     };
 
     return (
         <div className="search-box">
-            <div className="search-controls">
+            <div className="search-controls" style={{ display: 'flex', gap: 15, alignItems: 'center', flexWrap: 'wrap' }}>
                 <select 
                     value={filterOption} 
                     onChange={(e) => setFilterOption(e.target.value)}
@@ -55,13 +50,15 @@ const SearchBox = ({
                 </select>
 
                 <input
+                    ref={inputRef}
                     type="text"
                     value={searchQuery}
                     onChange={handleInputChange}
                     placeholder={`Type at least 3 characters to search${filterOption === 'all' ? ' in all fields' : ` by ${filterOption}`}...`}
                     className="search-input"
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyPress}
                     disabled={isSearching}
+                    style={{ minWidth: 250, flex: 1 }}
                 />
 
                 <button 
@@ -84,6 +81,6 @@ const SearchBox = ({
             )}
         </div>
     );
-};
+});
 
 export default SearchBox;

@@ -145,6 +145,19 @@ const SearchPage = () => {
         }, 300);
     }, [performSearch]);
 
+    // Run search when searchQuery changes and is at least 3 chars, but do NOT reset pagination state unless query is empty
+    useEffect(() => {
+        if (searchQuery.trim().length >= 3) {
+            debouncedSearchRef.current(searchQuery, filterOption);
+        } else if (searchQuery.trim().length === 0) {
+            setSearchResults([]);
+            setPaginatedResults([]);
+            setTotalResults(0);
+            setTotalPages(0);
+            // Do not reset currentPage here
+        }
+    }, [searchQuery, filterOption]);
+
     const handleSearch = (query = searchQuery) => {
         if (query.trim().length >= 1) {
             debouncedSearchRef.current(query, filterOption);
@@ -165,13 +178,6 @@ const SearchPage = () => {
             await performSearch(searchQuery, filterOption, page);
         }
     };
-
-    // Trigger search when filter option changes
-    useEffect(() => {
-        if (searchQuery.trim().length >= 1) {
-            performSearch(searchQuery, filterOption, 1);
-        }
-    }, [filterOption, performSearch]);
 
     const handleLogout = () => {
          // Use authService for proper logout
@@ -241,6 +247,7 @@ const SearchPage = () => {
                 </div>
             </div>
 
+            {/* Memoized SearchBox to prevent re-render on results update */}
             <SearchBox 
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -251,6 +258,13 @@ const SearchPage = () => {
                 isSearching={isSearching}
             />
 
+            {/* Memoized ResultsList to prevent re-render on search box update */}
+            <ResultsList 
+                results={paginatedResults} 
+                loading={isSearching}
+                showNoResults={searchQuery.trim().length >= 1 && !isSearching}
+            />
+            
             <div className="results-section">
                 <div className="results-header">
                     <h3>
@@ -265,11 +279,7 @@ const SearchPage = () => {
                     </h3>
                 </div>
                 
-                <ResultsList 
-                    results={paginatedResults} 
-                    loading={isSearching}
-                    showNoResults={searchQuery.trim().length >= 1 && !isSearching}
-                />
+                
                 
                 {totalPages > 1 && (
                     <Pagination 

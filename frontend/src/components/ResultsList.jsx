@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import '../styles/ResultsList.css';
 
-const ResultsList = ({ results, loading, showNoResults = true }) => {
+const ResultsList = memo(({ results, loading, showNoResults = true }) => {
     if (loading) {
         return <div className="loading">Searching...</div>;
     }
@@ -21,8 +21,8 @@ const ResultsList = ({ results, loading, showNoResults = true }) => {
     }
 
     return (
-        <div className="results-table-container">
-            <table className="results-table">
+        <div className="results-table-container" style={{ overflowX: 'auto', maxWidth: '100vw', margin: '0 auto' }}>
+            <table className="results-table" style={{ width: '100%', minWidth: 900 }}>
                 <thead>
                     <tr>
                         {/* <th>ID</th> */}
@@ -41,7 +41,7 @@ const ResultsList = ({ results, loading, showNoResults = true }) => {
                 </thead>
                 <tbody>
                     {results.map((item, index) => (
-                        <tr key={index} className="result-row">
+                        <tr key={item.id || item.account || item.customerName || index} className="result-row">
                             {/* <td>{item.id || 'N/A'}</td> */}
                             <td>{item.account || 'N/A'}</td>
                             <td>{item.customerName || 'N/A'}</td>
@@ -60,6 +60,6 @@ const ResultsList = ({ results, loading, showNoResults = true }) => {
             </table>
         </div>
     );
-};
+});
 
 export default ResultsList;
