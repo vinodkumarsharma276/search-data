@@ -1,4 +1,4 @@
-import React, { useRef, memo } from 'react';
+import React, { useRef, memo, useState, useEffect } from 'react';
 
 const SearchBox = memo(({ 
     searchQuery, 
@@ -10,6 +10,22 @@ const SearchBox = memo(({
     isSearching 
 }) => {
     const inputRef = useRef(null);
+    // Local state to prevent re-renders from parent
+    const [localQuery, setLocalQuery] = useState(searchQuery);
+    const [localFilter, setLocalFilter] = useState(filterOption);
+
+    // Sync local state with parent only when parent changes externally
+    useEffect(() => {
+        if (searchQuery !== localQuery) {
+            setLocalQuery(searchQuery);
+        }
+    }, [searchQuery]);
+
+    useEffect(() => {
+        if (filterOption !== localFilter) {
+            setLocalFilter(filterOption);
+        }
+    }, [filterOption]);
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
@@ -19,16 +35,21 @@ const SearchBox = memo(({
 
     const handleInputChange = (e) => {
         const value = e.target.value;
-        setSearchQuery(value);
-        // No direct handleSearch here; let parent handle debounced search
+        setLocalQuery(value);
+        setSearchQuery(value); // Still update parent but local state prevents re-render
+    };
+
+    const handleFilterChange = (e) => {
+        const value = e.target.value;
+        setLocalFilter(value);
+        setFilterOption(value);
     };
 
     return (
-        <div className="search-box">
-            <div className="search-controls" style={{ display: 'flex', gap: 15, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="search-box">            <div className="search-controls" style={{ display: 'flex', gap: 15, alignItems: 'center', flexWrap: 'wrap' }}>
                 <select 
-                    value={filterOption} 
-                    onChange={(e) => setFilterOption(e.target.value)}
+                    value={localFilter} 
+                    onChange={handleFilterChange}
                     className="filter-select"
                 >
                     <option value="all">All Fields</option>
@@ -52,9 +73,9 @@ const SearchBox = memo(({
                 <input
                     ref={inputRef}
                     type="text"
-                    value={searchQuery}
+                    value={localQuery}
                     onChange={handleInputChange}
-                    placeholder={`Type at least 3 characters to search${filterOption === 'all' ? ' in all fields' : ` by ${filterOption}`}...`}
+                    placeholder={`Type at least 3 characters to search${localFilter === 'all' ? ' in all fields' : ` by ${localFilter}`}...`}
                     className="search-input"
                     onKeyDown={handleKeyPress}
                     disabled={isSearching}
@@ -64,7 +85,7 @@ const SearchBox = memo(({
                 <button 
                     onClick={() => handleSearch()} 
                     className="search-btn"
-                    disabled={searchQuery.trim().length < 3 || isSearching}
+                    disabled={localQuery.trim().length < 3 || isSearching}
                 >
                     {isSearching ? 'Searching...' : 'Search'}
                 </button>
@@ -74,7 +95,7 @@ const SearchBox = memo(({
                 </button>
             </div>
             
-            {searchQuery.trim().length > 0 && searchQuery.trim().length < 3 && (
+            {localQuery.trim().length > 0 && localQuery.trim().length < 3 && (
                 <div className="search-hint">
                     Type at least 3 characters to search
                 </div>

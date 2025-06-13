@@ -1,39 +1,267 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchGoogleSheetData, searchGoogleSheetData, refreshDataCache, getDataStats, getCacheInfo } from '../services/googleSheetsService';
-import SearchBox from './SearchBox';
 import ResultsList from './ResultsList';
 import Pagination from './Pagination';
 import authService from "../services/authService";
-
 import '../styles/SearchPage.css';
 
-const SearchPage = () => {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterOption, setFilterOption] = useState('customerName');
-    const [allData, setAllData] = useState([]);
-    const [searchResults, setSearchResults] = useState([]);
-    const [paginatedResults, setPaginatedResults] = useState([]);
-    const [loading, setLoading] = useState(true);
+// Completely autonomous SearchBox that handles its own search
+const AutonomousSearchBox = React.memo(() => {
+    const [query, setQuery] = useState('');
+    const [filter, setFilter] = useState('customerName');
+    const inputRef = useRef(null);
+    const debounceRef = useRef(null);
+    
+    // Custom event to communicate search results without causing re-renders
+    const dispatchSearchResults = useCallback((results) => {
+        window.dispatchEvent(new CustomEvent('searchResults', { detail: results }));
+    }, []);
+
+    const dispatchClearResults = useCallback(() => {
+        window.dispatchEvent(new CustomEvent('clearResults'));
+    }, []);
+
+    // Perform search internally without parent dependency
+    const performSearch = useCallback(async (searchQuery, searchFilter) => {
+        try {
+            console.log('🔍 AutonomousSearchBox performing search:', { searchQuery, searchFilter });
+            
+            const result = await searchGoogleSheetData(
+                searchQuery, 
+                searchFilter, 
+                1, 
+                50
+            );
+            
+            // Dispatch results via custom event to avoid parent re-renders
+            dispatchSearchResults({
+                data: result.data,
+                pagination: result.pagination,
+                query: searchQuery,
+                filter: searchFilter
+            });
+            
+        } catch (err) {
+            console.error('❌ Search error:', err);
+            dispatchSearchResults({
+                data: [],
+                pagination: { totalResults: 0, totalPages: 0, currentPage: 1 },
+                error: err.message,
+                query: searchQuery,
+                filter: searchFilter
+            });
+        }
+    }, [dispatchSearchResults]);
+
+    // Debounced search effect - completely isolated
+    useEffect(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+        
+        debounceRef.current = setTimeout(() => {
+            if (query.trim().length >= 3) {
+                performSearch(query.trim(), filter);
+            } else if (query.trim().length === 0) {
+                dispatchClearResults();
+            }
+        }, 300);
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, [query, filter, performSearch, dispatchClearResults]);
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && query.trim().length >= 3) {
+            performSearch(query.trim(), filter);
+        }
+    };
+
+    const handleClearClick = () => {
+        setQuery('');
+        setFilter('customerName');
+        dispatchClearResults();
+    };
+
+    console.log('🔍 AutonomousSearchBox render - query:', query);
+
+    return (
+        <div className="search-box" style={{ padding: '20px' }}>
+            <div className="search-controls" style={{ display: 'flex', gap: 15, alignItems: 'center', flexWrap: 'wrap' }}>
+                <select 
+                    value={filter} 
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="filter-select"
+                >
+                    <option value="all">All Fields</option>
+                    <option value="customerName">Customer Name</option>
+                    <option value="id">ID</option>
+                    <option value="account">Account</option>
+                    <option value="address">Address</option>
+                    <option value="mobile">Mobile</option>
+                    <option value="co">CO</option>
+                    <option value="coMobile">CO Mobile</option>
+                    <option value="area">Area</option>
+                    <option value="purchaseDate">Purchase Date</option>
+                    <option value="product">Product</option>
+                    <option value="brand">Brand</option>
+                    <option value="model">Model</option>
+                </select>
+
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={`Type at least 3 characters to search${filter === 'all' ? ' in all fields' : ` by ${filter}`}...`}
+                    className="search-input"
+                    onKeyDown={handleKeyDown}
+                    style={{ minWidth: 250, flex: 1 }}
+                />
+
+                <button 
+                    onClick={() => query.trim().length >= 3 && performSearch(query.trim(), filter)} 
+                    className="search-btn"
+                    disabled={query.trim().length < 3}
+                >
+                    Search
+                </button>
+
+                <button onClick={handleClearClick} className="clear-btn">
+                    Clear
+                </button>
+            </div>
+            
+            {query.trim().length > 0 && query.trim().length < 3 && (
+                <div className="search-hint">
+                    Type at least 3 characters to search
+                </div>
+            )}
+        </div>
+    );
+});
+
+// Results container that listens to custom events
+const EventDrivenResults = React.memo(() => {
+    const [results, setResults] = useState([]);
+    const [hasSearched, setHasSearched] = useState(false);
+    const [totalResults, setTotalResults] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [currentQuery, setCurrentQuery] = useState('');
+    const [currentFilter, setCurrentFilter] = useState('customerName');
     const [isSearching, setIsSearching] = useState(false);
+    
+    const RESULTS_PER_PAGE = 50;
+
+    // Listen to search results via custom events
+    useEffect(() => {
+        const handleSearchResults = (event) => {
+            const { data, pagination, query, filter, error } = event.detail;
+            console.log('📊 EventDrivenResults received:', { data: data?.length, pagination, query, filter });
+            
+            setResults(data || []);
+            setTotalResults(pagination?.totalResults || 0);
+            setTotalPages(pagination?.totalPages || 0);
+            setCurrentPage(pagination?.currentPage || 1);
+            setCurrentQuery(query || '');
+            setCurrentFilter(filter || 'customerName');
+            setHasSearched(true);
+            setIsSearching(false);
+        };
+
+        const handleClearResults = () => {
+            console.log('🧹 EventDrivenResults clearing results');
+            setResults([]);
+            setTotalResults(0);
+            setTotalPages(0);
+            setCurrentPage(1);
+            setHasSearched(false);
+            setCurrentQuery('');
+            setCurrentFilter('customerName');
+            setIsSearching(false);
+        };
+
+        window.addEventListener('searchResults', handleSearchResults);
+        window.addEventListener('clearResults', handleClearResults);
+
+        return () => {
+            window.removeEventListener('searchResults', handleSearchResults);
+            window.removeEventListener('clearResults', handleClearResults);
+        };
+    }, []);
+
+    // Page change handler
+    const handlePageChange = useCallback(async (page) => {
+        if (currentQuery) {
+            setIsSearching(true);
+            try {
+                const result = await searchGoogleSheetData(
+                    currentQuery, 
+                    currentFilter, 
+                    page, 
+                    RESULTS_PER_PAGE
+                );
+                
+                setResults(result.data);
+                setTotalResults(result.pagination.totalResults);
+                setTotalPages(result.pagination.totalPages);
+                setCurrentPage(result.pagination.currentPage);
+            } catch (err) {
+                console.error('❌ Page change error:', err);
+            } finally {
+                setIsSearching(false);
+            }
+        }
+    }, [currentQuery, currentFilter]);
+
+    console.log('📋 EventDrivenResults render - results:', results.length);
+
+    return (
+        <div className="results-section">
+            <div className="results-header">
+                <h3>
+                    {hasSearched ? (
+                        <>Results ({totalResults}) 
+                        {totalResults > RESULTS_PER_PAGE && 
+                            ` - Page ${currentPage} of ${totalPages}`
+                        }</>
+                    ) : (
+                        'Enter search terms to find records'
+                    )}
+                </h3>
+            </div>
+            
+            <ResultsList 
+                results={results} 
+                loading={isSearching}
+                showNoResults={hasSearched && !isSearching}
+            />
+            
+            {totalPages > 1 && (
+                <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                />
+            )}
+        </div>
+    );
+});
+
+const SearchPage = () => {
+    // Data loading state
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [cacheInfo, setCacheInfo] = useState(null);
-    const [totalRows, setTotalRows] = useState(0);
     const [currentUser, setCurrentUser] = useState(null);
     const [dataStats, setDataStats] = useState(null);
 
-    // Use refs to store search cache data to avoid dependency issues
-    const cachedSearchDataRef = useRef([]);
-    const lastSearchQueryRef = useRef('');
-    const lastFilterOptionRef = useRef('');
+    console.log('🔍 SearchPageFixed render');
 
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(0);
-    const [totalResults, setTotalResults] = useState(0);
-    const RESULTS_PER_PAGE = 50;
-
-    console.log('🔍 SearchPage render');    
-    
     useEffect(() => {
         loadData();
         loadUserData();
@@ -59,9 +287,6 @@ const SearchPage = () => {
         try {
             setLoading(true);
             const data = await fetchGoogleSheetData(forceRefresh);
-            // console.log('📊 Data loaded from Google Sheets:', data);
-            setAllData(data);
-            setTotalRows(data.length);
             
             // Update cache info
             const info = await getCacheInfo();
@@ -74,7 +299,8 @@ const SearchPage = () => {
         } finally {
             setLoading(false);
         }
-    };    // Add refresh handler for backend API
+    };
+
     const handleRefresh = async () => {
         try {
             await refreshDataCache();
@@ -86,103 +312,8 @@ const SearchPage = () => {
         }
     };
 
-    // Update search to use backend API
-    const performSearch = useCallback(async (query, currentFilter, page = 1) => {
-        if (!query.trim() || query.trim().length < 1) {
-            setSearchResults([]);
-            setPaginatedResults([]);
-            setTotalResults(0);
-            setTotalPages(0);
-            setCurrentPage(1);
-            return;
-        }
-
-        setIsSearching(true);
-        
-        try {
-            console.log('🔍 Performing search:', { query, currentFilter, page });
-            
-            const result = await searchGoogleSheetData(
-                query.trim(), 
-                currentFilter, 
-                page, 
-                RESULTS_PER_PAGE
-            );
-            console.log('📊 Search results:', result.data);
-            setSearchResults(result.data);
-            setPaginatedResults(result.data);
-            setTotalResults(result.pagination.totalResults);
-            setTotalPages(result.pagination.totalPages);
-            setCurrentPage(result.pagination.currentPage);
-            
-            console.log('✅ Search completed:', result.searchInfo);
-            
-        } catch (err) {
-            console.error('❌ Search error:', err);
-            setError(err.message || 'Error occurred during search');
-        } finally {
-            setIsSearching(false);
-        }
-    }, []);    // Debounced search function
-    const debounce = (func, wait) => {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    };
-
-    // Debounced search for real-time typing
-    const debouncedSearchRef = useRef();
-    
-    useEffect(() => {
-        debouncedSearchRef.current = debounce((query, filter) => {
-            performSearch(query, filter, 1);
-        }, 300);
-    }, [performSearch]);
-
-    // Run search when searchQuery changes and is at least 3 chars, but do NOT reset pagination state unless query is empty
-    useEffect(() => {
-        if (searchQuery.trim().length >= 3) {
-            debouncedSearchRef.current(searchQuery, filterOption);
-        } else if (searchQuery.trim().length === 0) {
-            setSearchResults([]);
-            setPaginatedResults([]);
-            setTotalResults(0);
-            setTotalPages(0);
-            // Do not reset currentPage here
-        }
-    }, [searchQuery, filterOption]);
-
-    const handleSearch = (query = searchQuery) => {
-        if (query.trim().length >= 1) {
-            debouncedSearchRef.current(query, filterOption);
-        }
-    };
-
-    const handleClear = () => {
-        setSearchQuery('');
-        setSearchResults([]);
-        setPaginatedResults([]);
-        setTotalResults(0);
-        setTotalPages(0);
-        setCurrentPage(1);
-    };
-
-    const handlePageChange = async (page) => {
-        if (searchQuery.trim().length >= 1) {
-            await performSearch(searchQuery, filterOption, page);
-        }
-    };
-
     const handleLogout = () => {
-         // Use authService for proper logout
         authService.logout();
-        // Redirect to login page
         window.location.href = '/login';
     };
 
@@ -206,7 +337,9 @@ const SearchPage = () => {
                 <div className="error">{error}</div>
             </div>
         );
-    }    return (
+    }
+
+    return (
         <div className="search-container">
             <div className="search-header-redesigned">
                 <div className="header-left">
@@ -247,48 +380,11 @@ const SearchPage = () => {
                 </div>
             </div>
 
-            {/* Memoized SearchBox to prevent re-render on results update */}
-            <SearchBox 
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                filterOption={filterOption}
-                setFilterOption={setFilterOption}
-                handleSearch={handleSearch}
-                handleClear={handleClear}
-                isSearching={isSearching}
-            />
+            {/* Completely autonomous search box */}
+            <AutonomousSearchBox />
 
-            {/* Memoized ResultsList to prevent re-render on search box update */}
-            <ResultsList 
-                results={paginatedResults} 
-                loading={isSearching}
-                showNoResults={searchQuery.trim().length >= 1 && !isSearching}
-            />
-            
-            <div className="results-section">
-                <div className="results-header">
-                    <h3>
-                        {searchQuery.trim().length >= 1 ? (
-                            <>Results ({totalResults}) 
-                            {totalResults > RESULTS_PER_PAGE && 
-                                ` - Page ${currentPage} of ${totalPages}`
-                            }</>
-                        ) : (
-                            'Enter search terms to find records'
-                        )}
-                    </h3>
-                </div>
-                
-                
-                
-                {totalPages > 1 && (
-                    <Pagination 
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
-                )}
-            </div>
+            {/* Event-driven results container */}
+            <EventDrivenResults />
         </div>
     );
 };

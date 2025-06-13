@@ -91,8 +91,7 @@ function App() {
                 <Route 
                     path="/login" 
                     element={isAuthenticated ? <Navigate to="/search" replace /> : <Login />}
-                />
-                <Route 
+                />                <Route 
                     path="/search" 
                     element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
                 />

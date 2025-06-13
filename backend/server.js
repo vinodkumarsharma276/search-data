@@ -15,7 +15,9 @@ import { logger } from './middleware/logger.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+
+console.log('🔧 Environment PORT:', process.env.PORT, 'Using PORT:', PORT);
 
 // Security middleware
 app.use(helmet());
@@ -63,7 +65,7 @@ app.use('/api/data', dataRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Start server
+// Start server  
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     console.log(`📊 Health check available at http://localhost:${PORT}/health`);
