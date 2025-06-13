@@ -259,14 +259,27 @@ const SearchPage = () => {
     const [cacheInfo, setCacheInfo] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [dataStats, setDataStats] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
 
-    console.log('🔍 SearchPageFixed render');
-
-    useEffect(() => {
+    console.log('🔍 SearchPageFixed render');    useEffect(() => {
         loadData();
         loadUserData();
         loadStats();
     }, []);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuOpen && !event.target.closest('.burger-menu')) {
+                setMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [menuOpen]);
 
     const loadUserData = () => {
         const user = authService.getCurrentUser();
@@ -337,20 +350,20 @@ const SearchPage = () => {
                 <div className="error">{error}</div>
             </div>
         );
-    }
-
-    return (
+    }    return (
         <div className="search-container">
             <div className="search-header-redesigned">
                 <div className="header-left">
-                    <button onClick={handleRefresh} className="icon-btn refresh-icon-btn" disabled={loading} title="Refresh Data">
-                        🔄
-                    </button>
-                    {cacheInfo?.hasCache && (
-                        <div className="cache-timestamp" title="Last data update">
-                            📅 {new Date(cacheInfo.lastUpdated).toLocaleString()}
-                        </div>
-                    )}
+                    <div className="controls-section">
+                        <button onClick={handleRefresh} className="icon-btn refresh-icon-btn" disabled={loading} title="Refresh Data">
+                            🔄
+                        </button>
+                        {cacheInfo?.hasCache && (
+                            <div className="cache-timestamp" title="Last data update">
+                                📅 {new Date(cacheInfo.lastUpdated).toLocaleString()}
+                            </div>
+                        )}
+                    </div>
                     {dataStats && (
                         <div className="data-stats">
                             <span className="total-rows" title="Total records">📊 {dataStats.totalRecords.toLocaleString()}</span>
@@ -360,23 +373,38 @@ const SearchPage = () => {
                 </div>
                 
                 <div className="header-center">
-                    <h1>Vinod Electronics Search</h1>
-                    {currentUser && (
-                        <div className="user-info">
-                            <span className="username">👤 {currentUser.username}</span>
-                            <span className="user-role" title="User role">
-                                {currentUser.role === 'admin' && '🔑 Admin'}
-                                {currentUser.role === 'manager' && '📋 Manager'}
-                                {currentUser.role === 'employee' && '👷 Employee'}
-                            </span>
-                        </div>
-                    )}
+                    <h1>Vinod Electronics</h1>
                 </div>
                 
                 <div className="header-right">
-                    <button onClick={handleLogout} className="icon-btn logout-icon-btn" title="Logout">
-                        🚪 Logout
-                    </button>
+                    <div className="burger-menu">
+                        <button 
+                            className="burger-btn" 
+                            onClick={() => setMenuOpen(!menuOpen)}
+                            title="Menu"
+                        >
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                        {menuOpen && (
+                            <div className="burger-dropdown">
+                                {currentUser && (
+                                    <div className="dropdown-user-info">
+                                        <span className="dropdown-username">👤 {currentUser.username}</span>
+                                        <span className="dropdown-user-role">
+                                            {currentUser.role === 'admin' && '🔑 Admin'}
+                                            {currentUser.role === 'manager' && '📋 Manager'}
+                                            {currentUser.role === 'employee' && '👷 Employee'}
+                                        </span>
+                                    </div>
+                                )}
+                                <button onClick={handleLogout} className="dropdown-logout">
+                                    🚪 Logout
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

@@ -5,11 +5,11 @@
   padding: 20px;
 }
 
-/* Header Redesign */
+/* Header Redesign - Burger Menu Style */
 .search-header-redesigned {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     padding: 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -17,7 +17,7 @@
     margin-bottom: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     position: relative;
-    min-height: 80px;
+    min-height: 60px;
 }
 
 .header-left {
@@ -28,11 +28,17 @@
     flex: 1;
 }
 
+.controls-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .header-center {
     display: flex;
     justify-content: center;
     align-items: center;
-    flex: 2;
+    flex: 1;
     text-align: center;
 }
 
@@ -47,8 +53,124 @@
 .header-right {
     display: flex;
     justify-content: flex-end;
-    align-items: flex-start;
+    align-items: center;
     flex: 1;
+}
+
+/* Burger Menu Styles */
+.burger-menu {
+    position: relative;
+}
+
+.burger-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 8px;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    gap: 4px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.burger-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.burger-btn span {
+    width: 20px;
+    height: 2px;
+    background: white;
+    border-radius: 1px;
+    transition: all 0.3s ease;
+}
+
+.burger-btn:hover span {
+    background: #f8f9fa;
+}
+
+/* Burger Dropdown */
+.burger-dropdown {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    border-radius: 12px;
+    padding: 15px;
+    min-width: 200px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1000;
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: rgba(108, 117, 125, 0.1);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border-left: 3px solid #667eea;
+}
+
+.dropdown-username {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.dropdown-user-role {
+    font-size: 12px;
+    color: #666;
+    background: rgba(108, 117, 125, 0.15);
+    padding: 3px 8px;
+    border-radius: 12px;
+    width: fit-content;
+}
+
+.dropdown-logout {
+    width: 100%;
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.dropdown-logout:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 .icon-btn {
@@ -257,30 +379,96 @@
 /* Mobile Responsive for Search */
 @media (max-width: 768px) {
   .search-container {
-    padding: 15px;
+    padding: 10px;
   }
 
   .search-header-redesigned {
       padding: 15px;
-      min-height: 70px;
+      min-height: 50px;
+  }
+  
+  .header-left {
+      flex-direction: column;
+      gap: 8px;
+  }
+  
+  .controls-section {
+      gap: 8px;
   }
   
   .header-center h1 {
-      font-size: 20px;
+      font-size: 18px;
+  }
+  
+  .burger-btn {
+      width: 40px;
+      height: 40px;
+  }
+  
+  .burger-btn span {
+      width: 18px;
+  }
+  
+  .burger-dropdown {
+      top: 50px;
+      right: -5px;
+      min-width: 180px;
+      padding: 12px;
+  }
+  
+  .dropdown-user-info {
+      padding: 10px;
+      margin-bottom: 10px;
+  }
+  
+  .dropdown-username {
+      font-size: 13px;
+  }
+  
+  .dropdown-user-role {
+      font-size: 11px;
+  }
+  
+  .dropdown-logout {
+      padding: 10px 14px;
+      font-size: 13px;
   }
   
   .icon-btn {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       font-size: 16px;
   }
   
   .cache-timestamp {
-      font-size: 9px;
+      font-size: 8px;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 4px 8px;
+      border-radius: 6px;
+      backdrop-filter: blur(5px);
+      max-width: none;
+      word-wrap: break-word;
+  }
+  
+  .data-stats {
+      justify-content: flex-start;
+      gap: 6px;
+      flex-wrap: wrap;
+  }
+  
+  .total-rows,
+  .unique-customers {
+      font-size: 8px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(5px);
   }
 
   .search-box {
-    padding: 20px;
+    padding: 15px;
+    margin-bottom: 15px;
   }
 
   .search-controls {
@@ -312,32 +500,74 @@
 
 @media (max-width: 480px) {
   .search-container {
-    padding: 10px;
+    padding: 8px;
   }
 
   .search-header-redesigned {
       padding: 12px;
-      min-height: 60px;
   }
   
   .header-center h1 {
-      font-size: 18px;
+      font-size: 16px;
+  }
+  
+  .burger-btn {
+      width: 36px;
+      height: 36px;
+  }
+  
+  .burger-btn span {
+      width: 16px;
+  }
+  
+  .burger-dropdown {
+      right: -8px;
+      min-width: 160px;
+      padding: 10px;
+  }
+  
+  .dropdown-user-info {
+      padding: 8px;
+      margin-bottom: 8px;
+  }
+  
+  .dropdown-username {
+      font-size: 12px;
+  }
+  
+  .dropdown-user-role {
+      font-size: 10px;
+  }
+  
+  .dropdown-logout {
+      padding: 8px 12px;
+      font-size: 12px;
   }
   
   .icon-btn {
-      width: 35px;
-      height: 35px;
+      width: 34px;
+      height: 34px;
       font-size: 14px;
   }
   
   .cache-timestamp {
-      font-size: 8px;
-      max-width: 80px;
-      word-wrap: break-word;
+      font-size: 7px;
+      padding: 3px 6px;
+  }
+  
+  .data-stats {
+      gap: 4px;
+  }
+  
+  .total-rows,
+  .unique-customers {
+      font-size: 7px;
+      padding: 2px 5px;
   }
 
   .search-box {
-    padding: 15px;
+    padding: 12px;
+    margin-bottom: 12px;
   }
 
   .result-item {
@@ -358,6 +588,7 @@
 }
 
 .total-rows,
+.unique-customers,
 .data-size {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.9);

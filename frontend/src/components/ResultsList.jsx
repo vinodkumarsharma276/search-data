@@ -1,7 +1,34 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import '../styles/ResultsList.css';
 
 const ResultsList = memo(({ results, loading, showNoResults = true }) => {
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+
+    const handleRowClick = (item) => {
+        setSelectedItem(item);
+        setShowModal(true);
+    };
+
+    const closeModal = () => {
+        setShowModal(false);
+        setSelectedItem(null);
+    };
+
+    const fieldLabels = {
+        id: 'ID',
+        account: 'Account',
+        customerName: 'Customer Name', 
+        address: 'Address',
+        mobile: 'Mobile',
+        co: 'CO',
+        coMobile: 'CO Mobile',
+        area: 'Area',
+        purchaseDate: 'Purchase Date',
+        product: 'Product',
+        brand: 'Brand',
+        model: 'Model'
+    };
     if (loading) {
         return <div className="loading">Searching...</div>;
     }
@@ -38,10 +65,14 @@ const ResultsList = memo(({ results, loading, showNoResults = true }) => {
                         <th>Brand</th>
                         <th>Model</th>
                     </tr>
-                </thead>
-                <tbody>
+                </thead>                <tbody>
                     {results.map((item, index) => (
-                        <tr key={item.id || item.account || item.customerName || index} className="result-row">
+                        <tr 
+                            key={item.id || item.account || item.customerName || index} 
+                            className="result-row clickable-row"
+                            onClick={() => handleRowClick(item)}
+                            title="Click to view details"
+                        >
                             {/* <td>{item.id || 'N/A'}</td> */}
                             <td>{item.account || 'N/A'}</td>
                             <td>{item.customerName || 'N/A'}</td>
@@ -58,6 +89,38 @@ const ResultsList = memo(({ results, loading, showNoResults = true }) => {
                     ))}
                 </tbody>
             </table>
+            
+            {/* Detail Modal */}
+            {showModal && selectedItem && (
+                <div className="modal-overlay" onClick={closeModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Customer Details</h3>
+                            <button className="modal-close" onClick={closeModal} title="Close">
+                                ✕
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <table className="detail-table">
+                                <tbody>
+                                    {Object.entries(fieldLabels).map(([key, label]) => {
+                                        const value = selectedItem[key];
+                                        if (value && value !== 'N/A') {
+                                            return (
+                                                <tr key={key} className="detail-row">
+                                                    <td className="detail-label">{label}</td>
+                                                    <td className="detail-value">{value}</td>
+                                                </tr>
+                                            );
+                                        }
+                                        return null;
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 });
