@@ -8,7 +8,8 @@ import '../styles/SearchPage.css';
 // Completely autonomous SearchBox that handles its own search
 const AutonomousSearchBox = React.memo(() => {
     const [query, setQuery] = useState('');
-    const [filter, setFilter] = useState('customerName');
+    const [filter, setFilter] = useState('mobile');
+    const [showNumericWarning, setShowNumericWarning] = useState(false);
     const inputRef = useRef(null);
     const debounceRef = useRef(null);
     
@@ -72,17 +73,35 @@ const AutonomousSearchBox = React.memo(() => {
                 clearTimeout(debounceRef.current);
             }
         };
-    }, [query, filter, performSearch, dispatchClearResults]);
-
-    const handleKeyDown = (e) => {
+    }, [query, filter, performSearch, dispatchClearResults]);    const handleKeyDown = (e) => {
         if (e.key === 'Enter' && query.trim().length >= 3) {
             performSearch(query.trim(), filter);
         }
+    };const handleInputChange = (e) => {
+        let value = e.target.value;
+        
+        // For mobile fields, check if non-numeric characters are being typed
+        if (filter === 'mobile' || filter === 'coMobile') {
+            const hasNonNumeric = /[^0-9]/.test(value);
+            setShowNumericWarning(hasNonNumeric);
+            
+            // Remove non-numeric characters
+            value = value.replace(/[^0-9]/g, '');
+        } else {
+            setShowNumericWarning(false);
+        }
+        
+        setQuery(value);
     };
 
-    const handleClearClick = () => {
+    // Reset warning when filter changes
+    const handleFilterChange = (e) => {
+        setFilter(e.target.value);
+        setShowNumericWarning(false);
+    };    const handleClearClick = () => {
         setQuery('');
-        setFilter('customerName');
+        setFilter('mobile');
+        setShowNumericWarning(false);
         dispatchClearResults();
     };
 
@@ -90,13 +109,13 @@ const AutonomousSearchBox = React.memo(() => {
 
     return (
         <div className="search-box" style={{ padding: '20px' }}>
-            <div className="search-controls" style={{ display: 'flex', gap: 15, alignItems: 'center', flexWrap: 'wrap' }}>
-                <select 
+            <div className="search-controls" style={{ display: 'flex', gap: 15, alignItems: 'center', flexWrap: 'wrap' }}>                <select 
                     value={filter} 
-                    onChange={(e) => setFilter(e.target.value)}
+                    onChange={handleFilterChange}
                     className="filter-select"
                 >
                     <option value="all">All Fields</option>
+                    <option value="mobile">Mobile</option>
                     <option value="customerName">Customer Name</option>
                     <option value="id">ID</option>
                     <option value="account">Account</option>
@@ -109,13 +128,11 @@ const AutonomousSearchBox = React.memo(() => {
                     <option value="product">Product</option>
                     <option value="brand">Brand</option>
                     <option value="model">Model</option>
-                </select>
-
-                <input
+                </select>                <input
                     ref={inputRef}
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder={`Type at least 3 characters to search${filter === 'all' ? ' in all fields' : ` by ${filter}`}...`}
                     className="search-input"
                     onKeyDown={handleKeyDown}
@@ -134,10 +151,15 @@ const AutonomousSearchBox = React.memo(() => {
                     Clear
                 </button>
             </div>
-            
-            {query.trim().length > 0 && query.trim().length < 3 && (
+              {query.trim().length > 0 && query.trim().length < 3 && (
                 <div className="search-hint">
                     Type at least 3 characters to search
+                </div>
+            )}
+            
+            {showNumericWarning && (filter === 'mobile' || filter === 'coMobile') && (
+                <div className="search-warning">
+                    ⚠️ Only numbers are allowed for mobile number search
                 </div>
             )}
         </div>
@@ -151,8 +173,7 @@ const EventDrivenResults = React.memo(() => {
     const [totalResults, setTotalResults] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [currentQuery, setCurrentQuery] = useState('');
-    const [currentFilter, setCurrentFilter] = useState('customerName');
+    const [currentQuery, setCurrentQuery] = useState('');    const [currentFilter, setCurrentFilter] = useState('mobile');
     const [isSearching, setIsSearching] = useState(false);
     
     const RESULTS_PER_PAGE = 50;
@@ -167,8 +188,7 @@ const EventDrivenResults = React.memo(() => {
             setTotalResults(pagination?.totalResults || 0);
             setTotalPages(pagination?.totalPages || 0);
             setCurrentPage(pagination?.currentPage || 1);
-            setCurrentQuery(query || '');
-            setCurrentFilter(filter || 'customerName');
+            setCurrentQuery(query || '');            setCurrentFilter(filter || 'mobile');
             setHasSearched(true);
             setIsSearching(false);
         };
@@ -179,9 +199,8 @@ const EventDrivenResults = React.memo(() => {
             setTotalResults(0);
             setTotalPages(0);
             setCurrentPage(1);
-            setHasSearched(false);
-            setCurrentQuery('');
-            setCurrentFilter('customerName');
+            setHasSearched(false);            setCurrentQuery('');
+            setCurrentFilter('mobile');
             setIsSearching(false);
         };
 

@@ -13,14 +13,12 @@ const ResultsList = memo(({ results, loading, showNoResults = true }) => {
     const closeModal = () => {
         setShowModal(false);
         setSelectedItem(null);
-    };
-
-    const fieldLabels = {
+    };    const fieldLabels = {
+        mobile: 'Mobile',
         id: 'ID',
         account: 'Account',
         customerName: 'Customer Name', 
         address: 'Address',
-        mobile: 'Mobile',
         co: 'CO',
         coMobile: 'CO Mobile',
         area: 'Area',
@@ -49,14 +47,12 @@ const ResultsList = memo(({ results, loading, showNoResults = true }) => {
 
     return (
         <div className="results-table-container" style={{ overflowX: 'auto', maxWidth: '100vw', margin: '0 auto' }}>
-            <table className="results-table" style={{ width: '100%', minWidth: 900 }}>
-                <thead>
+            <table className="results-table" style={{ width: '100%', minWidth: 900 }}>                <thead>
                     <tr>
-                        {/* <th>ID</th> */}
+                        <th>Mobile</th>
                         <th>Account</th>
                         <th>Customer Name</th>
                         <th>Address</th>
-                        <th>Mobile</th>
                         <th>CO</th>
                         <th>CO Mobile</th>
                         <th>Area</th>
@@ -65,19 +61,17 @@ const ResultsList = memo(({ results, loading, showNoResults = true }) => {
                         <th>Brand</th>
                         <th>Model</th>
                     </tr>
-                </thead>                <tbody>
+                </thead><tbody>
                     {results.map((item, index) => (
                         <tr 
                             key={item.id || item.account || item.customerName || index} 
                             className="result-row clickable-row"
                             onClick={() => handleRowClick(item)}
-                            title="Click to view details"
-                        >
-                            {/* <td>{item.id || 'N/A'}</td> */}
+                            title="Click to view details"                        >
+                            <td>{item.mobile || 'N/A'}</td>
                             <td>{item.account || 'N/A'}</td>
                             <td>{item.customerName || 'N/A'}</td>
                             <td>{item.address || 'N/A'}</td>
-                            <td>{item.mobile || 'N/A'}</td>
                             <td>{item.co || 'N/A'}</td>
                             <td>{item.coMobile || 'N/A'}</td>
                             <td>{item.area || 'N/A'}</td>
