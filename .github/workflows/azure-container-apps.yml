@@ -41,6 +41,15 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: 🧪 Verify Azure Login and Clear Cache
+      run: |
+        echo "Verifying Azure login..."
+        az account show
+        echo "Clearing Azure CLI cache to prevent token issues..."
+        az cache purge
+        echo "Testing resource group access..."
+        az group show --name ${{ env.RESOURCE_GROUP }}
+
     - name: 🔐 Log in to Azure Container Registry via Azure CLI
       run: |
         az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
@@ -57,18 +66,41 @@ jobs:
         platforms: linux/amd64
         cache-from: type=gha
         cache-to: type=gha,mode=max
-    
+
     - name: 🚀 Deploy to Azure Container Apps (Production)
       if: github.ref == 'refs/heads/master' && github.event_name == 'push'
       run: |
-        az deployment group create \
+        echo "🚀 Starting Azure deployment..."
+        echo "Clearing cache before deployment..."
+        az cache purge
+        
+        echo "Deploying with parameters:"
+        echo "- Resource Group: ${{ env.RESOURCE_GROUP }}"
+        echo "- Container Image: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}"
+        
+        # First try with Bicep template
+        if az deployment group create \
           --resource-group ${{ env.RESOURCE_GROUP }} \
           --template-file infrastructure/main.bicep \
           --parameters @infrastructure/main.parameters.json \
           --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
           --parameters googleSheetId="${{ secrets.VITE_GOOGLE_SHEET_ID }}" \
           --parameters googleApiKey="${{ secrets.VITE_GOOGLE_API_KEY }}" \
-          --parameters jwtSecret="${{ secrets.JWT_SECRET || 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' }}"
+          --parameters jwtSecret="${{ secrets.JWT_SECRET || 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' }}" \
+          --verbose; then
+          echo "✅ Bicep deployment successful"
+        else
+          echo "❌ Bicep deployment failed, trying with ARM template..."
+          az deployment group create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file infrastructure/main.json \
+            --parameters @infrastructure/main.parameters.json \
+            --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
+            --parameters googleSheetId="${{ secrets.VITE_GOOGLE_SHEET_ID }}" \
+            --parameters googleApiKey="${{ secrets.VITE_GOOGLE_API_KEY }}" \
+            --parameters jwtSecret="${{ secrets.JWT_SECRET || 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' }}" \
+            --verbose
+        fi
 
     - name: 🧪 Run production smoke tests
       if: github.ref == 'refs/heads/master' && github.event_name == 'push'
