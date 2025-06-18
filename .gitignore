@@ -7,6 +7,7 @@ yarn-error.log*
 # Production build
 dist/
 build/
+dev-dist/
 
 # Environment variables
 .env
@@ -19,6 +20,22 @@ build/
 # Never commit these
 *.env
 !.env.example
+
+# Temporary documentation files (migration artifacts)
+*-GUIDE.md
+*-STATUS.md
+*-COMPLETE.md
+*-SUCCESS.md
+TESTING-*.md
+TEST-*.md
+README-*.md
+AZURE-*.md
+MIGRATION-*.md
+PRODUCTION-*.md
+FINAL-*.md
+
+# Azure Static Web Apps config (deprecated)
+staticwebapp.config.json
 
 # IDE and editor files
 .vscode/
