@@ -13,6 +13,13 @@ RUN npm install
 
 # Copy frontend source and build
 COPY frontend/ ./frontend/
+
+# Set production environment variables for frontend build
+ENV VITE_API_BASE_URL=/api
+ENV VITE_APP_NAME="Vinod Electronics Search"
+ENV VITE_APP_VERSION=2.0.0
+ENV NODE_ENV=production
+
 RUN npm run build --workspace=frontend
 
 # Build stage for backend
