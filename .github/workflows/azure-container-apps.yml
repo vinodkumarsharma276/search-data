@@ -71,15 +71,17 @@ jobs:
     - name: 🔐 Azure Login
       uses: azure/login@v1.4.6
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+        creds: ${{ secrets.AZURE_CREDENTIALS }}    
+    
     - name: 🚀 Deploy to Azure Container Apps (Production)
       run: |
         az deployment group create \
           --resource-group ${{ env.RESOURCE_GROUP }} \
           --template-file infrastructure/main.bicep \
           --parameters @infrastructure/main.parameters.json \
-          --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+          --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
+          --parameters googleSheetId="${{ secrets.VITE_GOOGLE_SHEET_ID }}" \
+          --parameters googleApiKey="${{ secrets.VITE_GOOGLE_API_KEY }}"
 
     - name: 🧪 Run production smoke tests
       run: |
