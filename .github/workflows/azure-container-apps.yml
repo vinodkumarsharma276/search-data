@@ -20,7 +20,7 @@ jobs:
     
     steps:
     - name: 🔄 Checkout repository
-      uses: actions/checkout@v4    
+      uses: actions/checkout@v4      
     - name: 🐳 Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -30,6 +30,7 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
         auth-type: SERVICE_PRINCIPAL
 
     - name: 🔐 Log in to Azure Container Registry via Azure CLI
@@ -55,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     
-    steps:    
+    steps:      
     - name: 🔄 Checkout repository
       uses: actions/checkout@v4
 
@@ -65,6 +66,7 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
         auth-type: SERVICE_PRINCIPAL
 
     - name: 🚀 Deploy to Azure Container Apps (Production)
