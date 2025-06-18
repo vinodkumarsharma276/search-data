@@ -1,0 +1,79 @@
+name: Azure Container Apps - Deploy
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+env:
+  AZURE_CONTAINER_REGISTRY: vinodelectronics
+  CONTAINER_NAME: vinod-electronics
+  RESOURCE_GROUP: ve
+  CONTAINER_APP_NAME: vinod-electronics
+  CONTAINER_APP_ENV: vinod-electronics-env
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 🔐 Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 🔐 Log in to Azure Container Registry via Azure CLI
+      run: |
+        az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
+
+    - name: 🏗️ Build and push container image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:latest
+        platforms: linux/amd64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy-production:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: 🔄 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🔐 Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 🚀 Deploy to Azure Container Apps (Production)
+      run: |
+        az deployment group create \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --template-file infrastructure/main.bicep \
+          --parameters @infrastructure/main.parameters.json \
+          --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+
+    - name: 🧪 Run production smoke tests
+      run: |
+        echo "🧪 Running production smoke tests..."
+        sleep 30
+        curl -f https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io/health || exit 1
+        curl -f https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io/ || exit 1
+        echo "✅ Production smoke tests passed!"
