@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "9630438474279342391"
+      "templateHash": "730297209065043016"
     }
   },
   "parameters": {
@@ -32,9 +32,6 @@
     "containerImage": {
       "type": "string",
       "defaultValue": "[format('{0}.azurecr.io/vinod-electronics-app:latest', parameters('containerRegistryName'))]"
-    },
-    "jwtSecret": {
-      "type": "securestring"
     },
     "googleSheetId": {
       "type": "securestring"
@@ -139,7 +136,7 @@
             },
             {
               "name": "jwt-secret",
-              "value": "[parameters('jwtSecret')]"
+              "value": "vinod-electronics-jwt-secret-2024"
             },
             {
               "name": "google-sheet-id",

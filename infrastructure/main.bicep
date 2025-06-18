@@ -10,10 +10,6 @@ param environment string = 'production'
 // Container image
 param containerImage string = '${containerRegistryName}.azurecr.io/vinod-electronics-app:latest'
 
-// JWT Secret Configuration
-@secure()
-param jwtSecret string
-
 // Google Sheets Configuration
 @secure()
 param googleSheetId string
@@ -95,7 +91,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           {
             weight: 100
             latestRevision: true
-          }        ]
+          }
+        ]
       }
       registries: [
         {
@@ -104,13 +101,14 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: [        {
+      secrets: [
+        {
           name: 'acr-password'
           value: containerRegistry.listCredentials().passwords[0].value
         }
         {
           name: 'jwt-secret'
-          value: jwtSecret
+          value: 'vinod-electronics-jwt-secret-2024'
         }
         {
           name: 'google-sheet-id'
