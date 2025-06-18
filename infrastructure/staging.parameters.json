@@ -1,12 +1,11 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
+  "contentVersion": "1.0.0.0",  "parameters": {
     "environmentName": {
-      "value": "vinod-electronics-env"
+      "value": "vinod-electronics-staging-env"
     },
     "containerAppName": {
-      "value": "vinod-electronics"
+      "value": "vinod-electronics-staging"
     },
     "location": {
       "value": "East US"
@@ -19,9 +18,11 @@
     },
     "minReplicas": {
       "value": 1
-    },
-    "maxReplicas": {
+    },    "maxReplicas": {
       "value": 3
+    },
+    "containerImage": {
+      "value": "vinodelectronics.azurecr.io/vinod-electronics:latest"
     }
   }
 }

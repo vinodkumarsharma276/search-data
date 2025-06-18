@@ -58,7 +58,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 
 // Container Apps Environment
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
-  name: '${environmentName}${settings.suffix}'
+  name: environmentName
   location: location
   properties: {
     appLogsConfiguration: {
@@ -73,7 +73,7 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-05-01'
 
 // Container App
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: '${containerAppName}${settings.suffix}'
+  name: containerAppName
   location: location
   properties: {
     managedEnvironmentId: containerAppsEnvironment.id
@@ -104,8 +104,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           name: 'jwt-secret'
-          value: environment == 'production' ? 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' : 'staging-jwt-secret-key'
-        }
+          value: environment == 'production' ? 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' : 'staging-jwt-secret-key'        }
       ]
     }
     template: {
@@ -144,7 +143,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'ALLOWED_ORIGINS'
-              value: 'https://${containerAppName}${settings.suffix}.${containerAppsEnvironment.properties.defaultDomain}'
+              value: 'https://${containerAppName}.${containerAppsEnvironment.properties.defaultDomain}'
             }
           ]
           resources: {

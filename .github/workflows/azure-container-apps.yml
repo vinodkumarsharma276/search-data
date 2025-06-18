@@ -9,8 +9,8 @@ on:
 
 env:
   AZURE_CONTAINER_REGISTRY: vinodelectronics
-  CONTAINER_NAME: vinod-electronics-app
-  RESOURCE_GROUP: rg-vinod-electronics
+  CONTAINER_NAME: vinod-electronics
+  RESOURCE_GROUP: ve
   CONTAINER_APP_NAME: vinod-electronics
   CONTAINER_APP_ENV: vinod-electronics-env
 
@@ -52,29 +52,21 @@ jobs:
     environment: staging
     
     steps:
+    - name: 🔄 Checkout repository
+      uses: actions/checkout@v4
+
     - name: 🔐 Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: 🚀 Deploy to Azure Container Apps (Staging)
-      uses: azure/container-apps-deploy-action@v1
-      with:
-        resource-group: ${{ env.RESOURCE_GROUP }}
-        container-app-name: ${{ env.CONTAINER_APP_NAME }}-staging
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
-        environment-variables: |
-          NODE_ENV=staging
-          PORT=5001
-          JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }}
-          GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
-          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
-          CACHE_TTL=3600000
-          DATA_REFRESH_INTERVAL=86400000
-          RATE_LIMIT_WINDOW_MS=900000
-          RATE_LIMIT_MAX_REQUESTS=100
-          ALLOWED_ORIGINS=https://${{ env.CONTAINER_APP_NAME }}-staging.azurecontainerapps.io
+      run: |
+        az deployment group create \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --template-file infrastructure/main.bicep \
+          --parameters @infrastructure/staging.parameters.json \
+          --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
 
     - name: 🧪 Run staging tests
       run: |
@@ -83,10 +75,10 @@ jobs:
         sleep 30
         
         # Test health endpoint
-        curl -f https://${{ env.CONTAINER_APP_NAME }}-staging.azurecontainerapps.io/health || exit 1
+        curl -f https://vinod-electronics-staging.redbay-00742d68.eastus.azurecontainerapps.io/health || exit 1
         
         # Test frontend
-        curl -f https://${{ env.CONTAINER_APP_NAME }}-staging.azurecontainerapps.io/ || exit 1
+        curl -f https://vinod-electronics-staging.redbay-00742d68.eastus.azurecontainerapps.io/ || exit 1
         
         echo "✅ Staging tests passed!"
 
@@ -97,29 +89,21 @@ jobs:
     environment: production
     
     steps:
+    - name: 🔄 Checkout repository
+      uses: actions/checkout@v4
+
     - name: 🔐 Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: 🚀 Deploy to Azure Container Apps (Production)
-      uses: azure/container-apps-deploy-action@v1
-      with:
-        resource-group: ${{ env.RESOURCE_GROUP }}
-        container-app-name: ${{ env.CONTAINER_APP_NAME }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
-        environment-variables: |
-          NODE_ENV=production
-          PORT=5001
-          JWT_SECRET=${{ secrets.JWT_SECRET_PRODUCTION }}
-          GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
-          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
-          CACHE_TTL=3600000
-          DATA_REFRESH_INTERVAL=86400000
-          RATE_LIMIT_WINDOW_MS=900000
-          RATE_LIMIT_MAX_REQUESTS=150
-          ALLOWED_ORIGINS=https://${{ env.CONTAINER_APP_NAME }}.azurecontainerapps.io,https://vinod-electronics.com
+      run: |
+        az deployment group create \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --template-file infrastructure/main.bicep \
+          --parameters @infrastructure/main.parameters.json \
+          --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
 
     - name: 🧪 Run production smoke tests
       run: |
@@ -128,10 +112,10 @@ jobs:
         sleep 30
         
         # Test health endpoint
-        curl -f https://${{ env.CONTAINER_APP_NAME }}.azurecontainerapps.io/health || exit 1
+        curl -f https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io/health || exit 1
         
         # Test frontend
-        curl -f https://${{ env.CONTAINER_APP_NAME }}.azurecontainerapps.io/ || exit 1
+        curl -f https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io/ || exit 1
         
         echo "✅ Production smoke tests passed!"
 
@@ -141,6 +125,7 @@ jobs:
         # Basic load test with curl
         for i in {1..10}; do
           curl -s -o /dev/null -w "%{http_code} %{time_total}s\n" \
-            https://${{ env.CONTAINER_APP_NAME }}.azurecontainerapps.io/health
+            https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io/health
           sleep 1
         done
+        echo "✅ Performance tests completed!"
