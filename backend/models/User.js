@@ -17,13 +17,12 @@ const users = [
         role: 'manager',
         permissions: ['read', 'write'],
         isActive: true
-    },
-    {
+    },    {
         id: 3,
         username: 'emp',
         password: '$2a$10$apud1FwbIe59P.lloycNSurKR70EgIZwEJ2Oqk7Oilq3cWUZW5xFi', // emp123
         role: 'employee',
-        permissions: ['read'],
+        permissions: ['read', 'write'],
         isActive: true
     }
 ];
@@ -45,7 +44,7 @@ class UserModel {
         return await bcrypt.hash(password, 10);
     }    static async createUser(userData) {
         // Set permissions based on role
-        let permissions = ['read']; // Default employee permissions
+        let permissions = ['read']; // Default employee permissions (read only)
         if (userData.role === 'admin') {
             permissions = ['read', 'write', 'delete'];
         } else if (userData.role === 'manager') {
