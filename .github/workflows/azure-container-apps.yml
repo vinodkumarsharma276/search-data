@@ -15,7 +15,7 @@ env:
   CONTAINER_APP_ENV: vinod-electronics-env
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:    
@@ -57,23 +57,9 @@ jobs:
         platforms: linux/amd64
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-  deploy-production:
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    needs: build
-    runs-on: ubuntu-latest
-    environment: production
-    
-    steps:          
-    - name: 🔄 Checkout repository
-      uses: actions/checkout@v4
-
-    - name: 🔐 Azure Login
-      uses: azure/login@v1.4.6
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}    
     
     - name: 🚀 Deploy to Azure Container Apps (Production)
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
       run: |
         az deployment group create \
           --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -81,9 +67,11 @@ jobs:
           --parameters @infrastructure/main.parameters.json \
           --parameters containerImage=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
           --parameters googleSheetId="${{ secrets.VITE_GOOGLE_SHEET_ID }}" \
-          --parameters googleApiKey="${{ secrets.VITE_GOOGLE_API_KEY }}"
+          --parameters googleApiKey="${{ secrets.VITE_GOOGLE_API_KEY }}" \
+          --parameters jwtSecret="${{ secrets.JWT_SECRET || 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' }}"
 
     - name: 🧪 Run production smoke tests
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
       run: |
         echo "🧪 Running production smoke tests..."
         sleep 30

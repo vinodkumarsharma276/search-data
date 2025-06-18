@@ -1,0 +1,273 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.1.42791",
+      "templateHash": "9630438474279342391"
+    }
+  },
+  "parameters": {
+    "environmentName": {
+      "type": "string",
+      "defaultValue": "vinod-electronics-env"
+    },
+    "containerAppName": {
+      "type": "string",
+      "defaultValue": "vinod-electronics"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "containerRegistryName": {
+      "type": "string",
+      "defaultValue": "vinodelectronics"
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "production"
+    },
+    "containerImage": {
+      "type": "string",
+      "defaultValue": "[format('{0}.azurecr.io/vinod-electronics-app:latest', parameters('containerRegistryName'))]"
+    },
+    "jwtSecret": {
+      "type": "securestring"
+    },
+    "googleSheetId": {
+      "type": "securestring"
+    },
+    "googleApiKey": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+    "environmentSettings": {
+      "staging": {
+        "minReplicas": 1,
+        "maxReplicas": 3,
+        "cpu": "0.5",
+        "memory": "1Gi",
+        "suffix": "-staging"
+      },
+      "production": {
+        "minReplicas": 2,
+        "maxReplicas": 10,
+        "cpu": "1.0",
+        "memory": "2Gi",
+        "suffix": ""
+      }
+    },
+    "settings": "[variables('environmentSettings')[parameters('environment')]]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-01-01-preview",
+      "name": "[parameters('containerRegistryName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[format('{0}-logs', parameters('environmentName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30
+      }
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('environmentName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('environmentName'))), '2022-10-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('environmentName'))), '2022-10-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('environmentName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('containerAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 5001,
+            "allowInsecure": false,
+            "traffic": [
+              {
+                "weight": 100,
+                "latestRevision": true
+              }
+            ]
+          },
+          "registries": [
+            {
+              "server": "[format('{0}.azurecr.io', parameters('containerRegistryName'))]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').passwords[0].value]"
+            },
+            {
+              "name": "jwt-secret",
+              "value": "[parameters('jwtSecret')]"
+            },
+            {
+              "name": "google-sheet-id",
+              "value": "[parameters('googleSheetId')]"
+            },
+            {
+              "name": "google-api-key",
+              "value": "[parameters('googleApiKey')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "image": "[parameters('containerImage')]",
+              "name": "vinod-electronics-app",
+              "env": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "[parameters('environment')]"
+                },
+                {
+                  "name": "PORT",
+                  "value": "5001"
+                },
+                {
+                  "name": "JWT_SECRET",
+                  "secretRef": "jwt-secret"
+                },
+                {
+                  "name": "GOOGLE_SHEET_ID",
+                  "secretRef": "google-sheet-id"
+                },
+                {
+                  "name": "GOOGLE_API_KEY",
+                  "secretRef": "google-api-key"
+                },
+                {
+                  "name": "CACHE_TTL",
+                  "value": "3600000"
+                },
+                {
+                  "name": "DATA_REFRESH_INTERVAL",
+                  "value": "86400000"
+                },
+                {
+                  "name": "RATE_LIMIT_WINDOW_MS",
+                  "value": "900000"
+                },
+                {
+                  "name": "RATE_LIMIT_MAX_REQUESTS",
+                  "value": "[if(equals(parameters('environment'), 'production'), '150', '100')]"
+                },
+                {
+                  "name": "ALLOWED_ORIGINS",
+                  "value": "[format('https://{0}.{1}', parameters('containerAppName'), reference(resourceId('Microsoft.App/managedEnvironments', parameters('environmentName')), '2023-05-01').defaultDomain)]"
+                }
+              ],
+              "resources": {
+                "cpu": "[json(variables('settings').cpu)]",
+                "memory": "[variables('settings').memory]"
+              },
+              "probes": [
+                {
+                  "type": "Liveness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 5001
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 30
+                },
+                {
+                  "type": "Readiness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 5001
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 10
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": "[variables('settings').minReplicas]",
+            "maxReplicas": "[variables('settings').maxReplicas]",
+            "rules": [
+              {
+                "name": "http-scaler",
+                "http": {
+                  "metadata": {
+                    "concurrentRequests": "30"
+                  }
+                }
+              },
+              {
+                "name": "cpu-scaler",
+                "custom": {
+                  "type": "cpu",
+                  "metadata": {
+                    "type": "Utilization",
+                    "value": "70"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "containerAppUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('containerAppName')), '2023-05-01').configuration.ingress.fqdn)]"
+    },
+    "containerRegistryLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').loginServer]"
+    },
+    "containerAppsEnvironmentId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]"
+    }
+  }
+}
