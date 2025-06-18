@@ -3,14 +3,18 @@ param environmentName string = 'vinod-electronics-env'
 param containerAppName string = 'vinod-electronics'
 param location string = resourceGroup().location
 param containerRegistryName string = 'vinodelectronics'
-param minReplicas int = 1
-param maxReplicas int = 10
 
 // Environment for staging or production
 param environment string = 'production'
 
 // Container image
 param containerImage string = '${containerRegistryName}.azurecr.io/vinod-electronics-app:latest'
+
+// Google Sheets Configuration
+@secure()
+param googleSheetId string
+@secure()
+param googleApiKey string
 
 // Environment-specific settings
 var environmentSettings = {
@@ -87,8 +91,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           {
             weight: 100
             latestRevision: true
-          }
-        ]
+          }        ]
       }
       registries: [
         {
@@ -104,7 +107,16 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           name: 'jwt-secret'
-          value: environment == 'production' ? 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' : 'staging-jwt-secret-key'        }
+          value: environment == 'production' ? 'CHANGE-THIS-IN-PRODUCTION-TO-SECURE-256-BIT-KEY' : 'staging-jwt-secret-key'
+        }
+        {
+          name: 'google-sheet-id'
+          value: googleSheetId
+        }
+        {
+          name: 'google-api-key'
+          value: googleApiKey
+        }
       ]
     }
     template: {
@@ -112,8 +124,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         {
           image: containerImage
           name: 'vinod-electronics-app'
-          env: [
-            {
+          env: [            {
               name: 'NODE_ENV'
               value: environment
             }
@@ -124,6 +135,14 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'JWT_SECRET'
               secretRef: 'jwt-secret'
+            }
+            {
+              name: 'GOOGLE_SHEET_ID'
+              secretRef: 'google-sheet-id'
+            }
+            {
+              name: 'GOOGLE_API_KEY'
+              secretRef: 'google-api-key'
             }
             {
               name: 'CACHE_TTL'
