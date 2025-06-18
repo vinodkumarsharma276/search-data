@@ -1,0 +1,72 @@
+# Dependencies - exclude all node_modules directories
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Development files
+.env.local
+.env.development
+.env.test
+*.log
+
+# Build outputs
+dist/
+build/
+dev-dist/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (include only essential docs)
+README-frontend.md
+README-FULLSTACK.md
+TESTING-GUIDE.md
+PRODUCTION-GUIDE.md
+TEST-RESULTS.md
+FINAL-STATUS.md
+
+# Scripts (not needed in container)
+scripts/
+start-servers.ps1
+
+# Azure Static Web Apps (not needed for Container Apps)
+staticwebapp.config.json
+frontend/staticwebapp.config.json
+
+# Docker files (not needed inside container)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Infrastructure files (not needed in container)
+infrastructure/
+.github/
+
+# Test files
+*.test.js
+*.spec.js
+test/
+tests/
+
+# Coverage reports
+coverage/
+
+# Misc
+*.md
+!README.md

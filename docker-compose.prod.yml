@@ -1,0 +1,27 @@
+# Azure Container Apps - Production Docker Compose
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+      target: production
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      # These will be overridden by Azure Container Apps environment variables
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - CACHE_TTL=3600000
+      - DATA_REFRESH_INTERVAL=86400000
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=100
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

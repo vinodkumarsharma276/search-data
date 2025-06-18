@@ -6,13 +6,22 @@
   "workspaces": [
     "frontend",
     "backend"
-  ],
-  "scripts": {
+  ],  "scripts": {
     "dev": "concurrently \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\"",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
     "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
-    "test": "npm run test --workspace=frontend && npm run test --workspace=backend"
+    "test": "npm run test --workspace=frontend && npm run test --workspace=backend",
+    "test:local": "powershell -ExecutionPolicy Bypass -File ./scripts/test-local.ps1",
+    "docker:build": "docker build -t vinod-electronics .",
+    "docker:run": "docker run -p 5001:5001 --env-file .env vinod-electronics",
+    "docker:test": "powershell -ExecutionPolicy Bypass -File ./scripts/test-docker.ps1",
+    "docker:compose": "docker-compose up --build",
+    "docker:compose:prod": "docker-compose -f docker-compose.prod.yml up --build",
+    "azure:setup": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-azure.ps1",
+    "azure:deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1",
+    "azure:deploy:staging": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1 -Environment staging",
+    "azure:deploy:production": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1 -Environment production"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
