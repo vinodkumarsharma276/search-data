@@ -2,10 +2,18 @@
 
 A full-stack Progressive Web App (PWA) for searching electronics inventory data. Built with React frontend, Node.js backend, and deployed on Azure Container Apps.
 
+## 🤖 For AI Assistants
+
+**New to this project?** Quick context restoration:
+1. 📖 Read [`CONTEXT.md`](./CONTEXT.md) - Complete project overview
+2. 🚀 Read [`RESTORE_CONTEXT.md`](./RESTORE_CONTEXT.md) - Quick start guide
+3. ⚡ Run `.\generate-context.ps1` to get current project status
+4. 🔍 Use the health endpoint to verify application status
+
 ## 🌐 Live Application
 
 - **Production**: https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io
-- **Staging**: https://vinod-electronics-staging.redbay-00742d68.eastus.azurecontainerapps.io
+- **Health Check**: https://vinod-electronics.kindplant-cbf8e6ac.eastus.azurecontainerapps.io/health
 
 ## ✨ Features
 
