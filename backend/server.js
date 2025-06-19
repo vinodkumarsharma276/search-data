@@ -25,6 +25,10 @@ const __dirname = path.dirname(__filename);
 
 console.log('🔧 Environment PORT:', process.env.PORT, 'Using PORT:', PORT);
 console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔧 Google Sheets Config:');
+console.log('   - GOOGLE_SHEET_ID:', process.env.GOOGLE_SHEET_ID ? '***SET***' : 'NOT_SET');
+console.log('   - GOOGLE_API_KEY:', process.env.GOOGLE_API_KEY ? '***SET***' : 'NOT_SET');
+console.log('   - JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT_SET');
 console.log('📁 Static files directory:', path.join(__dirname, 'public'));
 
 // Security middleware
@@ -61,7 +65,14 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        environment: {
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT,
+            GOOGLE_SHEET_ID: process.env.GOOGLE_SHEET_ID ? '***SET***' : 'NOT_SET',
+            GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? '***SET***' : 'NOT_SET',
+            JWT_SECRET: process.env.JWT_SECRET ? '***SET***' : 'NOT_SET'
+        }
     });
 });
 

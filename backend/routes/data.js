@@ -9,7 +9,16 @@ const router = express.Router();
 let googleSheetsService = null;
 const getGoogleSheetsService = () => {
     if (!googleSheetsService) {
-        googleSheetsService = new GoogleSheetsService();
+        try {
+            console.log('🔄 Initializing Google Sheets Service...');
+            console.log('   - GOOGLE_SHEET_ID:', process.env.GOOGLE_SHEET_ID ? '***SET***' : 'NOT_SET');
+            console.log('   - GOOGLE_API_KEY:', process.env.GOOGLE_API_KEY ? '***SET***' : 'NOT_SET');
+            googleSheetsService = new GoogleSheetsService();
+            console.log('✅ Google Sheets Service initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize Google Sheets Service:', error.message);
+            throw error;
+        }
     }
     return googleSheetsService;
 };
