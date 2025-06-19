@@ -16,12 +16,6 @@
     },
     "environment": {
       "value": "production"
-    },
-    "minReplicas": {
-      "value": 2
-    },
-    "maxReplicas": {
-      "value": 10
     }
   }
 }
