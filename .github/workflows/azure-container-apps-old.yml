@@ -17,8 +17,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
-    steps:
+      steps:
     - name: 🔄 Checkout repository
       uses: actions/checkout@v4
       
@@ -33,9 +32,7 @@ jobs:
 
     - name: 🔐 Log in to Azure Container Registry via Azure CLI
       run: |
-        az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
-
-    - name: 🏗️ Build and push container image
+        az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}    - name: 🏗️ Build and push container image
       uses: docker/build-push-action@v5
       with:
         context: .
