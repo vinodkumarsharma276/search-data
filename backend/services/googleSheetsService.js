@@ -8,7 +8,7 @@ const cache = new NodeCache({
 });
 
 class GoogleSheetsService {    constructor() {
-        this.spreadsheetId = process.env.GOOGLE_SHEET_ID;
+        this.spreadsheetId = process.env.GOOGLE_SHEET_ID || ;
         this.apiKey = process.env.GOOGLE_API_KEY;
         this.cacheKey = 'google_sheets_data';
         this.lastFetchKey = 'last_fetch_time';
