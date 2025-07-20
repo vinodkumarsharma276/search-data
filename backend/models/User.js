@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+const bcrypt = require('bcryptjs');
 
 // In a real application, this would be stored in a database
 const users = [
@@ -90,4 +90,4 @@ class UserModel {
     }
 }
 
-export default UserModel;
+module.exports = UserModel;

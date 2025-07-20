@@ -1,7 +1,7 @@
-import express from 'express';
-import { query, validationResult } from 'express-validator';
-import { protect, checkPermission } from '../middleware/auth.js';
-import GoogleSheetsService from '../services/googleSheetsService.js';
+const express = require('express');
+const { query, validationResult } = require('express-validator');
+const { protect, checkPermission } = require('../middleware/auth');
+const { GoogleSheetsService } = require('../services/googleSheetsService');
 
 const router = express.Router();
 
@@ -206,4 +206,4 @@ router.get('/cache/info', [
     }
 });
 
-export default router;
+module.exports = router;

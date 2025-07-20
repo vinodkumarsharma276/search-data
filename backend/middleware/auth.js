@@ -1,7 +1,7 @@
-import jwt from 'jsonwebtoken';
-import UserModel from '../models/User.js';
+const jwt = require('jsonwebtoken');
+const UserModel = require('../models/User');
 
-export const protect = async (req, res, next) => {
+const protect = async (req, res, next) => {
     try {
         let token;
 
@@ -48,7 +48,7 @@ export const protect = async (req, res, next) => {
     }
 };
 
-export const authorize = (...roles) => {
+const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({
@@ -68,7 +68,7 @@ export const authorize = (...roles) => {
     };
 };
 
-export const checkPermission = (permission) => {
+const checkPermission = (permission) => {
     return (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({
@@ -87,3 +87,5 @@ export const checkPermission = (permission) => {
         next();
     };
 };
+
+module.exports = { protect, checkPermission, authorize };

@@ -1,5 +1,5 @@
-import axios from 'axios';
-import NodeCache from 'node-cache';
+const axios = require('axios');
+const NodeCache = require('node-cache');
 
 // Create cache instance
 const cache = new NodeCache({ 
@@ -15,7 +15,9 @@ class GoogleSheetsService {
         this.lastFetchKey = 'last_fetch_time';
         
         if (!this.spreadsheetId || !this.apiKey) {
-            throw new Error('Google Sheets configuration missing. Check environment variables.');
+            console.warn('⚠️ Google Sheets configuration missing. Google Sheets service will be disabled.');
+            this.disabled = true;
+            return;
         }
 
         // Set up periodic data refresh
@@ -23,6 +25,11 @@ class GoogleSheetsService {
     }
 
     async fetchData(forceRefresh = false) {
+        if (this.disabled) {
+            console.warn('⚠️ Google Sheets service is disabled. Check environment variables.');
+            return { data: [], fromCache: false, lastUpdated: new Date().toISOString() };
+        }
+        
         try {
             // Check cache first
             if (!forceRefresh) {
@@ -100,6 +107,11 @@ class GoogleSheetsService {
 
             throw this.handleApiError(error);
         }
+    }
+
+    async getAllData() {
+        const result = await this.fetchData();
+        return result.data;
     }
 
     searchData(data, searchQuery, searchField = 'all', page = 1, limit = 50) {
@@ -213,5 +225,7 @@ class GoogleSheetsService {
     }
 }
 
-// Export the class instead of a singleton instance
-export default GoogleSheetsService;
+// Export the class and create a singleton instance
+const googleSheetsService = new GoogleSheetsService();
+
+module.exports = { GoogleSheetsService, googleSheetsService };

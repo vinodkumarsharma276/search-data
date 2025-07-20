@@ -1,4 +1,4 @@
-export const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, next) => {
     let error = { ...err };
     error.message = err.message;
 
@@ -29,8 +29,10 @@ export const errorHandler = (err, req, res, next) => {
     });
 };
 
-export const notFound = (req, res, next) => {
+const notFound = (req, res, next) => {
     const error = new Error(`Not found - ${req.originalUrl}`);
     res.status(404);
     next(error);
 };
+
+module.exports = { errorHandler, notFound };

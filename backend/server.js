@@ -12,6 +12,7 @@ const connectDB = require('./config/database');
 // Import routes
 const authRoutes = require('./routes/auth');
 const dataRoutes = require('./routes/data');
+const customersRoutes = require('./routes/customers');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const { logger } = require('./middleware/logger');
 
@@ -24,15 +25,10 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Get dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 console.log('🔧 Environment PORT:', process.env.PORT, 'Using PORT:', PORT);
 console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
-console.log('🔧 Google Sheets Config:');
-console.log('   - GOOGLE_SHEET_ID:', process.env.GOOGLE_SHEET_ID ? '***SET***' : 'NOT_SET');
-console.log('   - GOOGLE_API_KEY:', process.env.GOOGLE_API_KEY ? '***SET***' : 'NOT_SET');
+console.log('🔧 MongoDB Config:');
+console.log('   - MONGODB_URI:', process.env.MONGODB_URI ? '***SET***' : 'NOT_SET');
 console.log('   - JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT_SET');
 console.log('📁 Static files directory:', path.join(__dirname, 'public'));
 
@@ -83,9 +79,9 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/customers', customersRoutes);
 
 // Serve static files in production
-if (process.env.NODE_ENV === 'production') {
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
     const staticPath = path.join(__dirname, 'public');
@@ -93,7 +89,8 @@ if (process.env.NODE_ENV === 'production') {
     
     // Serve static files
     app.use(express.static(staticPath));
-      // Handle React routing - serve index.html for all non-API routes
+    
+    // Handle React routing - serve index.html for all non-API routes
     app.get('*', (req, res, next) => {
         // Skip API routes and health check
         if (req.path.startsWith('/api/') || req.path === '/health') {

@@ -1,4 +1,4 @@
-export const logger = (req, res, next) => {
+const logger = (req, res, next) => {
     const timestamp = new Date().toISOString();
     const method = req.method;
     const url = req.url;
@@ -8,3 +8,5 @@ export const logger = (req, res, next) => {
     
     next();
 };
+
+module.exports = { logger };
