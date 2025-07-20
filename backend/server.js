@@ -1,20 +1,25 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Import database connection
+const connectDB = require('./config/database');
 
 // Import routes
-import authRoutes from './routes/auth.js';
-import dataRoutes from './routes/data.js';
-import { errorHandler, notFound } from './middleware/errorMiddleware.js';
-import { logger } from './middleware/logger.js';
+const authRoutes = require('./routes/auth');
+const dataRoutes = require('./routes/data');
+const { errorHandler, notFound } = require('./middleware/errorMiddleware');
+const { logger } = require('./middleware/logger');
 
 // Load environment variables
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -69,8 +74,7 @@ app.get('/health', (req, res) => {
         environment: {
             NODE_ENV: process.env.NODE_ENV,
             PORT: process.env.PORT,
-            GOOGLE_SHEET_ID: process.env.GOOGLE_SHEET_ID ? '***SET***' : 'NOT_SET',
-            GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? '***SET***' : 'NOT_SET',
+            MONGODB_URI: process.env.MONGODB_URI ? '***SET***' : 'NOT_SET',
             JWT_SECRET: process.env.JWT_SECRET ? '***SET***' : 'NOT_SET'
         }
     });
@@ -80,6 +84,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
     const staticPath = path.join(__dirname, 'public');
@@ -110,4 +116,4 @@ app.listen(PORT, () => {
     console.log(`📊 Health check available at http://localhost:${PORT}/health`);
 });
 
-export default app;
+module.exports = app;

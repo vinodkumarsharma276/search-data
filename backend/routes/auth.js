@@ -1,8 +1,8 @@
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import { body, validationResult } from 'express-validator';
-import UserModel from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+const UserModel = require('../models/User');
+const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -206,4 +206,4 @@ router.post('/logout', protect, async (req, res) => {
     }
 });
 
-export default router;
+module.exports = router;
