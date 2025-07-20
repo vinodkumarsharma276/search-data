@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const saleSchema = new mongoose.Schema({
     saleNumber: {
         type: String,
-        required: true,
         unique: true,
         trim: true
     },
