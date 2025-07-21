@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchGoogleSheetData, searchGoogleSheetData, refreshDataCache, getDataStats, getCacheInfo } from '../services/googleSheetsService';
+import { Link } from 'react-router-dom';
 import ResultsList from './ResultsList';
 import Pagination from './Pagination';
 import authService from "../services/authService";
@@ -418,6 +419,9 @@ const SearchPage = () => {
                                         </span>
                                     </div>
                                 )}
+                                <Link to="/add-sale" className="dropdown-link">
+                                    🛒 Add Sale
+                                </Link>
                                 <button onClick={handleLogout} className="dropdown-logout">
                                     🚪 Logout
                                 </button>

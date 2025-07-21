@@ -6,10 +6,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
+    // Disable PWA in development to avoid service worker issues
+    ...(process.env.NODE_ENV === 'production' ? [VitePWA({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/sheets\.googleapis\.com\/.*/i,
@@ -22,7 +24,9 @@ export default defineConfig({
               }
             }
           }
-        ]
+        ],
+        // Exclude API routes from precaching
+        navigateFallbackDenylist: [/^\/api\//]
       },
       manifest: {
         name: 'Vinod Electronics Search',
@@ -47,10 +51,19 @@ export default defineConfig({
         ]
       },
       devOptions: {
-        enabled: true
+        enabled: false // Disable in development
       }
-    })
+    })] : [])
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,

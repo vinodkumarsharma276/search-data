@@ -80,7 +80,9 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/customers', customersRoutes);
-app.use('/api/installments', require('./routes/installments'));
+app.use('/api/dropdowns', require('./routes/dropdowns'));
+// app.use('/api/installments', require('./routes/installments'));
+app.use('/api/sales', require('./routes/sales'));
 
 // Serve static files in production
 // Serve static files in production

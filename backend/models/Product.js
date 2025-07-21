@@ -22,6 +22,23 @@ const productSchema = new mongoose.Schema({
         ref: 'Category',
         required: true
     },
+    mrp: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    sellingPrice: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    gstRate: {
+        type: Number,
+        required: true,
+        default: 18,
+        min: 0,
+        max: 50
+    },
     specifications: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
@@ -38,6 +55,33 @@ const productSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+// Virtual for discount percentage
+productSchema.virtual('discountPercentage').get(function() {
+    if (this.mrp > 0) {
+        return ((this.mrp - this.sellingPrice) / this.mrp * 100).toFixed(2);
+    }
+    return 0;
+});
+
+// Virtual for IGST (for interstate sales)
+productSchema.virtual('igst').get(function() {
+    return this.gstRate;
+});
+
+// Virtual for CGST (for intrastate sales) 
+productSchema.virtual('cgst').get(function() {
+    return this.gstRate / 2;
+});
+
+// Virtual for SGST (for intrastate sales)
+productSchema.virtual('sgst').get(function() {
+    return this.gstRate / 2;
+});
+
+// Ensure virtual fields are serialized
+productSchema.set('toJSON', { virtuals: true });
+productSchema.set('toObject', { virtuals: true });
 
 // Create text index for search
 productSchema.index({ 

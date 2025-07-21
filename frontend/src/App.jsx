@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login.jsx';
 import SearchPage from './components/SearchPage.jsx';
+import AddSale from './components/AddSale.jsx';
 import authService from './services/authService';
 import './styles/App.css';
 
@@ -91,9 +92,14 @@ function App() {
                 <Route 
                     path="/login" 
                     element={isAuthenticated ? <Navigate to="/search" replace /> : <Login />}
-                />                <Route 
+                />
+                <Route 
                     path="/search" 
                     element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
+                />
+                <Route 
+                    path="/add-sale" 
+                    element={isAuthenticated ? <AddSale /> : <Navigate to="/login" replace />}
                 />
                 <Route 
                     path="/" 
