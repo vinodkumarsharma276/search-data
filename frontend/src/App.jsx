@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login.jsx';
 import SearchPage from './components/SearchPage.jsx';
 import AddSale from './components/AddSale.jsx';
+import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import authService from './services/authService';
 import './styles/App.css';
+import './styles/theme.css';
 
 let appRenderCount = 0;
 
@@ -87,26 +89,28 @@ function App() {
     }
 
     return (
-        <Router>
-            <Routes>
-                <Route 
-                    path="/login" 
-                    element={isAuthenticated ? <Navigate to="/search" replace /> : <Login />}
-                />
-                <Route 
-                    path="/search" 
-                    element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
-                />
-                <Route 
-                    path="/add-sale" 
-                    element={isAuthenticated ? <AddSale /> : <Navigate to="/login" replace />}
-                />
-                <Route 
-                    path="/" 
-                    element={<Navigate to={isAuthenticated ? "/search" : "/login"} replace />} 
-                />
-            </Routes>
-        </Router>
+        <ThemeProvider>
+            <Router>
+                <Routes>
+                    <Route 
+                        path="/login" 
+                        element={isAuthenticated ? <Navigate to="/search" replace /> : <Login />}
+                    />
+                    <Route 
+                        path="/search" 
+                        element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
+                    />
+                    <Route 
+                        path="/add-sale" 
+                        element={isAuthenticated ? <AddSale /> : <Navigate to="/login" replace />}
+                    />
+                    <Route 
+                        path="/" 
+                        element={<Navigate to={isAuthenticated ? "/search" : "/login"} replace />} 
+                    />
+                </Routes>
+            </Router>
+        </ThemeProvider>
     );
 }
 

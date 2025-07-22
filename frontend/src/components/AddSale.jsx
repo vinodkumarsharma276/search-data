@@ -48,10 +48,20 @@ const AddSale = () => {
     const [itemProducts, setItemProducts] = useState({});
     const [itemSerialNumbers, setItemSerialNumbers] = useState({});
     const [saleItems, setSaleItems] = useState([]);
+    const [paymentType, setPaymentType] = useState('Cash');
+    const [emiDetails, setEmiDetails] = useState({
+        fileCharges: 0,
+        interestRate: 0,
+        downPayment: 0,
+        numberOfInstallments: 12,
+        installments: []
+    });
     const [totals, setTotals] = useState({
         subtotal: 0,
         totalGst: 0,
-        totalAmount: 0
+        totalAmount: 0,
+        finalAmount: 0,
+        pendingAmount: 0
     });
 
     // Load initial data on component mount
@@ -194,12 +204,96 @@ const AddSale = () => {
 
         const totalAmount = subtotal + totalGst;
         
-        setTotals({
+        setTotals(prev => ({
+            ...prev,
             subtotal: subtotal.toFixed(2),
             totalGst: totalGst.toFixed(2),
-            totalAmount: totalAmount.toFixed(2)
-        });
+            totalAmount: totalAmount.toFixed(2),
+            finalAmount: paymentType === 'Installment' ? 
+                (totalAmount + parseFloat(emiDetails.fileCharges || 0) + 
+                ((totalAmount * parseFloat(emiDetails.interestRate || 0)) / 100)).toFixed(2) :
+                totalAmount.toFixed(2),
+            pendingAmount: paymentType === 'Installment' ?
+                (totalAmount + parseFloat(emiDetails.fileCharges || 0) + 
+                ((totalAmount * parseFloat(emiDetails.interestRate || 0)) / 100) - 
+                parseFloat(emiDetails.downPayment || 0)).toFixed(2) :
+                '0.00'
+        }));
     };
+
+    // EMI Calculation Functions
+    const calculateEMI = () => {
+        const totalAmount = parseFloat(totals.totalAmount || 0);
+        const fileCharges = parseFloat(emiDetails.fileCharges || 0);
+        const interestRate = parseFloat(emiDetails.interestRate || 0);
+        const downPayment = parseFloat(emiDetails.downPayment || 0);
+        const numberOfInstallments = parseInt(emiDetails.numberOfInstallments || 12);
+
+        if (totalAmount <= 0 || numberOfInstallments <= 0) {
+            setEmiDetails(prev => ({ ...prev, installments: [] }));
+            return;
+        }
+
+        // Calculate final amount (including interest and file charges)
+        const interestAmount = (totalAmount * interestRate) / 100;
+        const finalAmount = totalAmount + fileCharges + interestAmount;
+        const pendingAmount = finalAmount - downPayment;
+        
+        // Calculate monthly EMI
+        const monthlyEMI = pendingAmount / numberOfInstallments;
+
+        // Generate installment schedule
+        const installments = [];
+        const currentDate = new Date();
+        
+        for (let i = 1; i <= numberOfInstallments; i++) {
+            const dueDate = new Date(currentDate);
+            dueDate.setMonth(dueDate.getMonth() + i);
+            
+            installments.push({
+                key: i,
+                installmentNumber: i,
+                amount: monthlyEMI.toFixed(2),
+                dueDate: dueDate.toDateString(),
+                status: 'Pending'
+            });
+        }
+
+        setEmiDetails(prev => ({
+            ...prev,
+            installments
+        }));
+
+        // Recalculate totals to update final amount and pending amount
+        calculateTotals();
+    };
+
+    const handleEMIFieldChange = (field, value) => {
+        setEmiDetails(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handlePaymentTypeChange = (e) => {
+        setPaymentType(e.target.value);
+        if (e.target.value !== 'Installment') {
+            setEmiDetails({
+                fileCharges: 0,
+                interestRate: 0,
+                downPayment: 0,
+                numberOfInstallments: 12,
+                installments: []
+            });
+        }
+    };
+
+    // Recalculate EMI when totals or EMI details change
+    useEffect(() => {
+        if (paymentType === 'Installment') {
+            calculateEMI();
+        }
+    }, [totals.totalAmount, emiDetails.fileCharges, emiDetails.interestRate, emiDetails.downPayment, emiDetails.numberOfInstallments, paymentType]);
 
     const handleAddItem = () => {
         setSaleItems([...saleItems, createEmptyItem()]);
@@ -655,7 +749,7 @@ const AddSale = () => {
                                                 initialValue="Cash"
                                                 style={{ marginBottom: 12 }}
                                             >
-                                                <Radio.Group size="small">
+                                                <Radio.Group size="small" onChange={handlePaymentTypeChange} value={paymentType}>
                                                     <Radio value="Cash">Cash</Radio>
                                                     <Radio value="Card">Card</Radio>
                                                     <Radio value="UPI">UPI</Radio>
@@ -674,10 +768,169 @@ const AddSale = () => {
                                             </Form.Item>
                                         </Col>
                                     </Row>
+
+                                    {/* EMI Fields - Show only when Installment is selected */}
+                                    {paymentType === 'Installment' && (
+                                        <div className="emi-configuration" style={{ marginTop: 16, padding: '12px', borderRadius: '8px' }}>
+                                            <Title level={5} style={{ margin: '0 0 16px 0' }}>
+                                                EMI Configuration
+                                            </Title>
+                                            
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item
+                                                        label="File Charges (₹)"
+                                                        style={{ marginBottom: 12 }}
+                                                    >
+                                                        <InputNumber
+                                                            size="small"
+                                                            style={{ width: '100%' }}
+                                                            min={0}
+                                                            value={emiDetails.fileCharges}
+                                                            onChange={(value) => handleEMIFieldChange('fileCharges', value || 0)}
+                                                            placeholder="Enter file charges"
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item
+                                                        label="Interest Rate (%)"
+                                                        style={{ marginBottom: 12 }}
+                                                    >
+                                                        <InputNumber
+                                                            size="small"
+                                                            style={{ width: '100%' }}
+                                                            min={0}
+                                                            max={50}
+                                                            step={0.1}
+                                                            value={emiDetails.interestRate}
+                                                            onChange={(value) => handleEMIFieldChange('interestRate', value || 0)}
+                                                            placeholder="Enter interest rate"
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                            </Row>
+
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item
+                                                        label="Down Payment (₹)"
+                                                        style={{ marginBottom: 12 }}
+                                                    >
+                                                        <InputNumber
+                                                            size="small"
+                                                            style={{ width: '100%' }}
+                                                            min={0}
+                                                            max={parseFloat(totals.totalAmount || 0)}
+                                                            value={emiDetails.downPayment}
+                                                            onChange={(value) => handleEMIFieldChange('downPayment', value || 0)}
+                                                            placeholder="Enter down payment"
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item
+                                                        label="Number of Installments"
+                                                        style={{ marginBottom: 12 }}
+                                                    >
+                                                        <Select
+                                                            size="small"
+                                                            value={emiDetails.numberOfInstallments}
+                                                            onChange={(value) => handleEMIFieldChange('numberOfInstallments', value)}
+                                                            style={{ width: '100%' }}
+                                                        >
+                                                            <Option value={3}>3 Months</Option>
+                                                            <Option value={6}>6 Months</Option>
+                                                            <Option value={9}>9 Months</Option>
+                                                            <Option value={12}>12 Months</Option>
+                                                            <Option value={18}>18 Months</Option>
+                                                            <Option value={24}>24 Months</Option>
+                                                            <Option value={36}>36 Months</Option>
+                                                        </Select>
+                                                    </Form.Item>
+                                                </Col>
+                                            </Row>
+
+                                            {/* EMI Summary */}
+                                            <div className="payment-summary" style={{ marginTop: 16, padding: '12px', borderRadius: '6px' }}>
+                                                <Title level={5} style={{ margin: '0 0 12px 0' }}>Payment Summary</Title>
+                                                <Row gutter={16}>
+                                                    <Col span={6}>
+                                                        <Text strong>Original Amount:</Text><br />
+                                                        <Text style={{ fontSize: '16px', color: 'var(--success-color)' }}>₹{totals.totalAmount}</Text>
+                                                    </Col>
+                                                    <Col span={6}>
+                                                        <Text strong>Final Amount:</Text><br />
+                                                        <Text style={{ fontSize: '16px', color: 'var(--primary-color)' }}>₹{totals.finalAmount}</Text>
+                                                    </Col>
+                                                    <Col span={6}>
+                                                        <Text strong>Extra Cost:</Text><br />
+                                                        <Text style={{ fontSize: '16px', color: '#fa8c16' }}>₹{(totals.finalAmount - totals.totalAmount).toFixed(2)}</Text>
+                                                    </Col>
+                                                    <Col span={6}>
+                                                        <Text strong>Pending Amount:</Text><br />
+                                                        <Text style={{ fontSize: '16px', color: 'var(--warning-color)' }}>₹{totals.pendingAmount}</Text>
+                                                    </Col>
+                                                </Row>
+                                            </div>
+
+                                            {/* Installment Schedule Table */}
+                                            {emiDetails.installments.length > 0 && (
+                                                <div style={{ marginTop: 16 }}>
+                                                    <Title level={5} style={{ margin: '0 0 12px 0' }}>Installment Schedule</Title>
+                                                    <Table
+                                                        size="small"
+                                                        dataSource={emiDetails.installments}
+                                                        pagination={false}
+                                                        scroll={{ y: 200 }}
+                                                        columns={[
+                                                            {
+                                                                title: 'Installment #',
+                                                                dataIndex: 'installmentNumber',
+                                                                key: 'installmentNumber',
+                                                                width: 100,
+                                                                align: 'center'
+                                                            },
+                                                            {
+                                                                title: 'Amount (₹)',
+                                                                dataIndex: 'amount',
+                                                                key: 'amount',
+                                                                width: 100,
+                                                                align: 'right',
+                                                                render: (amount) => <Text strong>{amount}</Text>
+                                                            },
+                                                            {
+                                                                title: 'Due Date',
+                                                                dataIndex: 'dueDate',
+                                                                key: 'dueDate',
+                                                                width: 120
+                                                            },
+                                                            {
+                                                                title: 'Status',
+                                                                dataIndex: 'status',
+                                                                key: 'status',
+                                                                width: 80,
+                                                                align: 'center',
+                                                                render: (status) => (
+                                                                    <Text style={{ 
+                                                                        color: status === 'Pending' ? 'var(--warning-color)' : 'var(--success-color)',
+                                                                        fontWeight: 500 
+                                                                    }}>
+                                                                        {status}
+                                                                    </Text>
+                                                                )
+                                                            }
+                                                        ]}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <Form.Item
                                         label="Notes (Optional)"
                                         name="notes"
-                                        style={{ marginBottom: 0 }}
+                                        style={{ marginBottom: 0, marginTop: paymentType === 'Installment' ? 16 : 0 }}
                                     >
                                         <TextArea rows={2} placeholder="Any additional notes about this sale..." size="small" />
                                     </Form.Item>
@@ -718,14 +971,82 @@ const AddSale = () => {
                                         </Row>
                                     </div>
                                     <Divider style={{ margin: '12px 0' }} />
-                                    <div style={{ marginBottom: 16 }}>
-                                        <Row justify="space-between">
-                                            <Title level={5} style={{ margin: 0 }}>Total:</Title>
-                                            <Title level={5} style={{ margin: 0, color: '#1890ff' }}>
-                                                ₹{totals.totalAmount}
-                                            </Title>
-                                        </Row>
-                                    </div>
+                                    
+                                    {/* Show EMI details if Installment payment */}
+                                    {paymentType === 'Installment' ? (
+                                        <>
+                                            <div style={{ marginBottom: 12 }}>
+                                                <Row justify="space-between">
+                                                    <Text>Original Amount:</Text>
+                                                    <Text strong>₹{totals.totalAmount}</Text>
+                                                </Row>
+                                            </div>
+                                            {emiDetails.fileCharges > 0 && (
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <Row justify="space-between">
+                                                        <Text>File Charges:</Text>
+                                                        <Text strong>₹{emiDetails.fileCharges}</Text>
+                                                    </Row>
+                                                </div>
+                                            )}
+                                            {emiDetails.interestRate > 0 && (
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <Row justify="space-between">
+                                                        <Text>Interest ({emiDetails.interestRate}%):</Text>
+                                                        <Text strong>₹{((parseFloat(totals.totalAmount || 0) * emiDetails.interestRate) / 100).toFixed(2)}</Text>
+                                                    </Row>
+                                                </div>
+                                            )}
+                                            <div style={{ marginBottom: 16 }}>
+                                                <Row justify="space-between">
+                                                    <Title level={5} style={{ margin: 0 }}>Final Amount:</Title>
+                                                    <Title level={5} style={{ margin: 0, color: '#1890ff' }}>
+                                                        ₹{totals.finalAmount}
+                                                    </Title>
+                                                </Row>
+                                            </div>
+                                            {emiDetails.downPayment > 0 && (
+                                                <>
+                                                    <div style={{ marginBottom: 12 }}>
+                                                        <Row justify="space-between">
+                                                            <Text>Down Payment:</Text>
+                                                            <Text strong style={{ color: 'var(--success-color)' }}>₹{emiDetails.downPayment}</Text>
+                                                        </Row>
+                                                    </div>
+                                                    <div style={{ marginBottom: 16 }}>
+                                                        <Row justify="space-between">
+                                                            <Title level={5} style={{ margin: 0, color: 'var(--warning-color)' }}>Pending Amount:</Title>
+                                                            <Title level={5} style={{ margin: 0, color: 'var(--warning-color)' }}>
+                                                                ₹{totals.pendingAmount}
+                                                            </Title>
+                                                        </Row>
+                                                    </div>
+                                                </>
+                                            )}
+                                            {emiDetails.installments.length > 0 && (
+                                                <div style={{ 
+                                                    padding: '8px', 
+                                                    backgroundColor: 'var(--bg-tertiary)', 
+                                                    borderRadius: '4px', 
+                                                    marginBottom: 16 
+                                                }}>
+                                                    <Text strong>EMI Details:</Text><br />
+                                                    <Text style={{ fontSize: '12px' }}>
+                                                        {emiDetails.numberOfInstallments} installments of ₹{emiDetails.installments[0]?.amount || 0} each
+                                                    </Text>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div style={{ marginBottom: 16 }}>
+                                            <Row justify="space-between">
+                                                <Title level={5} style={{ margin: 0 }}>Total:</Title>
+                                                <Title level={5} style={{ margin: 0, color: 'var(--primary-color)' }}>
+                                                    ₹{totals.totalAmount}
+                                                </Title>
+                                            </Row>
+                                        </div>
+                                    )}
 
                                     {/* Items Summary */}
                                     <Divider style={{ margin: '12px 0' }} />

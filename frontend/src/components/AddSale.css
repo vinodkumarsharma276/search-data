@@ -2,7 +2,7 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
-    background: #f5f7fa;
+    background: var(--bg-secondary);
     min-height: 100vh;
 }
 
@@ -11,17 +11,18 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-color);
     color: white;
     border-radius: 12px;
     margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-medium);
 }
 
 .add-sale-nav h1 {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
+    color: white;
 }
 
 .back-link {
@@ -42,37 +43,39 @@
 }
 
 .add-sale-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-color);
     color: white;
     padding: 30px;
     border-radius: 12px;
     margin-bottom: 30px;
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-medium);
 }
 
 .add-sale-header h1 {
     margin: 0 0 10px 0;
     font-size: 2.5rem;
     font-weight: 700;
+    color: white;
 }
 
 .add-sale-header p {
     margin: 0;
     opacity: 0.9;
     font-size: 1.1rem;
+    color: white;
 }
 
 .add-sale-form {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-light);
     overflow: hidden;
 }
 
 .form-section {
     padding: 30px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .form-section:last-child {
@@ -81,7 +84,7 @@
 
 .form-section h3 {
     margin: 0 0 25px 0;
-    color: #2d3748;
+    color: var(--text-primary);
     font-size: 1.4rem;
     font-weight: 600;
     display: flex;
@@ -102,14 +105,14 @@
 .new-customer-form {
     margin-top: 25px;
     padding: 25px;
-    background: #f7fafc;
+    background: var(--bg-tertiary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
 }
 
 .new-customer-form h4 {
     margin: 0 0 20px 0;
-    color: #4a5568;
+    color: var(--text-secondary);
     font-size: 1.1rem;
 }
 
@@ -128,7 +131,7 @@
 
 .form-group label {
     font-weight: 600;
-    color: #4a5568;
+    color: var(--text-primary);
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -138,27 +141,28 @@
 .form-group select,
 .form-group textarea {
     padding: 12px 16px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     font-size: 1rem;
     transition: all 0.3s ease;
-    background: white;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.1);
 }
 
 .item-row {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     padding: 25px;
     border-radius: 12px;
     margin-bottom: 20px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-color);
     position: relative;
 }
 
@@ -169,18 +173,18 @@
 }
 
 .installment-details {
-    background: #fff5f5;
+    background: rgba(255, 245, 245, 0.5);
     padding: 20px;
     border-radius: 8px;
-    border: 1px solid #feb2b2;
+    border: 1px solid rgba(254, 178, 178, 0.5);
     margin-top: 15px;
 }
 
 .sale-summary {
-    background: #f0fff4;
+    background: rgba(240, 255, 244, 0.2);
     padding: 25px;
     border-radius: 12px;
-    border: 1px solid #9ae6b4;
+    border: 1px solid rgba(154, 230, 180, 0.3);
 }
 
 .summary-row {
@@ -189,20 +193,21 @@
     align-items: center;
     padding: 8px 0;
     font-size: 1rem;
+    color: var(--text-primary);
 }
 
 .summary-row.total {
-    border-top: 2px solid #38a169;
+    border-top: 2px solid var(--success-color);
     margin-top: 10px;
     padding-top: 15px;
     font-weight: 700;
     font-size: 1.2rem;
-    color: #22543d;
+    color: var(--success-color);
 }
 
 .form-actions {
     padding: 30px;
-    background: #f7fafc;
+    background: var(--bg-tertiary);
     display: flex;
     gap: 15px;
     justify-content: center;
@@ -210,7 +215,7 @@
 
 /* Button Styles */
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-color);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -225,7 +230,8 @@
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-medium);
 }
 
 .btn-primary:disabled {
@@ -235,8 +241,8 @@
 }
 
 .btn-secondary {
-    background: #e2e8f0;
-    color: #4a5568;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
@@ -247,12 +253,12 @@
 }
 
 .btn-secondary:hover {
-    background: #cbd5e0;
+    background: var(--border-hover);
     transform: translateY(-1px);
 }
 
 .btn-danger {
-    background: #f56565;
+    background: var(--error-color);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -264,7 +270,7 @@
 }
 
 .btn-danger:hover {
-    background: #e53e3e;
+    background: var(--error-color);
     transform: translateY(-1px);
 }
 
@@ -334,31 +340,31 @@
 /* Form Validation */
 .form-group input:invalid,
 .form-group select:invalid {
-    border-color: #f56565;
+    border-color: var(--error-color);
 }
 
 .form-group input:valid,
 .form-group select:valid {
-    border-color: #68d391;
+    border-color: var(--success-color);
 }
 
 /* Disabled and readonly field styles */
 .form-group input:disabled,
 .form-group select:disabled {
-    background-color: #f7fafc;
-    color: #a0aec0;
+    background-color: var(--bg-tertiary);
+    color: var(--text-tertiary);
     cursor: not-allowed;
 }
 
 .form-group input[readonly] {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    border-color: #dee2e6;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
 }
 
 /* Discount percentage display */
 .discount-percentage {
-    color: #059669;
+    color: var(--success-color);
     font-weight: 500;
     margin-top: 4px;
     font-size: 0.85rem;
@@ -366,7 +372,7 @@
 
 /* Hover Effects */
 .item-row:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-light);
     transform: translateY(-2px);
     transition: all 0.3s ease;
 }
@@ -376,5 +382,5 @@
 }
 
 .form-section:hover {
-    background: #fafafa;
+    background: var(--bg-hover);
 }
