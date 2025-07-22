@@ -22,6 +22,12 @@ const productSchema = new mongoose.Schema({
         ref: 'Category',
         required: true
     },
+    // Pricing fields
+    purchasePrice: {
+        type: Number,
+        required: true,
+        min: 0
+    },
     mrp: {
         type: Number,
         required: true,
@@ -32,6 +38,23 @@ const productSchema = new mongoose.Schema({
         required: true,
         min: 0
     },
+    // Stock management
+    currentStock: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    minimumStock: {
+        type: Number,
+        default: 5,
+        min: 0
+    },
+    maximumStock: {
+        type: Number,
+        default: 100,
+        min: 0
+    },
+    // Tax information
     gstRate: {
         type: Number,
         required: true,
@@ -39,11 +62,44 @@ const productSchema = new mongoose.Schema({
         min: 0,
         max: 50
     },
+    hsnCode: {
+        type: String,
+        trim: true
+    },
+    // Product details
+    description: {
+        type: String,
+        trim: true
+    },
+    features: [{
+        type: String,
+        trim: true
+    }],
+    warrantyPeriod: {
+        type: Number, // in months
+        default: 12,
+        min: 0
+    },
+    // Storage and shipping
+    weight: {
+        type: Number, // in kg
+        min: 0
+    },
+    dimensions: {
+        length: Number,
+        width: Number,
+        height: Number
+    },
+    // Images
+    images: [{
+        type: String, // URLs or file paths
+        trim: true
+    }],
     specifications: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
     },
-    basePrice: {
+    basePrice: { // Keep for backward compatibility
         type: Number,
         required: true,
         min: 0
@@ -51,6 +107,17 @@ const productSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    // Supplier information
+    supplierId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Distributor' // Assuming suppliers are distributors
+    },
+    lastPurchaseDate: {
+        type: Date
+    },
+    lastSaleDate: {
+        type: Date
     }
 }, {
     timestamps: true

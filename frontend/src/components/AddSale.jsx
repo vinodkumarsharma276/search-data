@@ -18,7 +18,6 @@ import {
     Popconfirm,
     message,
     Breadcrumb,
-    Layout,
     Steps
 } from 'antd';
 import {
@@ -35,7 +34,6 @@ import {
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { Content } = Layout;
 const { TextArea } = Input;
 
 const AddSale = () => {
@@ -454,9 +452,8 @@ const AddSale = () => {
     };
 
     return (
-        <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
-            <Content style={{ padding: '16px' }}>
-                <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <div style={{ padding: '16px', background: '#f0f2f5' }}>
+            <div style={{ maxWidth: 1400, margin: '0 auto' }}>
                     {/* Header */}
                     <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                         <Col>
@@ -1071,8 +1068,7 @@ const AddSale = () => {
                         </Row>
                     </Form>
                 </div>
-            </Content>
-        </Layout>
+        </div>
     );
 };
 

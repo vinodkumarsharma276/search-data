@@ -81,6 +81,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/customers', customersRoutes);
 app.use('/api/dropdowns', require('./routes/dropdowns'));
+app.use('/api/distributors', require('./routes/distributors'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/employees', require('./routes/employees'));
 // app.use('/api/installments', require('./routes/installments'));
 app.use('/api/sales', require('./routes/sales'));
 

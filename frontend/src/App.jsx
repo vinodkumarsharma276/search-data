@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Layout } from 'antd';
 import Login from './components/Login.jsx';
+import Header from './components/Header.jsx';
+import Dashboard from './components/Dashboard.jsx';
 import SearchPage from './components/SearchPage.jsx';
 import AddSale from './components/AddSale.jsx';
+import AddDistributor from './components/AddDistributor.jsx';
+import AddProduct from './components/AddProduct.jsx';
+import AddEmployee from './components/AddEmployee.jsx';
+import AddCustomer from './components/AddCustomer.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import authService from './services/authService';
 import './styles/App.css';
@@ -91,24 +98,47 @@ function App() {
     return (
         <ThemeProvider>
             <Router>
-                <Routes>
-                    <Route 
-                        path="/login" 
-                        element={isAuthenticated ? <Navigate to="/search" replace /> : <Login />}
-                    />
-                    <Route 
-                        path="/search" 
-                        element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
-                    />
-                    <Route 
-                        path="/add-sale" 
-                        element={isAuthenticated ? <AddSale /> : <Navigate to="/login" replace />}
-                    />
-                    <Route 
-                        path="/" 
-                        element={<Navigate to={isAuthenticated ? "/search" : "/login"} replace />} 
-                    />
-                </Routes>
+                <Layout style={{ minHeight: '100vh' }}>
+                    <Header />
+                    <Routes>
+                        <Route 
+                            path="/login" 
+                            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+                        />
+                        <Route 
+                            path="/dashboard" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/search" 
+                            element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-sale" 
+                            element={isAuthenticated ? <AddSale /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-distributor" 
+                            element={isAuthenticated ? <AddDistributor /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-product" 
+                            element={isAuthenticated ? <AddProduct /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-employee" 
+                            element={isAuthenticated ? <AddEmployee /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-customer" 
+                            element={isAuthenticated ? <AddCustomer /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/" 
+                            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
+                        />
+                    </Routes>
+                </Layout>
             </Router>
         </ThemeProvider>
     );
