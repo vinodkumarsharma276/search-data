@@ -6,9 +6,33 @@ const customerSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    phone: {
+    address: {
         type: String,
         required: true,
+        trim: true
+    },
+    zone: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    mobile: [{
+        type: String,
+        required: true,
+        trim: true
+    }],
+    aadharNumber: {
+        type: String,
+        trim: true
+    },
+    panNumber: {
+        type: String,
+        trim: true,
+        uppercase: true
+    },
+    // Legacy fields for backward compatibility
+    phone: {
+        type: String,
         trim: true,
         index: true
     },
@@ -20,22 +44,6 @@ const customerSchema = new mongoose.Schema({
         type: String,
         trim: true,
         lowercase: true
-    },
-    address: {
-        street: { type: String, trim: true },
-        city: { type: String, trim: true },
-        state: { type: String, trim: true },
-        pincode: { type: String, trim: true },
-        country: { type: String, default: 'India', trim: true }
-    },
-    aadharNumber: {
-        type: String,
-        trim: true
-    },
-    panNumber: {
-        type: String,
-        trim: true,
-        uppercase: true
     },
     dateOfBirth: {
         type: Date
@@ -75,12 +83,14 @@ const customerSchema = new mongoose.Schema({
 // Create text index for search
 customerSchema.index({ 
     name: 'text', 
+    mobile: 'text',
     phone: 'text',
     alternatePhone: 'text',
     email: 'text'
 });
 
 // Additional indexes
+customerSchema.index({ mobile: 1 });
 customerSchema.index({ phone: 1 });
 customerSchema.index({ aadharNumber: 1 });
 customerSchema.index({ panNumber: 1 });

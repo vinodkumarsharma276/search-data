@@ -174,10 +174,12 @@ router.get('/search/:query', protect, async (req, res) => {
         const customers = await Customer.find({
             $or: [
                 { name: { $regex: query, $options: 'i' } },
-                { phone: { $regex: query, $options: 'i' } }
+                { phone: { $regex: query, $options: 'i' } },
+                { mobile: { $elemMatch: { $regex: query, $options: 'i' } } }, // Search in mobile array
+                { email: { $regex: query, $options: 'i' } }
             ]
         })
-        .select('name phone email _id')
+        .select('name phone mobile email _id address zone aadharNumber panNumber')
         .limit(10);
 
         res.json({

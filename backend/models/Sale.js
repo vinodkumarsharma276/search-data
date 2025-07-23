@@ -11,6 +11,11 @@ const saleSchema = new mongoose.Schema({
         ref: 'Customer',
         required: true
     },
+    guarantorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Customer',
+        default: null
+    },
     items: [{
         inventoryId: {
             type: mongoose.Schema.Types.ObjectId,
