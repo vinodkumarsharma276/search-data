@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Card, Button, theme } from 'antd';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
+    Layout,
+    Menu,
+    Button,
+    Typography,
+    theme,
+    Card,
+    Row,
+    Col,
+    Statistic
+} from 'antd';
+import {
+    MenuFoldOutlined,
+    MenuUnfoldOutlined,
+    DashboardOutlined,
     ShoppingCartOutlined,
     BoxPlotOutlined,
     ShopOutlined,
@@ -8,16 +22,13 @@ import {
     TeamOutlined,
     PlusOutlined,
     SearchOutlined,
-    MenuFoldOutlined,
-    MenuUnfoldOutlined,
-    DashboardOutlined,
-    LogoutOutlined
+    LogoutOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 
-// Import your existing components
+// Import all the components
 import AddSale from './AddSale';
 import AddDistributor from './AddDistributor';
+import SearchDistributor from './SearchDistributor';
 import SearchPage from './SearchPage';
 
 const { Header, Sider, Content } = Layout;
@@ -25,13 +36,32 @@ const { Title, Text } = Typography;
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [collapsed, setCollapsed] = useState(false);
-    const [selectedKey, setSelectedKey] = useState('dashboard');
     const {
         token: { colorBgContainer, borderRadiusLG },
     } = theme.useToken();
 
-    // Menu items with nested structure
+    // Get current route for menu selection
+    const getCurrentMenuKey = () => {
+        const path = location.pathname;
+        if (path === '/dashboard') return 'dashboard';
+        if (path.startsWith('/add-sale')) return 'add-sale';
+        if (path.startsWith('/search-sale')) return 'search-sale';
+        if (path.startsWith('/add-product')) return 'add-product';
+        if (path.startsWith('/search-product')) return 'search-product';
+        if (path.startsWith('/add-distributor')) return 'add-distributor';
+        if (path.startsWith('/search-distributor')) return 'search-distributor';
+        if (path.startsWith('/add-customer')) return 'add-customer';
+        if (path.startsWith('/search-customer')) return 'search-customer';
+        if (path.startsWith('/add-employee')) return 'add-employee';
+        if (path.startsWith('/search-employee')) return 'search-employee';
+        if (path.startsWith('/search')) return 'search-customer';
+        return 'dashboard';
+    };
+
+    const selectedKey = getCurrentMenuKey();
+
     const menuItems = [
         {
             key: 'dashboard',
@@ -126,7 +156,13 @@ const Dashboard = () => {
     ];
 
     const handleMenuClick = (e) => {
-        setSelectedKey(e.key);
+        const key = e.key;
+        
+        if (key === 'dashboard') {
+            navigate('/dashboard');
+        } else {
+            navigate(`/${key}`);
+        }
     };
 
     const handleLogout = () => {
@@ -142,10 +178,11 @@ const Dashboard = () => {
                 return <AddSale />;
             case 'add-distributor':
                 return <AddDistributor />;
+            case 'search-distributor':
+                return <SearchDistributor />;
             case 'search-customer':
             case 'search-sale':
             case 'search-product':
-            case 'search-distributor':
             case 'search-employee':
                 return <SearchPage searchType={selectedKey} />;
             case 'add-product':
@@ -157,6 +194,23 @@ const Dashboard = () => {
             default:
                 return <DashboardHome />;
         }
+    };
+
+    const getPageTitle = (selectedKey) => {
+        const titles = {
+            'dashboard': 'Business Dashboard',
+            'add-sale': 'Add New Sale',
+            'search-sale': 'Search Sales',
+            'add-product': 'Add New Product',
+            'search-product': 'Search Products', 
+            'add-distributor': 'Add New Distributor',
+            'search-distributor': 'Search Distributors',
+            'add-customer': 'Add New Customer',
+            'search-customer': 'Search Customers',
+            'add-employee': 'Add New Employee',
+            'search-employee': 'Search Employees'
+        };
+        return titles[selectedKey] || 'Dashboard';
     };
 
     return (
@@ -263,26 +317,10 @@ const Dashboard = () => {
     );
 };
 
-// Helper function to get page title
-const getPageTitle = (selectedKey) => {
-    const titles = {
-        'dashboard': 'Business Dashboard',
-        'add-sale': 'Add New Sale',
-        'search-sale': 'Search Sales',
-        'add-product': 'Add New Product',
-        'search-product': 'Search Products', 
-        'add-distributor': 'Add New Distributor',
-        'search-distributor': 'Search Distributors',
-        'add-customer': 'Add New Customer',
-        'search-customer': 'Search Customers',
-        'add-employee': 'Add New Employee',
-        'search-employee': 'Search Employees'
-    };
-    return titles[selectedKey] || 'Dashboard';
-};
-
 // Dashboard Home Component
 const DashboardHome = () => {
+    const navigate = useNavigate();
+    
     return (
         <div style={{ padding: '24px' }}>
             <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -294,66 +332,109 @@ const DashboardHome = () => {
                 </Text>
 
                 {/* Quick Stats */}
-                <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-                    gap: 16, 
-                    marginBottom: 32 
-                }}>
-                    <Card>
-                        <div style={{ textAlign: 'center' }}>
-                            <ShoppingCartOutlined style={{ fontSize: 32, color: '#52c41a', marginBottom: 8 }} />
-                            <Title level={3} style={{ margin: 0 }}>0</Title>
-                            <Text type="secondary">Total Sales</Text>
-                        </div>
-                    </Card>
-                    <Card>
-                        <div style={{ textAlign: 'center' }}>
-                            <BoxPlotOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 8 }} />
-                            <Title level={3} style={{ margin: 0 }}>0</Title>
-                            <Text type="secondary">Products</Text>
-                        </div>
-                    </Card>
-                    <Card>
-                        <div style={{ textAlign: 'center' }}>
-                            <ShopOutlined style={{ fontSize: 32, color: '#722ed1', marginBottom: 8 }} />
-                            <Title level={3} style={{ margin: 0 }}>1</Title>
-                            <Text type="secondary">Distributors</Text>
-                        </div>
-                    </Card>
-                    <Card>
-                        <div style={{ textAlign: 'center' }}>
-                            <UserOutlined style={{ fontSize: 32, color: '#fa8c16', marginBottom: 8 }} />
-                            <Title level={3} style={{ margin: 0 }}>0</Title>
-                            <Text type="secondary">Customers</Text>
-                        </div>
-                    </Card>
-                </div>
+                <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+                    <Col xs={24} sm={12} md={6}>
+                        <Card>
+                            <Statistic
+                                title="Total Sales"
+                                value={0}
+                                prefix={<ShoppingCartOutlined style={{ color: '#52c41a' }} />}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={12} md={6}>
+                        <Card>
+                            <Statistic
+                                title="Products"
+                                value={0}
+                                prefix={<BoxPlotOutlined style={{ color: '#1890ff' }} />}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={12} md={6}>
+                        <Card>
+                            <Statistic
+                                title="Distributors"
+                                value={35}
+                                prefix={<ShopOutlined style={{ color: '#722ed1' }} />}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={12} md={6}>
+                        <Card>
+                            <Statistic
+                                title="Customers"
+                                value={0}
+                                prefix={<UserOutlined style={{ color: '#fa8c16' }} />}
+                            />
+                        </Card>
+                    </Col>
+                </Row>
 
-                {/* Getting Started */}
+                {/* Quick Actions */}
+                <Card title="Quick Actions" style={{ marginBottom: 24 }}>
+                    <Row gutter={[16, 16]}>
+                        <Col xs={24} sm={12} md={8}>
+                            <Card 
+                                hoverable
+                                onClick={() => navigate('/add-sale')}
+                                style={{ textAlign: 'center', cursor: 'pointer' }}
+                            >
+                                <PlusOutlined style={{ fontSize: 24, color: '#52c41a', marginBottom: 8 }} />
+                                <div>Add New Sale</div>
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={8}>
+                            <Card 
+                                hoverable
+                                onClick={() => navigate('/add-distributor')}
+                                style={{ textAlign: 'center', cursor: 'pointer' }}
+                            >
+                                <PlusOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
+                                <div>Add Distributor</div>
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={8}>
+                            <Card 
+                                hoverable
+                                onClick={() => navigate('/search-distributor')}
+                                style={{ textAlign: 'center', cursor: 'pointer' }}
+                            >
+                                <SearchOutlined style={{ fontSize: 24, color: '#1890ff', marginBottom: 8 }} />
+                                <div>Search Distributors</div>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Card>
+
+                {/* Getting Started Guide */}
                 <Card title="Getting Started" style={{ marginBottom: 24 }}>
-                    <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                        gap: 16 
-                    }}>
-                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                            <Title level={4}>📊 Manage Sales</Title>
-                            <Text>Add new sales transactions and track your revenue.</Text>
-                        </div>
-                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                            <Title level={4}>📦 Product Inventory</Title>
-                            <Text>Keep track of your products and inventory levels.</Text>
-                        </div>
-                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                            <Title level={4}>🏪 Distributor Network</Title>
-                            <Text>Manage your distributors and supplier relationships.</Text>
-                        </div>
-                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                            <Title level={4}>👥 Customer Base</Title>
-                            <Text>Maintain customer information and purchase history.</Text>
-                        </div>
-                    </div>
+                    <Row gutter={[16, 16]}>
+                        <Col xs={24} md={12}>
+                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                                <Title level={4}>📊 Manage Sales</Title>
+                                <Text>Add new sales transactions and track your revenue. Use the sales section to record and monitor all business transactions.</Text>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                                <Title level={4}>🏪 Distributor Network</Title>
+                                <Text>Manage your distributors and supplier relationships. Currently 35 distributors are registered in your system.</Text>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                                <Title level={4}>📦 Product Inventory</Title>
+                                <Text>Keep track of your products and inventory levels. Add products and monitor stock availability.</Text>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                                <Title level={4}>👥 Customer Base</Title>
+                                <Text>Maintain customer information and purchase history to build stronger relationships.</Text>
+                            </div>
+                        </Col>
+                    </Row>
                 </Card>
             </div>
         </div>
@@ -373,10 +454,10 @@ const ComingSoon = ({ feature }) => {
             justifyContent: 'center',
             alignItems: 'center'
         }}>
-            <BoxPlotOutlined style={{ fontSize: 64, color: '#d9d9d9', marginBottom: 24 }} />
-            <Title level={2}>{feature}</Title>
-            <Text type="secondary" style={{ fontSize: 16 }}>
-                This feature is coming soon! We're working hard to bring you the best experience.
+            <BoxPlotOutlined style={{ fontSize: 64, color: '#d9d9d9', marginBottom: 16 }} />
+            <Title level={2}>{feature} - Coming Soon</Title>
+            <Text type="secondary" style={{ fontSize: '16px' }}>
+                This feature is under development and will be available soon.
             </Text>
         </div>
     );

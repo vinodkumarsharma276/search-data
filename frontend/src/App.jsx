@@ -4,12 +4,6 @@ import { Layout } from 'antd';
 import Login from './components/Login.jsx';
 import Header from './components/Header.jsx';
 import Dashboard from './components/Dashboard.jsx';
-import SearchPage from './components/SearchPage.jsx';
-import AddSale from './components/AddSale.jsx';
-import AddDistributor from './components/AddDistributor.jsx';
-import AddProduct from './components/AddProduct.jsx';
-import AddEmployee from './components/AddEmployee.jsx';
-import AddCustomer from './components/AddCustomer.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import authService from './services/authService';
 import './styles/App.css';
@@ -106,32 +100,52 @@ function App() {
                             element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
                         />
                         <Route 
-                            path="/dashboard" 
+                            path="/dashboard/*" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-sale" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/search-sale" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-distributor" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/search-distributor" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-product" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/search-product" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-customer" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/search-customer" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/add-employee" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
+                            path="/search-employee" 
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />
                         <Route 
                             path="/search" 
-                            element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" replace />}
-                        />
-                        <Route 
-                            path="/add-sale" 
-                            element={isAuthenticated ? <AddSale /> : <Navigate to="/login" replace />}
-                        />
-                        <Route 
-                            path="/add-distributor" 
-                            element={isAuthenticated ? <AddDistributor /> : <Navigate to="/login" replace />}
-                        />
-                        <Route 
-                            path="/add-product" 
-                            element={isAuthenticated ? <AddProduct /> : <Navigate to="/login" replace />}
-                        />
-                        <Route 
-                            path="/add-employee" 
-                            element={isAuthenticated ? <AddEmployee /> : <Navigate to="/login" replace />}
-                        />
-                        <Route 
-                            path="/add-customer" 
-                            element={isAuthenticated ? <AddCustomer /> : <Navigate to="/login" replace />}
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />
                         <Route 
                             path="/" 

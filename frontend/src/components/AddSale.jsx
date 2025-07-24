@@ -19,8 +19,7 @@ import {
     message,
     Breadcrumb,
     Steps,
-    AutoComplete,
-    Collapse
+    AutoComplete
 } from 'antd';
 import {
     PlusOutlined,
@@ -69,7 +68,6 @@ const AddSale = () => {
     const [customerSearchValue, setCustomerSearchValue] = useState('');
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [selectedCustomerDisplay, setSelectedCustomerDisplay] = useState('');
     const [showAddCustomerForm, setShowAddCustomerForm] = useState(false);
     const [customerForm] = Form.useForm();
     
@@ -77,13 +75,8 @@ const AddSale = () => {
     const [guarantorSearchValue, setGuarantorSearchValue] = useState('');
     const [guarantorSearchResults, setGuarantorSearchResults] = useState([]);
     const [selectedGuarantor, setSelectedGuarantor] = useState(null);
-    const [selectedGuarantorDisplay, setSelectedGuarantorDisplay] = useState('');
     const [showAddGuarantorForm, setShowAddGuarantorForm] = useState(false);
     const [guarantorForm] = Form.useForm();
-    
-    // Debounce timers
-    const [customerSearchTimer, setCustomerSearchTimer] = useState(null);
-    const [guarantorSearchTimer, setGuarantorSearchTimer] = useState(null);
 
     // Load initial data on component mount
     useEffect(() => {
@@ -97,18 +90,6 @@ const AddSale = () => {
     useEffect(() => {
         calculateTotals();
     }, [saleItems]);
-
-    // Cleanup timers on unmount
-    useEffect(() => {
-        return () => {
-            if (customerSearchTimer) {
-                clearTimeout(customerSearchTimer);
-            }
-            if (guarantorSearchTimer) {
-                clearTimeout(guarantorSearchTimer);
-            }
-        };
-    }, [customerSearchTimer, guarantorSearchTimer]);
 
     const createEmptyItem = () => ({
         key: Date.now() + Math.random(),
@@ -130,15 +111,10 @@ const AddSale = () => {
 
     const fetchCustomers = async () => {
         try {
-            const token = authService.getToken();
-            const response = await fetch('/api/customers', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetch('/api/customers');
             if (response.ok) {
                 const data = await response.json();
-                setCustomers(data.data || []);
+                setCustomers(data.customers || []);
             }
         } catch (error) {
             console.error('Error fetching customers:', error);
@@ -227,53 +203,34 @@ const AddSale = () => {
     // Customer search functions
     const handleCustomerSearch = async (value) => {
         setCustomerSearchValue(value);
-        
-        // Clear existing timer
-        if (customerSearchTimer) {
-            clearTimeout(customerSearchTimer);
-        }
-        
         if (value.length >= 3) {
-            // Set new timer for debounced search
-            const timer = setTimeout(async () => {
-                try {
-                    const token = authService.getToken();
-                    const response = await fetch(`/api/customers/search/${value}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.data && Array.isArray(data.data)) {
-                            const options = data.data.map(customer => ({
-                                key: customer._id,
-                                value: customer._id,
-                                label: `${customer.name} - ${customer.mobile[0]} (${customer.zone})`
-                            }));
-                            setCustomerSearchResults(options);
-                        } else {
-                            setCustomerSearchResults([]);
-                        }
-                    } else {
-                        const errorText = await response.text();
-                        console.error('Customer search failed:', response.status, errorText);
-                        setCustomerSearchResults([]);
+            try {
+                const token = authService.getToken();
+                const response = await fetch(`/api/customers/search/${value}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
                     }
-                } catch (error) {
-                    console.error('Error searching customers:', error);
-                    setCustomerSearchResults([]);
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const options = data.customers.map(customer => ({
+                        key: customer._id,
+                        value: customer._id,
+                        label: `${customer.name} - ${customer.mobile[0]} (${customer.zone})`
+                    }));
+                    setCustomerSearchResults(options);
+                } else {
+                    console.error('Customer search failed:', response.status);
                 }
-            }, 300); // 300ms debounce
-            
-            setCustomerSearchTimer(timer);
+            } catch (error) {
+                console.error('Error searching customers:', error);
+            }
         } else {
             setCustomerSearchResults([]);
         }
     };
 
-    const handleCustomerSelect = async (value, option) => {
+    const handleCustomerSelect = async (value) => {
         try {
             const token = authService.getToken();
             const response = await fetch(`/api/customers/${value}`, {
@@ -283,19 +240,18 @@ const AddSale = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setSelectedCustomer(data.data);
-                setSelectedCustomerDisplay(option.label); // Set display value
+                setSelectedCustomer(data.customer);
                 setShowAddCustomerForm(true);
                 // Pre-fill the customer form
                 customerForm.setFieldsValue({
-                    name: data.data.name,
-                    zone: data.data.zone,
-                    address: data.data.address,
-                    mobile: data.data.mobile,
-                    email: data.data.email || '',
-                    phone: data.data.phone || '',
-                    aadharNumber: data.data.aadharNumber || '',
-                    panNumber: data.data.panNumber || ''
+                    name: data.customer.name,
+                    zone: data.customer.zone,
+                    address: data.customer.address,
+                    mobile: data.customer.mobile,
+                    email: data.customer.email || '',
+                    phone: data.customer.phone || '',
+                    aadharNumber: data.customer.aadharNumber || '',
+                    panNumber: data.customer.panNumber || ''
                 });
             }
         } catch (error) {
@@ -305,51 +261,34 @@ const AddSale = () => {
 
     const handleGuarantorSearch = async (value) => {
         setGuarantorSearchValue(value);
-        
-        // Clear existing timer
-        if (guarantorSearchTimer) {
-            clearTimeout(guarantorSearchTimer);
-        }
-        
         if (value.length >= 3) {
-            // Set new timer for debounced search
-            const timer = setTimeout(async () => {
-                try {
-                    const token = authService.getToken();
-                    const response = await fetch(`/api/customers/search/${value}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.data && Array.isArray(data.data)) {
-                            const options = data.data.map(customer => ({
-                                key: customer._id,
-                                value: customer._id,
-                                label: `${customer.name} - ${customer.mobile[0]} (${customer.zone})`
-                            }));
-                            setGuarantorSearchResults(options);
-                        } else {
-                            setGuarantorSearchResults([]);
-                        }
-                    } else {
-                        console.error('Guarantor search failed:', response.status);
-                        setGuarantorSearchResults([]);
+            try {
+                const token = authService.getToken();
+                const response = await fetch(`/api/customers/search/${value}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
                     }
-                } catch (error) {
-                    console.error('Error searching guarantors:', error);
-                    setGuarantorSearchResults([]);
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const options = data.customers.map(customer => ({
+                        key: customer._id,
+                        value: customer._id,
+                        label: `${customer.name} - ${customer.mobile[0]} (${customer.zone})`
+                    }));
+                    setGuarantorSearchResults(options);
+                } else {
+                    console.error('Guarantor search failed:', response.status);
                 }
-            }, 300); // 300ms debounce
-            
-            setGuarantorSearchTimer(timer);
+            } catch (error) {
+                console.error('Error searching guarantors:', error);
+            }
         } else {
             setGuarantorSearchResults([]);
         }
     };
 
-    const handleGuarantorSelect = async (value, option) => {
+    const handleGuarantorSelect = async (value) => {
         try {
             const token = authService.getToken();
             const response = await fetch(`/api/customers/${value}`, {
@@ -359,19 +298,18 @@ const AddSale = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setSelectedGuarantor(data.data);
-                setSelectedGuarantorDisplay(option.label); // Set display value
+                setSelectedGuarantor(data.customer);
                 setShowAddGuarantorForm(true);
                 // Pre-fill the guarantor form
                 guarantorForm.setFieldsValue({
-                    name: data.data.name,
-                    zone: data.data.zone,
-                    address: data.data.address,
-                    mobile: data.data.mobile,
-                    email: data.data.email || '',
-                    phone: data.data.phone || '',
-                    aadharNumber: data.data.aadharNumber || '',
-                    panNumber: data.data.panNumber || ''
+                    name: data.customer.name,
+                    zone: data.customer.zone,
+                    address: data.customer.address,
+                    mobile: data.customer.mobile,
+                    email: data.customer.email || '',
+                    phone: data.customer.phone || '',
+                    aadharNumber: data.customer.aadharNumber || '',
+                    panNumber: data.customer.panNumber || ''
                 });
             }
         } catch (error) {
@@ -381,14 +319,12 @@ const AddSale = () => {
 
     const handleAddCustomer = () => {
         setSelectedCustomer(null);
-        setSelectedCustomerDisplay('');
         setShowAddCustomerForm(true);
         customerForm.resetFields();
     };
 
     const handleAddGuarantor = () => {
         setSelectedGuarantor(null);
-        setSelectedGuarantorDisplay('');
         setShowAddGuarantorForm(true);  
         guarantorForm.resetFields();
     };
@@ -715,16 +651,6 @@ const AddSale = () => {
                                                 onSearch={handleCustomerSearch}
                                                 onSelect={handleCustomerSelect}
                                                 placeholder="Type customer name or mobile (min 3 chars)"
-                                                value={selectedCustomerDisplay}
-                                                onChange={(value) => {
-                                                    if (!value) {
-                                                        setSelectedCustomer(null);
-                                                        setSelectedCustomerDisplay('');
-                                                        setShowAddCustomerForm(false);
-                                                    } else {
-                                                        setSelectedCustomerDisplay(value);
-                                                    }
-                                                }}
                                                 allowClear
                                             />
                                             <Button 
@@ -748,16 +674,6 @@ const AddSale = () => {
                                                 onSearch={handleGuarantorSearch}
                                                 onSelect={handleGuarantorSelect}
                                                 placeholder="Type guarantor name or mobile (min 3 chars)"
-                                                value={selectedGuarantorDisplay}
-                                                onChange={(value) => {
-                                                    if (!value) {
-                                                        setSelectedGuarantor(null);
-                                                        setSelectedGuarantorDisplay('');
-                                                        setShowAddGuarantorForm(false);
-                                                    } else {
-                                                        setSelectedGuarantorDisplay(value);
-                                                    }
-                                                }}
                                                 allowClear
                                             />
                                             <Button 
@@ -776,124 +692,115 @@ const AddSale = () => {
                                     <Card 
                                         title={`${selectedCustomer ? 'Edit Customer' : 'Add New Customer'}`}
                                         style={{ marginBottom: 16 }}
-                                        bodyStyle={{ padding: '12px' }}
+                                        bodyStyle={{ padding: '16px' }}
                                         size="small"
                                     >
                                         <Form
                                             form={customerForm}
                                             layout="vertical"
-                                            size="small"
                                             onFinish={(values) => {
                                                 console.log('Customer form values:', values);
+                                                // Handle customer form submission
                                                 setShowAddCustomerForm(false);
                                                 message.success('Customer details saved!');
                                             }}
                                         >
-                                            {/* Essential Fields - Always Visible */}
-                                            <Row gutter={[12, 8]}>
-                                                <Col span={8}>
+                                            <Row gutter={16}>
+                                                <Col span={12}>
                                                     <Form.Item
                                                         label="Customer Name"
                                                         name="name"
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
+                                                        rules={[{ required: true, message: 'Please enter customer name' }]}
                                                     >
-                                                        <Input placeholder="Full name" size="small" />
+                                                        <Input placeholder="Enter full name" />
                                                     </Form.Item>
                                                 </Col>
-                                                <Col span={6}>
+                                                <Col span={12}>
                                                     <Form.Item
                                                         label="Zone"
                                                         name="zone"
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
+                                                        rules={[{ required: true, message: 'Please select zone' }]}
                                                     >
-                                                        <Select placeholder="Zone" size="small">
-                                                            <Option value="Khoda East">Khoda East</Option>
-                                                            <Option value="Khoda West">Khoda West</Option>
-                                                            <Option value="Khoda North">Khoda North</Option>
-                                                            <Option value="Khoda South">Khoda South</Option>
-                                                            <Option value="Delhi">Delhi</Option>
-                                                            <Option value="Noida">Noida</Option>
+                                                        <Select placeholder="Select zone">
+                                                            <Option value="North">North</Option>
+                                                            <Option value="South">South</Option>
+                                                            <Option value="East">East</Option>
+                                                            <Option value="West">West</Option>
                                                         </Select>
                                                     </Form.Item>
                                                 </Col>
-                                                <Col span={10}>
-                                                    <Form.Item
-                                                        label="Mobile Number"
-                                                        name={['mobile', 0]}
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
-                                                    >
-                                                        <Input placeholder="9876543210" maxLength={10} size="small" />
+                                            </Row>
+                                            <Form.Item
+                                                label="Address"
+                                                name="address"
+                                                rules={[{ required: true, message: 'Please enter address' }]}
+                                            >
+                                                <Input.TextArea placeholder="Enter complete address" rows={2} />
+                                            </Form.Item>
+                                            <Form.List name="mobile">
+                                                {(fields, { add, remove }) => (
+                                                    <>
+                                                        {fields.map(({ key, name, ...restField }) => (
+                                                            <Row key={key} gutter={16} align="middle">
+                                                                <Col span={20}>
+                                                                    <Form.Item
+                                                                        {...restField}
+                                                                        name={[name]}
+                                                                        label={key === 0 ? "Mobile Numbers" : ""}
+                                                                        rules={[{ required: true, message: 'Please enter mobile number' }]}
+                                                                    >
+                                                                        <Input placeholder="9876543210" maxLength={10} />
+                                                                    </Form.Item>
+                                                                </Col>
+                                                                <Col span={4}>
+                                                                    {fields.length > 1 && (
+                                                                        <Button
+                                                                            type="text"
+                                                                            icon={<DeleteOutlined />}
+                                                                            onClick={() => remove(name)}
+                                                                            danger
+                                                                        />
+                                                                    )}
+                                                                </Col>
+                                                            </Row>
+                                                        ))}
+                                                        <Form.Item>
+                                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                                Add Mobile Number
+                                                            </Button>
+                                                        </Form.Item>
+                                                    </>
+                                                )}
+                                            </Form.List>
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item label="Email (Optional)" name="email">
+                                                        <Input placeholder="email@example.com" />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item label="Phone (Optional)" name="phone">
+                                                        <Input placeholder="011-12345678" />
                                                     </Form.Item>
                                                 </Col>
                                             </Row>
-                                            
-                                            <Row gutter={[12, 8]}>
-                                                <Col span={24}>
-                                                    <Form.Item
-                                                        label="Address"
-                                                        name="address"
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
-                                                    >
-                                                        <Input.TextArea placeholder="Complete address" rows={1} size="small" />
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item label="Aadhaar Number (Optional)" name="aadharNumber">
+                                                        <Input placeholder="123456789012" maxLength={12} />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item label="PAN Number (Optional)" name="panNumber">
+                                                        <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
                                                     </Form.Item>
                                                 </Col>
                                             </Row>
-
-                                            {/* Optional Fields - Collapsible */}
-                                            <Collapse 
-                                                size="small" 
-                                                ghost
-                                                style={{ marginBottom: 8 }}
-                                                items={[
-                                                    {
-                                                        key: '1',
-                                                        label: 'Additional Details (Optional)',
-                                                        children: (
-                                                            <>
-                                                                <Row gutter={[12, 8]}>
-                                                                    <Col span={8}>
-                                                                        <Form.Item label="Email" name="email" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="email@example.com" size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                    <Col span={8}>
-                                                                        <Form.Item label="Phone" name="phone" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="011-12345678" size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                    <Col span={8}>
-                                                                        <Form.Item label="Additional Mobile" name={['mobile', 1]} style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="9876543210" maxLength={10} size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                </Row>
-                                                                <Row gutter={[12, 8]}>
-                                                                    <Col span={12}>
-                                                                        <Form.Item label="Aadhaar Number" name="aadharNumber" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="123456789012" maxLength={12} size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                    <Col span={12}>
-                                                                        <Form.Item label="PAN Number" name="panNumber" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                </Row>
-                                                            </>
-                                                        )
-                                                    }
-                                                ]}
-                                            />
-
-                                            <div style={{ textAlign: 'right', marginTop: 8 }}>
-                                                <Button onClick={() => setShowAddCustomerForm(false)} style={{ marginRight: 8 }} size="small">
+                                            <div style={{ textAlign: 'right', marginTop: 16 }}>
+                                                <Button onClick={() => setShowAddCustomerForm(false)} style={{ marginRight: 8 }}>
                                                     Cancel
                                                 </Button>
-                                                <Button type="primary" htmlType="submit" size="small">
+                                                <Button type="primary" htmlType="submit">
                                                     {selectedCustomer ? 'Update Customer' : 'Add Customer'}
                                                 </Button>
                                             </div>
@@ -906,124 +813,115 @@ const AddSale = () => {
                                     <Card 
                                         title={`${selectedGuarantor ? 'Edit Guarantor' : 'Add New Guarantor'}`}
                                         style={{ marginBottom: 16 }}
-                                        bodyStyle={{ padding: '12px' }}
+                                        bodyStyle={{ padding: '16px' }}
                                         size="small"
                                     >
                                         <Form
                                             form={guarantorForm}
                                             layout="vertical"
-                                            size="small"
                                             onFinish={(values) => {
                                                 console.log('Guarantor form values:', values);
+                                                // Handle guarantor form submission
                                                 setShowAddGuarantorForm(false);
                                                 message.success('Guarantor details saved!');
                                             }}
                                         >
-                                            {/* Essential Fields - Always Visible */}
-                                            <Row gutter={[12, 8]}>
-                                                <Col span={8}>
+                                            <Row gutter={16}>
+                                                <Col span={12}>
                                                     <Form.Item
                                                         label="Guarantor Name"
                                                         name="name"
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
+                                                        rules={[{ required: true, message: 'Please enter guarantor name' }]}
                                                     >
-                                                        <Input placeholder="Full name" size="small" />
+                                                        <Input placeholder="Enter full name" />
                                                     </Form.Item>
                                                 </Col>
-                                                <Col span={6}>
+                                                <Col span={12}>
                                                     <Form.Item
                                                         label="Zone"
                                                         name="zone"
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
+                                                        rules={[{ required: true, message: 'Please select zone' }]}
                                                     >
-                                                        <Select placeholder="Zone" size="small">
-                                                            <Option value="Khoda East">Khoda East</Option>
-                                                            <Option value="Khoda West">Khoda West</Option>
-                                                            <Option value="Khoda North">Khoda North</Option>
-                                                            <Option value="Khoda South">Khoda South</Option>
-                                                            <Option value="Delhi">Delhi</Option>
-                                                            <Option value="Noida">Noida</Option>
+                                                        <Select placeholder="Select zone">
+                                                            <Option value="North">North</Option>
+                                                            <Option value="South">South</Option>
+                                                            <Option value="East">East</Option>
+                                                            <Option value="West">West</Option>
                                                         </Select>
                                                     </Form.Item>
                                                 </Col>
-                                                <Col span={10}>
-                                                    <Form.Item
-                                                        label="Mobile Number"
-                                                        name={['mobile', 0]}
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
-                                                    >
-                                                        <Input placeholder="9876543210" maxLength={10} size="small" />
+                                            </Row>
+                                            <Form.Item
+                                                label="Address"
+                                                name="address"
+                                                rules={[{ required: true, message: 'Please enter address' }]}
+                                            >
+                                                <Input.TextArea placeholder="Enter complete address" rows={2} />
+                                            </Form.Item>
+                                            <Form.List name="mobile">
+                                                {(fields, { add, remove }) => (
+                                                    <>
+                                                        {fields.map(({ key, name, ...restField }) => (
+                                                            <Row key={key} gutter={16} align="middle">
+                                                                <Col span={20}>
+                                                                    <Form.Item
+                                                                        {...restField}
+                                                                        name={[name]}
+                                                                        label={key === 0 ? "Mobile Numbers" : ""}
+                                                                        rules={[{ required: true, message: 'Please enter mobile number' }]}
+                                                                    >
+                                                                        <Input placeholder="9876543210" maxLength={10} />
+                                                                    </Form.Item>
+                                                                </Col>
+                                                                <Col span={4}>
+                                                                    {fields.length > 1 && (
+                                                                        <Button
+                                                                            type="text"
+                                                                            icon={<DeleteOutlined />}
+                                                                            onClick={() => remove(name)}
+                                                                            danger
+                                                                        />
+                                                                    )}
+                                                                </Col>
+                                                            </Row>
+                                                        ))}
+                                                        <Form.Item>
+                                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                                Add Mobile Number
+                                                            </Button>
+                                                        </Form.Item>
+                                                    </>
+                                                )}
+                                            </Form.List>
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item label="Email (Optional)" name="email">
+                                                        <Input placeholder="email@example.com" />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item label="Phone (Optional)" name="phone">
+                                                        <Input placeholder="011-12345678" />
                                                     </Form.Item>
                                                 </Col>
                                             </Row>
-                                            
-                                            <Row gutter={[12, 8]}>
-                                                <Col span={24}>
-                                                    <Form.Item
-                                                        label="Address"
-                                                        name="address"
-                                                        rules={[{ required: true, message: 'Required' }]}
-                                                        style={{ marginBottom: 8 }}
-                                                    >
-                                                        <Input.TextArea placeholder="Complete address" rows={1} size="small" />
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item label="Aadhaar Number (Optional)" name="aadharNumber">
+                                                        <Input placeholder="123456789012" maxLength={12} />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item label="PAN Number (Optional)" name="panNumber">
+                                                        <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
                                                     </Form.Item>
                                                 </Col>
                                             </Row>
-
-                                            {/* Optional Fields - Collapsible */}
-                                            <Collapse 
-                                                size="small" 
-                                                ghost
-                                                style={{ marginBottom: 8 }}
-                                                items={[
-                                                    {
-                                                        key: '1',
-                                                        label: 'Additional Details (Optional)',
-                                                        children: (
-                                                            <>
-                                                                <Row gutter={[12, 8]}>
-                                                                    <Col span={8}>
-                                                                        <Form.Item label="Email" name="email" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="email@example.com" size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                    <Col span={8}>
-                                                                        <Form.Item label="Phone" name="phone" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="011-12345678" size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                    <Col span={8}>
-                                                                        <Form.Item label="Additional Mobile" name={['mobile', 1]} style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="9876543210" maxLength={10} size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                </Row>
-                                                                <Row gutter={[12, 8]}>
-                                                                    <Col span={12}>
-                                                                        <Form.Item label="Aadhaar Number" name="aadharNumber" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="123456789012" maxLength={12} size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                    <Col span={12}>
-                                                                        <Form.Item label="PAN Number" name="panNumber" style={{ marginBottom: 8 }}>
-                                                                            <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} size="small" />
-                                                                        </Form.Item>
-                                                                    </Col>
-                                                                </Row>
-                                                            </>
-                                                        )
-                                                    }
-                                                ]}
-                                            />
-
-                                            <div style={{ textAlign: 'right', marginTop: 8 }}>
-                                                <Button onClick={() => setShowAddGuarantorForm(false)} style={{ marginRight: 8 }} size="small">
+                                            <div style={{ textAlign: 'right', marginTop: 16 }}>
+                                                <Button onClick={() => setShowAddGuarantorForm(false)} style={{ marginRight: 8 }}>
                                                     Cancel
                                                 </Button>
-                                                <Button type="primary" htmlType="submit" size="small">
+                                                <Button type="primary" htmlType="submit">
                                                     {selectedGuarantor ? 'Update Guarantor' : 'Add Guarantor'}
                                                 </Button>
                                             </div>

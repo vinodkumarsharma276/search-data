@@ -16,13 +16,17 @@ const distributorSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        uppercase: true
+        uppercase: true,
+        unique: true,
+        index: true
     },
     panNumber: {
         type: String,
         required: true,
         trim: true,
-        uppercase: true
+        uppercase: true,
+        unique: true,
+        index: true
     },
     primaryPhone: {
         type: String,
@@ -133,7 +137,6 @@ distributorSchema.index({
 
 // Index for better query performance
 distributorSchema.index({ name: 1 });
-distributorSchema.index({ gstNumber: 1 });
 distributorSchema.index({ email: 1 });
 
 module.exports = mongoose.model('Distributor', distributorSchema);
