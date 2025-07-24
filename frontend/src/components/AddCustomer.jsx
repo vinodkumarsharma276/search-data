@@ -141,11 +141,12 @@ const AddCustomer = () => {
                                     rules={[{ required: true, message: 'Please select zone' }]}
                                 >
                                     <Select placeholder="Select zone" size="large">
-                                        <Option value="North">North</Option>
-                                        <Option value="South">South</Option>
-                                        <Option value="East">East</Option>
-                                        <Option value="West">West</Option>
-                                        <Option value="Central">Central</Option>
+                                        <Option value="Khoda East">Khoda East</Option>
+                                        <Option value="Khoda West">Khoda West</Option>
+                                        <Option value="Khoda North">Khoda North</Option>
+                                        <Option value="Khoda South">Khoda South</Option>
+                                        <Option value="Delhi">Delhi</Option>
+                                        <Option value="Noida">Noida</Option>
                                     </Select>
                                 </Form.Item>
                             </Col>

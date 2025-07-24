@@ -14,7 +14,8 @@ const customerSchema = new mongoose.Schema({
     zone: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        enum: ['Khoda East', 'Khoda West', 'Khoda North', 'Khoda South', 'Delhi', 'Noida']
     },
     mobile: [{
         type: String,

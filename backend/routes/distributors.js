@@ -4,11 +4,15 @@ const Distributor = require('../models/Distributor');
 
 // POST /api/distributors - Create new distributor
 router.post('/', async (req, res) => {
+    console.log('🏪 ========================================');
     console.log('🏪 POST /api/distributors - Creating new distributor');
-    console.log('📦 Request body:', req.body);
+    console.log('🏪 ========================================');
+    console.log('📦 RAW Request body received from frontend:');
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log('🏪 ----------------------------------------');
 
     try {
-        // Create new distributor
+        // Create new distributor data object
         const distributorData = {
             name: req.body.name,
             companyType: req.body.companyType,
@@ -29,31 +33,60 @@ router.post('/', async (req, res) => {
             notes: req.body.notes
         };
 
+        console.log('📝 PROCESSED distributor data BEFORE saving to DB:');
+        console.log(JSON.stringify(distributorData, null, 2));
+        console.log('🏪 ----------------------------------------');
+        console.log('💾 Attempting to save to MongoDB...');
+
         const distributor = new Distributor(distributorData);
         const savedDistributor = await distributor.save();
 
-        console.log('✅ Distributor created successfully:', savedDistributor._id);
+        console.log('✅ SUCCESS! Distributor saved to database!');
+        console.log('🏪 ----------------------------------------');
+        console.log('📄 FINAL distributor data SAVED in DB:');
+        console.log(JSON.stringify(savedDistributor.toObject(), null, 2));
+        console.log('🏪 ----------------------------------------');
+        console.log(`🆔 Distributor ID: ${savedDistributor._id}`);
+        console.log(`📅 Created at: ${savedDistributor.createdAt}`);
+        console.log(`📝 Distributor name: ${savedDistributor.name}`);
+        console.log(`🏢 Company type: ${savedDistributor.companyType}`);
+        console.log(`📱 Primary phone: ${savedDistributor.primaryPhone}`);
+        console.log(`📧 Email: ${savedDistributor.email}`);
+        console.log('🏪 ========================================');
+
         res.status(201).json({
             success: true,
             message: 'Distributor created successfully',
-            distributor: savedDistributor
+            data: savedDistributor
         });
 
     } catch (error) {
-        console.error('❌ Error creating distributor:', error);
+        console.error('❌ ========================================');
+        console.error('❌ ERROR creating distributor!');
+        console.error('❌ ========================================');
+        console.error('❌ Error details:', error);
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        if (error.stack) {
+            console.error('❌ Error stack:', error.stack);
+        }
+        console.error('❌ ========================================');
 
         // Handle duplicate key errors
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern)[0];
+            const message = `${field} already exists. Please use a different ${field}.`;
+            console.error(`❌ DUPLICATE KEY ERROR: ${message}`);
             return res.status(400).json({
                 success: false,
-                message: `${field} already exists. Please use a different ${field}.`
+                message: message
             });
         }
 
         // Handle validation errors
         if (error.name === 'ValidationError') {
             const errors = Object.values(error.errors).map(err => err.message);
+            console.error('❌ VALIDATION ERRORS:', errors);
             return res.status(400).json({
                 success: false,
                 message: 'Validation failed',
@@ -61,6 +94,7 @@ router.post('/', async (req, res) => {
             });
         }
 
+        console.error('❌ GENERIC ERROR - Sending 500 response');
         res.status(500).json({
             success: false,
             message: 'Failed to create distributor',
