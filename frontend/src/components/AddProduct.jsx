@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Form,
@@ -14,7 +14,8 @@ import {
     Select,
     InputNumber,
     Upload,
-    Switch
+    Switch,
+    AutoComplete
 } from 'antd';
 import {
     SaveOutlined,
@@ -37,10 +38,27 @@ const AddProduct = () => {
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
     const [brands, setBrands] = useState([]);
+    const [distributors, setDistributors] = useState([]);
+    const [distributorOptions, setDistributorOptions] = useState([]);
+    const [distributorSearchValue, setDistributorSearchValue] = useState('');
 
     useEffect(() => {
         fetchDropdownData();
     }, []);
+
+    // Watch for distributors loading to sync any existing form values
+    useEffect(() => {
+        if (distributors.length > 0) {
+            const distributorId = form.getFieldValue('distributorId');
+            if (distributorId) {
+                const selectedDistributor = distributors.find(d => d._id === distributorId);
+                if (selectedDistributor) {
+                    const displayText = `${selectedDistributor.name} | ${selectedDistributor.gstNumber || 'No GST'}`;
+                    setDistributorSearchValue(displayText);
+                }
+            }
+        }
+    }, [distributors]);
 
     const fetchDropdownData = async () => {
         try {
@@ -50,22 +68,88 @@ const AddProduct = () => {
                 setCategories(data.categories || []);
                 setBrands(data.brands || []);
             }
+
+            // Fetch distributors separately
+            const distributorsResponse = await apiService.distributors.getAll();
+            if (distributorsResponse.data.success) {
+                setDistributors(distributorsResponse.data.distributors || []);
+                console.log('✅ Loaded distributors:', distributorsResponse.data.distributors?.length);
+            }
         } catch (error) {
             console.error('❌ Error fetching dropdown data:', error);
         }
     };
 
+    // Handle distributor search for autocomplete
+    const handleDistributorSearch = useCallback((value) => {
+        console.log('🔍 Distributor search triggered with value:', value);
+        console.log('📋 Available distributors:', distributors.length);
+        setDistributorSearchValue(value);
+        
+        if (value.length >= 3) {
+            const filtered = distributors.filter(distributor => 
+                distributor.name.toLowerCase().includes(value.toLowerCase()) ||
+                distributor.gstNumber?.toLowerCase().includes(value.toLowerCase())
+            ).slice(0, 10);
+
+            console.log('✅ Filtered distributors:', filtered.length);
+            
+            const options = filtered.map(distributor => ({
+                value: distributor._id,
+                label: `${distributor.name} | ${distributor.gstNumber || 'No GST'}`,
+                distributor: distributor
+            }));
+            
+            console.log('🎯 Autocomplete options:', options);
+            setDistributorOptions(options);
+        } else {
+            setDistributorOptions([]);
+        }
+    }, [distributors]);
+
+    // Handle distributor selection
+    const handleDistributorSelect = useCallback((value, option) => {
+        console.log('🎯 Distributor selected:', { value, option });
+        if (option && option.distributor) {
+            const displayText = `${option.distributor.name} | ${option.distributor.gstNumber || 'No GST'}`;
+            setDistributorSearchValue(displayText);
+            form.setFieldsValue({ distributorId: value });
+            setDistributorOptions([]); // Clear options after selection
+            console.log('✅ Form field set to:', value);
+            console.log('✅ Display text set to:', displayText);
+        }
+    }, [form]);
+
     const handleSubmit = async (values) => {
         console.log('📦 Submitting product data:', values);
+        
+        // Validate distributor selection
+        if (!values.distributorId) {
+            message.error('Please select a distributor');
+            return;
+        }
+        
         setLoading(true);
 
         try {
-            const response = await apiService.products.create(values);
+            // Map distributorId to supplierId for backend compatibility
+            const productData = {
+                ...values,
+                supplierId: values.distributorId
+            };
+            delete productData.distributorId; // Remove the frontend field name
+            
+            console.log('📤 Sending to backend:', productData);
+            
+            const response = await apiService.products.create(productData);
             
             if (response.data.success) {
                 message.success('Product added successfully!');
                 console.log('✅ Product saved:', response.data);
                 form.resetFields();
+                // Clear distributor search states
+                setDistributorSearchValue('');
+                setDistributorOptions([]);
             } else {
                 message.error(response.data.message || 'Failed to add product');
                 console.error('❌ Error saving product:', response.data);
@@ -80,7 +164,7 @@ const AddProduct = () => {
     };
 
     return (
-        <Content style={{ padding: '24px', backgroundColor: '#f5f5f5' }}>
+        <div style={{ padding: '24px', backgroundColor: '#f5f5f5' }}>
             <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
                 <Breadcrumb style={{ marginBottom: '24px' }}>
                     <Breadcrumb.Item>
@@ -127,18 +211,47 @@ const AddProduct = () => {
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item
-                                    label="Product Name"
-                                    name="name"
-                                    rules={[
-                                        { required: true, message: 'Please enter product name' },
-                                        { min: 2, message: 'Product name must be at least 2 characters' }
-                                    ]}
+                                    name="distributorId"
+                                    rules={[{ required: true, message: 'Please select distributor' }]}
+                                    style={{ display: 'none' }}
                                 >
-                                    <Input 
-                                        placeholder="Enter product name"
-                                        size="large"
-                                    />
+                                    <Input />
                                 </Form.Item>
+                                <div style={{ marginBottom: '24px' }}>
+                                    <label style={{ display: 'block', marginBottom: '5px', color: '#000000d9', fontSize: '14px' }}>
+                                        Distributor (Purchase From) <span style={{ color: '#ff4d4f' }}>*</span>
+                                    </label>
+                                    <AutoComplete
+                                        style={{ width: '100%' }}
+                                        options={distributorOptions}
+                                        onSearch={handleDistributorSearch}
+                                        onSelect={(selectedValue, option) => {
+                                            handleDistributorSelect(selectedValue, option);
+                                        }}
+                                        value={distributorSearchValue}
+                                        placeholder="Type at least 3 characters to search distributors..."
+                                        size="large"
+                                        allowClear
+                                        status={form.getFieldError('distributorId').length > 0 ? 'error' : ''}
+                                        onClear={() => {
+                                            setDistributorSearchValue('');
+                                            setDistributorOptions([]);
+                                            form.setFieldsValue({ distributorId: undefined });
+                                        }}
+                                        onChange={(inputValue) => {
+                                            handleDistributorSearch(inputValue);
+                                            // Clear form value when user manually types
+                                            if (typeof inputValue === 'string') {
+                                                form.setFieldsValue({ distributorId: undefined });
+                                            }
+                                        }}
+                                    />
+                                    {form.getFieldError('distributorId').length > 0 && (
+                                        <div style={{ color: '#ff4d4f', fontSize: '14px', marginTop: '5px' }}>
+                                            {form.getFieldError('distributorId')[0]}
+                                        </div>
+                                    )}
+                                </div>
                             </Col>
                             <Col span={12}>
                                 <Form.Item
@@ -156,7 +269,38 @@ const AddProduct = () => {
                         </Row>
 
                         <Row gutter={16}>
-                            <Col span={8}>
+                            <Col span={12}>
+                                <Form.Item
+                                    label="Product Name"
+                                    name="name"
+                                    rules={[
+                                        { required: true, message: 'Please enter product name' },
+                                        { min: 2, message: 'Product name must be at least 2 characters' }
+                                    ]}
+                                >
+                                    <Input 
+                                        placeholder="Enter product name"
+                                        size="large"
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item
+                                    label="Condition"
+                                    name="condition"
+                                    rules={[{ required: true, message: 'Please select condition' }]}
+                                >
+                                    <Select placeholder="Select condition" size="large">
+                                        <Option value="New">New</Option>
+                                        <Option value="Refurbished">Refurbished</Option>
+                                        <Option value="Used">Used</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                            <Col span={12}>
                                 <Form.Item
                                     label="Category"
                                     name="categoryId"
@@ -169,7 +313,7 @@ const AddProduct = () => {
                                     </Select>
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col span={12}>
                                 <Form.Item
                                     label="Brand"
                                     name="brandId"
@@ -179,19 +323,6 @@ const AddProduct = () => {
                                         {brands.map(brand => (
                                             <Option key={brand._id} value={brand._id}>{brand.name}</Option>
                                         ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="Condition"
-                                    name="condition"
-                                    rules={[{ required: true, message: 'Please select condition' }]}
-                                >
-                                    <Select placeholder="Select condition" size="large">
-                                        <Option value="New">New</Option>
-                                        <Option value="Refurbished">Refurbished</Option>
-                                        <Option value="Used">Used</Option>
                                     </Select>
                                 </Form.Item>
                             </Col>
@@ -444,7 +575,11 @@ const AddProduct = () => {
                                 <Button 
                                     type="default" 
                                     size="large"
-                                    onClick={() => form.resetFields()}
+                                    onClick={() => {
+                                        form.resetFields();
+                                        setDistributorSearchValue('');
+                                        setDistributorOptions([]);
+                                    }}
                                 >
                                     Reset Form
                                 </Button>
@@ -467,7 +602,7 @@ const AddProduct = () => {
                     </Form>
                 </Card>
             </div>
-        </Content>
+        </div>
     );
 };
 

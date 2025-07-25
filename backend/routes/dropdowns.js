@@ -26,6 +26,36 @@ router.get('/categories', async (req, res) => {
     }
 });
 
+// @route   GET /api/dropdowns/all
+// @desc    Get all dropdown data (categories and brands)
+router.get('/all', async (req, res) => {
+    try {
+        // Fetch categories and brands in parallel
+        const [categories, brands] = await Promise.all([
+            Category.find({ isActive: true })
+                .select('name description')
+                .sort({ name: 1 }),
+            Brand.find({ isActive: true })
+                .select('name description')
+                .sort({ name: 1 })
+        ]);
+        
+        res.json({
+            success: true,
+            data: {
+                categories,
+                brands
+            }
+        });
+    } catch (error) {
+        console.error('Get all dropdowns error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to get dropdown data'
+        });
+    }
+});
+
 // @route   GET /api/dropdowns/brands
 // @desc    Get all active brands, optionally filtered by category
 router.get('/brands', async (req, res) => {

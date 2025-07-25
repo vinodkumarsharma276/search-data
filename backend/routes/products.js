@@ -92,6 +92,9 @@ router.get('/:id', protect, async (req, res) => {
 // @route   POST /api/products
 // @access  Protected (Admin/Manager only)
 router.post('/', protect, checkPermission(['create']), async (req, res) => {
+    console.log('📦 POST /api/products - Creating new product');
+    console.log('📋 Request body:', req.body);
+    
     try {
         const {
             name,
@@ -141,6 +144,18 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
             });
         }
 
+        // Validate distributor exists if provided
+        if (supplierId) {
+            const Distributor = require('../models/Distributor');
+            const distributor = await Distributor.findById(supplierId);
+            if (!distributor) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid distributor ID'
+                });
+            }
+        }
+
         // Validate pricing logic
         if (sellingPrice > mrp) {
             return res.status(400).json({
@@ -181,12 +196,14 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
         });
 
         await product.save();
+        console.log('✅ Product created successfully:', product._id);
         
         // Populate the response
         await product.populate('brandId', 'name');
         await product.populate('categoryId', 'name');
         if (supplierId) {
-            await product.populate('supplierId', 'companyName');
+            await product.populate('supplierId', 'name');
+            console.log('🏪 Product linked to distributor:', supplierId);
         }
 
         res.status(201).json({
