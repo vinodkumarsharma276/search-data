@@ -97,6 +97,15 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
     
     try {
         const {
+            // Dynamic System Fields
+            category_path,
+            category_path_ids,
+            selected_category_id,
+            common_attributes,
+            specific_attributes,
+            supplierId,
+            
+            // Legacy System Fields (backward compatibility)
             name,
             modelNumber,
             brandId,
@@ -115,95 +124,165 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
             weight,
             dimensions,
             images,
-            specifications,
-            supplierId
+            specifications
         } = req.body;
 
-        // Validate required fields
-        if (!name || !modelNumber || !brandId || !categoryId || !purchasePrice || !mrp || !sellingPrice) {
-            return res.status(400).json({
-                success: false,
-                message: 'Required fields: name, modelNumber, brandId, categoryId, purchasePrice, mrp, sellingPrice'
-            });
-        }
-
-        // Validate brand and category exist
-        const brand = await Brand.findById(brandId);
-        if (!brand) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid brand ID'
-            });
-        }
-
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID'
-            });
-        }
-
-        // Validate distributor exists if provided
-        if (supplierId) {
-            const Distributor = require('../models/Distributor');
-            const distributor = await Distributor.findById(supplierId);
-            if (!distributor) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid distributor ID'
-                });
-            }
-        }
-
-        // Validate pricing logic
-        if (sellingPrice > mrp) {
-            return res.status(400).json({
-                success: false,
-                message: 'Selling price cannot be greater than MRP'
-            });
-        }
-
-        if (purchasePrice >= sellingPrice) {
-            return res.status(400).json({
-                success: false,
-                message: 'Purchase price should be less than selling price'
-            });
-        }
-
-        const product = new Product({
-            name,
-            modelNumber,
-            brandId,
-            categoryId,
-            purchasePrice,
-            mrp,
-            sellingPrice,
-            currentStock: currentStock || 0,
-            minimumStock: minimumStock || 5,
-            maximumStock: maximumStock || 100,
-            gstRate: gstRate || 18,
-            hsnCode,
-            description,
-            features,
-            warrantyPeriod: warrantyPeriod || 12,
-            weight,
-            dimensions,
-            images,
-            specifications,
-            basePrice: purchasePrice, // Set basePrice for backward compatibility
+        console.log('🏷️ Processing product creation for:', {
+            isDynamic: !!selected_category_id,
+            isLegacy: !!categoryId,
             supplierId
         });
 
+        // Validate distributor (required for both systems)
+        if (!supplierId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Distributor is required'
+            });
+        }
+
+        const Distributor = require('../models/Distributor');
+        const distributor = await Distributor.findById(supplierId);
+        if (!distributor) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid distributor ID'
+            });
+        }
+
+        let product;
+
+        // Handle Dynamic Category System
+        if (selected_category_id && (common_attributes || specific_attributes)) {
+            console.log('📋 Creating dynamic product');
+            
+            // Validate dynamic category
+            const category = await Category.findById(selected_category_id);
+            if (!category) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid category ID'
+                });
+            }
+            
+            if (!category.is_leaf) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Can only create products for leaf categories'
+                });
+            }
+
+            // Validate that required fields are present in attributes
+            const displayName = common_attributes?.name || specific_attributes?.name || 
+                               common_attributes?.product_name || specific_attributes?.product_name;
+            
+            if (!displayName) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Product name is required in attributes'
+                });
+            }
+
+            product = new Product({
+                category_path: category_path || [],
+                category_path_ids: category_path_ids || [],
+                selected_category_id,
+                common_attributes: common_attributes || {},
+                specific_attributes: specific_attributes || {},
+                supplierId,
+                isActive: true
+            });
+
+            console.log('✅ Dynamic product created');
+        }
+        // Handle Legacy System (backward compatibility)
+        else if (name && modelNumber && brandId && categoryId) {
+            console.log('📋 Creating legacy product');
+            
+            // Validate required fields for legacy system
+            if (!purchasePrice || !mrp || !sellingPrice) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Required fields for legacy system: name, modelNumber, brandId, categoryId, purchasePrice, mrp, sellingPrice'
+                });
+            }
+
+            // Validate brand and category exist
+            const brand = await Brand.findById(brandId);
+            if (!brand) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid brand ID'
+                });
+            }
+
+            const category = await Category.findById(categoryId);
+            if (!category) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid category ID'
+                });
+            }
+
+            // Validate pricing logic
+            if (sellingPrice > mrp) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Selling price cannot be greater than MRP'
+                });
+            }
+
+            if (purchasePrice >= sellingPrice) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Purchase price should be less than selling price'
+                });
+            }
+
+            product = new Product({
+                name,
+                modelNumber,
+                brandId,
+                categoryId,
+                purchasePrice,
+                mrp,
+                sellingPrice,
+                currentStock: currentStock || 0,
+                minimumStock: minimumStock || 5,
+                maximumStock: maximumStock || 100,
+                gstRate: gstRate || 18,
+                hsnCode,
+                description,
+                features,
+                warrantyPeriod: warrantyPeriod || 12,
+                weight,
+                dimensions,
+                images,
+                specifications,
+                basePrice: purchasePrice, // Set basePrice for backward compatibility
+                supplierId
+            });
+
+            console.log('✅ Legacy product created');
+        }
+        else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid product data. Must provide either dynamic category system data or legacy system data.'
+            });
+        }
+
         await product.save();
-        console.log('✅ Product created successfully:', product._id);
+        console.log('✅ Product saved successfully:', product._id);
         
-        // Populate the response
-        await product.populate('brandId', 'name');
-        await product.populate('categoryId', 'name');
-        if (supplierId) {
-            await product.populate('supplierId', 'name');
-            console.log('🏪 Product linked to distributor:', supplierId);
+        // Populate response based on product type
+        if (product.isDynamicProduct()) {
+            await product.populate('selected_category_id', 'name');
+            await product.populate('supplierId', 'name gstNumber');
+        } else {
+            await product.populate('brandId', 'name');
+            await product.populate('categoryId', 'name');
+            await product.populate('supplierId', 'name gstNumber');
         }
 
         res.status(201).json({

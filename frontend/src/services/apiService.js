@@ -89,6 +89,16 @@ const apiService = {
         delete: (id) => apiClient.delete(`/distributors/${id}`)
     },
 
+    // Category API methods for dynamic forms
+    categories: {
+        getTopLevel: () => apiClient.get('/categories/top-level'),
+        getById: (id) => apiClient.get(`/categories/${id}`),
+        getChildren: (id) => apiClient.get(`/categories/${id}/children`),
+        getFullSchema: (id) => apiClient.get(`/categories/${id}/full-schema`),
+        updateFieldOptions: (id, data) => apiClient.put(`/categories/${id}/update-field-options`, data),
+        getCategoryPath: (id) => apiClient.get(`/categories/${id}/path`)
+    },
+
     // Dropdown API methods
     dropdowns: {
         getCategories: () => apiClient.get('/dropdowns/categories'),

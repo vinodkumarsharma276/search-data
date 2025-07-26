@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
 
     try {
         const distributors = await Distributor.find()
-            .select('name companyType primaryPhone email city state gstNumber status createdAt')
+            .select('name companyType primaryPhone email city state gstNumber panNumber address status createdAt')
             .sort({ createdAt: -1 });
 
         console.log('✅ Found distributors:', distributors.length);

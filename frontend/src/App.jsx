@@ -120,6 +120,10 @@ function App() {
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />
                         <Route 
+                            path="/add-product-dynamic" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
                             path="/add-product" 
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />

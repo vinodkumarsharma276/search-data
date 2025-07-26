@@ -31,6 +31,7 @@ import AddDistributor from './AddDistributor';
 import SearchDistributor from './SearchDistributor';
 import SearchPage from './SearchPage';
 import AddProduct from './AddProduct';
+import AddProductDynamic from './AddProductDynamic';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -49,6 +50,7 @@ const Dashboard = () => {
         if (path === '/dashboard') return 'dashboard';
         if (path.startsWith('/add-sale')) return 'add-sale';
         if (path.startsWith('/search-sale')) return 'search-sale';
+        if (path.startsWith('/add-product-dynamic')) return 'add-product-dynamic';
         if (path.startsWith('/add-product')) return 'add-product';
         if (path.startsWith('/search-product')) return 'search-product';
         if (path.startsWith('/add-distributor')) return 'add-distributor';
@@ -92,9 +94,14 @@ const Dashboard = () => {
             label: 'Products',
             children: [
                 {
+                    key: 'add-product-dynamic',
+                    icon: <PlusOutlined />,
+                    label: 'Add Product (Dynamic)',
+                },
+                {
                     key: 'add-product',
                     icon: <PlusOutlined />,
-                    label: 'Add Product',
+                    label: 'Add Product (Legacy)',
                 },
                 {
                     key: 'search-product',
@@ -186,6 +193,8 @@ const Dashboard = () => {
             case 'search-product':
             case 'search-employee':
                 return <SearchPage searchType={selectedKey} />;
+            case 'add-product-dynamic':
+                return <AddProductDynamic />;
             case 'add-product':
                 return <AddProduct />;
             case 'add-customer':
@@ -202,7 +211,8 @@ const Dashboard = () => {
             'dashboard': 'Business Dashboard',
             'add-sale': 'Add New Sale',
             'search-sale': 'Search Sales',
-            'add-product': 'Add New Product',
+            'add-product-dynamic': 'Add New Product (Dynamic Form)',
+            'add-product': 'Add New Product (Legacy Form)',
             'search-product': 'Search Products', 
             'add-distributor': 'Add New Distributor',
             'search-distributor': 'Search Distributors',
