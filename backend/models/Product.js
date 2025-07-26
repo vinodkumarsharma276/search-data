@@ -90,6 +90,14 @@ const productSchema = new mongoose.Schema({
         trim: true
     },
     
+    // Serial number for tracking individual items
+    serialNumber: {
+        type: String,
+        trim: true,
+        sparse: true, // Allows null values but enforces uniqueness for non-null values
+        unique: true
+    },
+    
     // Product details
     description: {
         type: String,

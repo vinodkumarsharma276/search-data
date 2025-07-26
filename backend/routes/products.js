@@ -183,12 +183,17 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
                 });
             }
 
+            // Extract serial number from attributes
+            const serialNumber = common_attributes?.common_serial_number || 
+                                specific_attributes?.specific_serial_number;
+
             product = new Product({
                 category_path: category_path || [],
                 category_path_ids: category_path_ids || [],
                 selected_category_id,
                 common_attributes: common_attributes || {},
                 specific_attributes: specific_attributes || {},
+                serialNumber: serialNumber || undefined,
                 supplierId,
                 isActive: true
             });

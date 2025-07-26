@@ -24,7 +24,10 @@ import {
     AppstoreAddOutlined,
     TagOutlined,
     ReloadOutlined,
-    ShopOutlined
+    ShopOutlined,
+    PlusOutlined,
+    MinusOutlined,
+    MinusCircleOutlined
 } from '@ant-design/icons';
 import apiService from '../services/apiService';
 
@@ -288,8 +291,18 @@ const AddProductDynamic = () => {
 
             setIsLoading(true);
 
-            // Construct product data structure
-            const productData = {
+            // Check if we have serial numbers for bulk creation
+            let serialNumbers = [];
+            let hasSerialNumbers = false;
+
+            if (serialNumbersArray && Array.isArray(serialNumbersArray) && serialNumbersArray.length > 0) {
+                // Filter out empty serial numbers
+                serialNumbers = serialNumbersArray.filter(sn => sn && sn.trim() !== '');
+                hasSerialNumbers = serialNumbers.length > 0;
+            }
+
+            // Base product data structure
+            const baseProductData = {
                 category_path: selectedCategoryPath.map(cat => cat.name),
                 category_path_ids: selectedCategoryPath.map(cat => cat.id),
                 selected_category_id: selectedCategoryPath[selectedCategoryPath.length - 1].id,
@@ -301,32 +314,67 @@ const AddProductDynamic = () => {
             // Separate common and specific attributes
             Object.entries(formData).forEach(([fieldId, value]) => {
                 if (fieldId.startsWith('common_')) {
-                    productData.common_attributes[fieldId] = value;
+                    baseProductData.common_attributes[fieldId] = value;
                 } else {
-                    productData.specific_attributes[fieldId] = value;
+                    baseProductData.specific_attributes[fieldId] = value;
                 }
             });
 
-            console.log('📤 Sending product data:', productData);
-
-            // Submit to API
-            const response = await apiService.products.create(productData);
-
-            if (response.data.success) {
-                message.success('Product added successfully!');
-                console.log('✅ Product saved:', response.data);
+            if (hasSerialNumbers) {
+                // Create multiple products with different serial numbers
+                message.info(`Creating ${serialNumbers.length} products with individual serial numbers...`);
                 
-                // Reset form
-                form.resetFields();
-                setSelectedCategoryPath([]);
-                setCurrentCategoryChildren([]);
-                setFullFormSchema([]);
-                setFormData({});
-                setDistributorSearchValue('');
-                setDistributorOptions([]);
+                const creationPromises = serialNumbers.map(serialNumber => {
+                    const productData = { 
+                        ...baseProductData,
+                        common_attributes: { ...baseProductData.common_attributes },
+                        specific_attributes: { ...baseProductData.specific_attributes }
+                    };
+                    
+                    // Add serial number to appropriate attributes
+                    if (baseProductData.common_attributes.hasOwnProperty('common_serial_number')) {
+                        productData.common_attributes.common_serial_number = serialNumber.trim();
+                    } else if (baseProductData.specific_attributes.hasOwnProperty('specific_serial_number')) {
+                        productData.specific_attributes.specific_serial_number = serialNumber.trim();
+                    }
+                    
+                    console.log('📤 Creating product with serial:', serialNumber.trim());
+                    return apiService.products.create(productData);
+                });
+
+                const responses = await Promise.all(creationPromises);
+                const successCount = responses.filter(r => r.data.success).length;
+                
+                if (successCount === serialNumbers.length) {
+                    message.success(`Successfully created ${successCount} products with serial numbers!`);
+                } else {
+                    message.warning(`Created ${successCount} out of ${serialNumbers.length} products. Please check for duplicates.`);
+                }
+                
+                // Reset serial numbers
+                setSerialNumbersArray(['']);
             } else {
-                message.error(response.data.message || 'Failed to add product');
+                // Create single product without serial number
+                console.log('📤 Sending product data:', baseProductData);
+                const response = await apiService.products.create(baseProductData);
+
+                if (response.data.success) {
+                    message.success('Product added successfully!');
+                    console.log('✅ Product saved:', response.data);
+                } else {
+                    message.error(response.data.message || 'Failed to add product');
+                }
             }
+
+            // Reset form
+            form.resetFields();
+            setSelectedCategoryPath([]);
+            setCurrentCategoryChildren([]);
+            setFullFormSchema([]);
+            setFormData({});
+            setDistributorSearchValue('');
+            setDistributorOptions([]);
+            setSerialNumbersArray(['']);
 
         } catch (error) {
             console.error('❌ Error submitting product:', error);
@@ -335,6 +383,92 @@ const AddProductDynamic = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Render serial number field with multiple inputs
+    const renderSerialNumberField = (field) => {
+        const { field_id, label, enabled = true } = field;
+        const serialNumbers = formData[field_id] || [''];
+
+        const addSerialNumber = () => {
+            const newSerialNumbers = [...serialNumbers, ''];
+            handleInputChange(field_id, newSerialNumbers, 'text', field.categoryId);
+        };
+
+        const removeSerialNumber = (index) => {
+            if (serialNumbers.length > 1) {
+                const newSerialNumbers = serialNumbers.filter((_, i) => i !== index);
+                handleInputChange(field_id, newSerialNumbers, 'text', field.categoryId);
+            }
+        };
+
+        const updateSerialNumber = (index, value) => {
+            const newSerialNumbers = [...serialNumbers];
+            newSerialNumbers[index] = value;
+            handleInputChange(field_id, newSerialNumbers, 'text', field.categoryId);
+        };
+
+        const disabledStyle = !enabled ? {
+            backgroundColor: '#f5f5f5 !important',
+            color: '#999999 !important',
+            cursor: 'not-allowed',
+            opacity: 0.7
+        } : {};
+
+        const validSerialCount = serialNumbers.filter(s => s.trim()).length;
+
+        return (
+            <div className="serial-numbers-container">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium" style={!enabled ? { color: '#999999' } : {}}>
+                        {label} {validSerialCount > 0 && `(${validSerialCount} items)`}
+                    </span>
+                    <Button 
+                        type="dashed" 
+                        size="small" 
+                        icon={<PlusOutlined />}
+                        onClick={addSerialNumber}
+                        disabled={!enabled}
+                        style={disabledStyle}
+                    >
+                        Add Serial Number
+                    </Button>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {serialNumbers.map((serial, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 min-w-[30px]">
+                                {index + 1}.
+                            </span>
+                            <Input
+                                placeholder={`Serial number ${index + 1}`}
+                                value={serial}
+                                onChange={(e) => updateSerialNumber(index, e.target.value)}
+                                disabled={!enabled}
+                                style={{ flex: 1, ...disabledStyle }}
+                                className={!enabled ? 'ant-input-disabled' : ''}
+                            />
+                            {serialNumbers.length > 1 && (
+                                <Button 
+                                    type="text" 
+                                    size="small" 
+                                    icon={<MinusCircleOutlined />}
+                                    onClick={() => removeSerialNumber(index)}
+                                    disabled={!enabled}
+                                    danger
+                                    style={disabledStyle}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+                {validSerialCount > 1 && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-600">
+                        📦 This will create {validSerialCount} separate product entries with individual serial numbers
+                    </div>
+                )}
+            </div>
+        );
     };
 
     // Render dynamic form field
@@ -453,7 +587,7 @@ const AddProductDynamic = () => {
                     <Breadcrumb.Item>
                         <Link to="/dashboard">Dashboard</Link>
                     </Breadcrumb.Item>
-                    <Breadcrumb.Item>Add Product (Dynamic)</Breadcrumb.Item>
+                    <Breadcrumb.Item>Add Product</Breadcrumb.Item>
                 </Breadcrumb>
 
                 <Card
@@ -461,7 +595,7 @@ const AddProductDynamic = () => {
                         <Space>
                             <AppstoreAddOutlined className="text-orange-500" />
                             <Title level={3} className="m-0 text-gray-800">
-                                Add New Product - Dynamic Form
+                                Add New Product
                             </Title>
                         </Space>
                     }
@@ -499,79 +633,7 @@ const AddProductDynamic = () => {
                         layout="vertical"
                         onFinish={handleSubmit}
                     >
-                        {/* Category Selection Section */}
-                        <Card 
-                            className="mb-4" 
-                            title={
-                                <Space>
-                                    <TagOutlined className="text-orange-500" />
-                                    <span>Product Category</span>
-                                </Space>
-                            }
-                            size="small"
-                            bodyStyle={{ padding: '16px' }}
-                        >
-                            <Row gutter={12}>
-                                {/* Top Level Category Dropdown */}
-                                <Col span={24} md={4} lg={4} xl={4}>
-                                    <Form.Item
-                                        label="Category Level 1"
-                                        required
-                                        className="mb-3"
-                                    >
-                                        <Select
-                                            placeholder="Select category"
-                                            className="w-full"
-                                            loading={isLoading}
-                                            value={selectedCategoryPath[0]?.id}
-                                            onChange={(value) => {
-                                                const category = topLevelCategories.find(cat => cat._id === value);
-                                                if (category) {
-                                                    handleCategorySelect(value, category.name, 0);
-                                                }
-                                            }}
-                                        >
-                                            {topLevelCategories.map(category => (
-                                                <Option key={category._id} value={category._id}>
-                                                    {category.name} {category.is_leaf && '(Product Category)'}
-                                                </Option>
-                                            ))}
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-
-                                {/* Dynamic Category Dropdowns */}
-                                {selectedCategoryPath.length > 0 && currentCategoryChildren.length > 0 && (
-                                    <Col span={24} md={4} lg={4} xl={4}>
-                                        <Form.Item
-                                            label={`Category Level 2`}
-                                            required
-                                            className="mb-3"
-                                        >
-                                            <Select
-                                                placeholder="Select subcategory"
-                                                className="w-full"
-                                                loading={isLoading}
-                                                onChange={(value) => {
-                                                    const category = currentCategoryChildren.find(cat => cat._id === value);
-                                                    if (category) {
-                                                        handleCategorySelect(value, category.name, selectedCategoryPath.length);
-                                                    }
-                                                }}
-                                            >
-                                                {currentCategoryChildren.map(category => (
-                                                    <Option key={category._id} value={category._id}>
-                                                        {category.name} {category.is_leaf && '(Product Category)'}
-                                                    </Option>
-                                                ))}
-                                            </Select>
-                                        </Form.Item>
-                                    </Col>
-                                )}
-                            </Row>
-                        </Card>
-
-                        {/* Distributor Selection (Always Required) */}
+                        {/* Distributor Selection (Always Required) - Moved to Top */}
                         <Card 
                             className="mb-4" 
                             title={
@@ -689,44 +751,132 @@ const AddProductDynamic = () => {
                             </Row>
                         </Card>
 
-                        {/* Dynamic Form Fields */}
-                        {fullFormSchema.length > 0 && (
-                            <Card 
-                                className="mb-4" 
-                                title={
-                                    <Space>
-                                        <AppstoreAddOutlined className="text-green-500" />
-                                        <span>Product Details</span>
-                                    </Space>
-                                }
-                                size="small"
-                                bodyStyle={{ padding: '16px' }}
-                            >
+                        {/* Product Details Section (Includes Category Selection + Product Fields) */}
+                        <Card 
+                            className="mb-4" 
+                            title={
+                                <Space>
+                                    <AppstoreAddOutlined className="text-green-500" />
+                                    <span>Product Details</span>
+                                </Space>
+                            }
+                            size="small"
+                            bodyStyle={{ padding: '16px' }}
+                        >
+                            {/* Category Selection within Product Details */}
+                            <div className="mb-4 p-3 bg-gray-50 rounded border">
+                                <div className="mb-2 text-sm font-medium text-gray-600">
+                                    <TagOutlined className="text-orange-500 mr-1" />
+                                    Select Product Category
+                                </div>
+                                <Row gutter={12}>
+                                    {/* Top Level Category Dropdown */}
+                                    <Col span={24} md={4} lg={4} xl={4}>
+                                        <Form.Item
+                                            label="Category Level 1"
+                                            required
+                                            className="mb-3"
+                                        >
+                                            <Select
+                                                placeholder="Select category"
+                                                className="w-full"
+                                                loading={isLoading}
+                                                value={selectedCategoryPath[0]?.id}
+                                                onChange={(value) => {
+                                                    const category = topLevelCategories.find(cat => cat._id === value);
+                                                    if (category) {
+                                                        handleCategorySelect(value, category.name, 0);
+                                                    }
+                                                }}
+                                            >
+                                                {topLevelCategories.map(category => (
+                                                    <Option key={category._id} value={category._id}>
+                                                        {category.name} {category.is_leaf && '(Product Category)'}
+                                                    </Option>
+                                                ))}
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+
+                                    {/* Dynamic Category Dropdowns */}
+                                    {selectedCategoryPath.length > 0 && currentCategoryChildren.length > 0 && (
+                                        <Col span={24} md={4} lg={4} xl={4}>
+                                            <Form.Item
+                                                label={`Category Level 2`}
+                                                required
+                                                className="mb-3"
+                                            >
+                                                <Select
+                                                    placeholder="Select subcategory"
+                                                    className="w-full"
+                                                    loading={isLoading}
+                                                    onChange={(value) => {
+                                                        const category = currentCategoryChildren.find(cat => cat._id === value);
+                                                        if (category) {
+                                                            handleCategorySelect(value, category.name, selectedCategoryPath.length);
+                                                        }
+                                                    }}
+                                                >
+                                                    {currentCategoryChildren.map(category => (
+                                                        <Option key={category._id} value={category._id}>
+                                                            {category.name} {category.is_leaf && '(Product Category)'}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    )}
+                                </Row>
+                            </div>
+
+                            {/* Dynamic Product Form Fields */}
+                            {fullFormSchema.length > 0 && (
                                 <Spin spinning={isLoading}>
                                     <Row gutter={12}>
-                                        {fullFormSchema.map(field => (
-                                            <Col 
-                                                key={field.field_id} 
-                                                span={field.type === 'boolean' ? 24 : 4}
-                                                xs={24}
-                                                sm={field.type === 'boolean' ? 24 : 12}
-                                                md={field.type === 'boolean' ? 24 : 4}
-                                                lg={field.type === 'boolean' ? 24 : 4}
-                                                xl={field.type === 'boolean' ? 24 : 4}
-                                            >
-                                                <Form.Item
-                                                    label={field.type === 'boolean' ? null : field.label}
-                                                    required={field.is_required}
-                                                    className="mb-3"
+                                        {fullFormSchema.map(field => {
+                                            // Handle serial number field specially for multiple entries
+                                            if (field.field_id === 'common_serial_number' || field.field_id === 'specific_serial_number') {
+                                                return (
+                                                    <Col key={field.field_id} span={24}>
+                                                        <Form.Item
+                                                            label={field.label}
+                                                            required={field.is_required}
+                                                            className="mb-3"
+                                                        >
+                                                            {renderSerialNumberField(field)}
+                                                        </Form.Item>
+                                                    </Col>
+                                                );
+                                            }
+                                            
+                                            return (
+                                                <Col 
+                                                    key={field.field_id} 
+                                                    span={field.type === 'boolean' ? 24 : 4}
+                                                    xs={24}
+                                                    sm={field.type === 'boolean' ? 24 : 12}
+                                                    md={field.type === 'boolean' ? 24 : 4}
+                                                    lg={field.type === 'boolean' ? 24 : 4}
+                                                    xl={field.type === 'boolean' ? 24 : 4}
                                                 >
-                                                    {renderDynamicField(field)}
-                                                </Form.Item>
-                                            </Col>
-                                        ))}
+                                                    <Form.Item
+                                                        label={field.type === 'boolean' ? null : field.label}
+                                                        required={field.is_required}
+                                                        className="mb-3"
+                                                    >
+                                                        {renderDynamicField(field)}
+                                                    </Form.Item>
+                                                </Col>
+                                            );
+                                        })}
                                     </Row>
                                 </Spin>
-                            </Card>
-                        )}
+                            )}
+                        </Card>
+
+
+
+
 
                         {/* Submit Section */}
                         <Card size="small" bodyStyle={{ padding: '16px' }}>
@@ -741,6 +891,7 @@ const AddProductDynamic = () => {
                                         setDistributorSearchValue('');
                                         setDistributorOptions([]);
                                         setSelectedDistributor(null);
+                                        setSerialNumbersArray(['']);
                                     }}
                                 >
                                     Reset Form

@@ -102,6 +102,14 @@ async function seedCategoryHierarchy() {
                         { value: 'Gold', label: 'Gold' }
                     ],
                     display_order: 6
+                },
+                {
+                    field_id: 'common_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 7
                 }
             ]
         });
@@ -169,6 +177,14 @@ async function seedCategoryHierarchy() {
                     enabled: true,
                     default_value: true,
                     display_order: 10
+                },
+                {
+                    field_id: 'specific_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 11
                 }
             ]
         });
@@ -230,6 +246,14 @@ async function seedCategoryHierarchy() {
                     is_required: true,
                     enabled: true,
                     display_order: 9
+                },
+                {
+                    field_id: 'specific_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 10
                 }
             ]
         });
@@ -303,6 +327,14 @@ async function seedCategoryHierarchy() {
                         { value: '4K', label: '4K UHD (3840x2160)' }
                     ],
                     display_order: 5
+                },
+                {
+                    field_id: 'common_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 6
                 }
             ]
         });
@@ -354,6 +386,14 @@ async function seedCategoryHierarchy() {
                     enabled: true,
                     default_value: true,
                     display_order: 7
+                },
+                {
+                    field_id: 'specific_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 8
                 }
             ]
         });
@@ -427,6 +467,14 @@ async function seedCategoryHierarchy() {
                         { value: '17.3', label: '17.3 inch' }
                     ],
                     display_order: 5
+                },
+                {
+                    field_id: 'common_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 6
                 }
             ]
         });
@@ -484,6 +532,14 @@ async function seedCategoryHierarchy() {
                     enabled: true,
                     default_value: true,
                     display_order: 8
+                },
+                {
+                    field_id: 'specific_serial_number',
+                    label: 'Serial Number',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 9
                 }
             ]
         });
