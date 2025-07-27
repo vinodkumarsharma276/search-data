@@ -20,12 +20,28 @@ const COMMON_FIELDS = [
         display_order: 1
     },
     {
+        field_id: 'common_model_number',
+        label: 'Model Number',
+        type: 'text',
+        is_required: true,
+        enabled: true,
+        display_order: 2
+    },
+    {
+        field_id: 'common_serial_number',
+        label: 'Serial Number',
+        type: 'text',
+        is_required: true,
+        enabled: true,
+        display_order: 3
+    },
+    {
         field_id: 'common_mrp',
         label: 'MRP (₹)',
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 2
+        display_order: 4
     },
     {
         field_id: 'common_igst',
@@ -33,7 +49,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 3,
+        display_order: 5,
         default_value: 18
     },
     {
@@ -42,7 +58,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 4,
+        display_order: 6,
         default_value: 18
     }
 ];
