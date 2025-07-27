@@ -1,21 +1,63 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-    // Dynamic Category System
+    // Dynamic Category System (Core Structure)
     category_path: [{
         type: String,
-        trim: true
+        trim: true,
+        required: true
     }],
     category_path_ids: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category'
+        ref: 'Category',
+        required: true
     }],
     selected_category_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category'
+        ref: 'Category',
+        required: true
     },
     
-    // Dynamic attributes based on category schema
+    // Supplier information (Essential for business)
+    supplierId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Distributor',
+        required: true
+    },
+    
+    // Truly Universal Product Fields (Common to ALL products)
+    brand: {
+        type: String,
+        trim: true,
+        required: true
+    },
+    price: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    warrantyMonths: {
+        type: Number,
+        default: 12,
+        min: 0
+    },
+    
+    // Serial number for tracking individual items (Universal for inventory)
+    serialNumber: {
+        type: String,
+        trim: true,
+        sparse: true, // Allows null values but enforces uniqueness for non-null values
+        unique: true
+    },
+    
+    // Stock management (Universal for inventory)
+    currentStock: {
+        type: Number,
+        default: 1, // Start with 1 when product is added
+        min: 0
+    },
+    
+    // Flexible Dynamic Attributes (Category-specific fields)
     common_attributes: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
@@ -25,128 +67,14 @@ const productSchema = new mongoose.Schema({
         default: {}
     },
     
-    // Legacy System Fields (for backward compatibility)
-    name: {
-        type: String,
-        trim: true
-    },
-    modelNumber: {
-        type: String,
-        trim: true
-    },
-    brandId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Brand'
-    },
-    categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category'
-    },
-    
-    // Pricing fields (common to both systems)
-    purchasePrice: {
-        type: Number,
-        min: 0
-    },
-    mrp: {
-        type: Number,
-        min: 0
-    },
-    sellingPrice: {
-        type: Number,
-        min: 0
-    },
-    basePrice: { // Keep for backward compatibility
-        type: Number,
-        min: 0
-    },
-    
-    // Stock management
-    currentStock: {
-        type: Number,
-        default: 0,
-        min: 0
-    },
-    minimumStock: {
-        type: Number,
-        default: 5,
-        min: 0
-    },
-    maximumStock: {
-        type: Number,
-        default: 100,
-        min: 0
-    },
-    
-    // Tax information
-    gstRate: {
-        type: Number,
-        default: 18,
-        min: 0,
-        max: 50
-    },
-    hsnCode: {
-        type: String,
-        trim: true
-    },
-    
-    // Serial number for tracking individual items
-    serialNumber: {
-        type: String,
-        trim: true,
-        sparse: true, // Allows null values but enforces uniqueness for non-null values
-        unique: true
-    },
-    
-    // Product details
-    description: {
-        type: String,
-        trim: true
-    },
-    features: [{
-        type: String,
-        trim: true
-    }],
-    warrantyPeriod: {
-        type: Number, // in months
-        default: 12,
-        min: 0
-    },
-    
-    // Storage and shipping
-    weight: {
-        type: Number, // in kg
-        min: 0
-    },
-    dimensions: {
-        length: Number,
-        width: Number,
-        height: Number
-    },
-    
-    // Images
-    images: [{
-        type: String, // URLs or file paths
-        trim: true
-    }],
-    specifications: {
-        type: mongoose.Schema.Types.Mixed,
-        default: {}
-    },
-    
+    // System fields
     isActive: {
         type: Boolean,
         default: true
     },
-    
-    // Supplier information - unified field
-    supplierId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Distributor',
-        required: true // Required for both systems
-    },
     lastPurchaseDate: {
-        type: Date
+        type: Date,
+        default: Date.now
     },
     lastSaleDate: {
         type: Date
@@ -155,18 +83,22 @@ const productSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Helper method to get display name (supports both systems)
+// Helper method to get display name
 productSchema.methods.getDisplayName = function() {
-    // Try dynamic attributes first, then legacy name
-    return this.common_attributes?.name || 
-           this.specific_attributes?.name || 
-           this.common_attributes?.product_name ||
-           this.specific_attributes?.product_name ||
-           this.name || 
-           'Unnamed Product';
+    // Try to get name from dynamic attributes, fallback to brand + model
+    const name = this.common_attributes?.name || 
+                 this.specific_attributes?.name || 
+                 this.common_attributes?.product_name ||
+                 this.specific_attributes?.product_name;
+    
+    if (name) return name;
+    
+    // Fallback: brand + model/type
+    const model = this.common_attributes?.model || this.specific_attributes?.model || '';
+    return model ? `${this.brand} ${model}` : this.brand;
 };
 
-// Helper method to get category path string (supports both systems)
+// Helper method to get category path string
 productSchema.methods.getCategoryPathString = function() {
     if (this.category_path && this.category_path.length > 0) {
         return this.category_path.join(' > ');
@@ -174,80 +106,71 @@ productSchema.methods.getCategoryPathString = function() {
     return 'Uncategorized';
 };
 
-// Helper method to determine if this is a dynamic product
-productSchema.methods.isDynamicProduct = function() {
-    return !!(this.selected_category_id && (this.common_attributes || this.specific_attributes));
-};
-
-// Helper method to get all searchable text
+// Helper method to get all searchable text for search functionality
 productSchema.methods.getSearchableText = function() {
     const texts = [
         this.getDisplayName(),
         this.getCategoryPathString(),
-        this.description || '',
-        this.modelNumber || ''
+        this.brand,
+        this.serialNumber || ''
     ];
     
     // Add searchable attributes from dynamic system
     Object.values(this.common_attributes || {}).forEach(value => {
-        if (typeof value === 'string') texts.push(value);
+        if (typeof value === 'string' || typeof value === 'number') {
+            texts.push(String(value));
+        }
     });
     Object.values(this.specific_attributes || {}).forEach(value => {
-        if (typeof value === 'string') texts.push(value);
+        if (typeof value === 'string' || typeof value === 'number') {
+            texts.push(String(value));
+        }
     });
     
     return texts.filter(Boolean).join(' ');
 };
 
-// Virtual for discount percentage
-productSchema.virtual('discountPercentage').get(function() {
-    const mrp = this.mrp || this.common_attributes?.mrp || this.specific_attributes?.mrp;
-    const selling = this.sellingPrice || this.common_attributes?.selling_price || this.specific_attributes?.selling_price;
-    
-    if (mrp > 0 && selling) {
-        return ((mrp - selling) / mrp * 100).toFixed(2);
-    }
-    return 0;
-});
+// Helper method to get price (with fallbacks)
+productSchema.methods.getPrice = function() {
+    return this.price || 
+           this.common_attributes?.common_price || 
+           this.specific_attributes?.price || 
+           0;
+};
 
-// Virtual for IGST (for interstate sales)
-productSchema.virtual('igst').get(function() {
-    return this.gstRate || this.common_attributes?.gst_rate || this.specific_attributes?.gst_rate || 18;
-});
+// Helper method to get warranty
+productSchema.methods.getWarranty = function() {
+    return this.warrantyMonths || 
+           this.common_attributes?.common_warranty_months || 
+           this.specific_attributes?.warranty_months || 
+           12;
+};
 
-// Virtual for CGST (for intrastate sales) 
-productSchema.virtual('cgst').get(function() {
-    const gst = this.gstRate || this.common_attributes?.gst_rate || this.specific_attributes?.gst_rate || 18;
-    return gst / 2;
-});
-
-// Virtual for SGST (for intrastate sales)
-productSchema.virtual('sgst').get(function() {
-    const gst = this.gstRate || this.common_attributes?.gst_rate || this.specific_attributes?.gst_rate || 18;
-    return gst / 2;
+// Virtual for formatted price with currency
+productSchema.virtual('formattedPrice').get(function() {
+    const price = this.getPrice();
+    return `₹${price.toLocaleString('en-IN')}`;
 });
 
 // Ensure virtual fields are serialized
 productSchema.set('toJSON', { virtuals: true });
 productSchema.set('toObject', { virtuals: true });
 
-// Indexes for Dynamic System
+// Essential Indexes for Performance
 productSchema.index({ category_path: 1 });
 productSchema.index({ selected_category_id: 1 });
-productSchema.index({ 'common_attributes.name': 'text', 'specific_attributes.name': 'text' });
-
-// Indexes for Legacy System
-productSchema.index({ 
-    name: 'text', 
-    modelNumber: 'text',
-    'specifications.storage': 'text',
-    'specifications.color': 'text'
-});
-
-// Common indexes
 productSchema.index({ supplierId: 1 });
+productSchema.index({ brand: 1 });
+productSchema.index({ serialNumber: 1 }); // For inventory tracking
 productSchema.index({ isActive: 1 });
-productSchema.index({ brandId: 1, categoryId: 1 }); // Legacy
-productSchema.index({ modelNumber: 1 }); // Legacy, can be used for SKU too
+productSchema.index({ price: 1 }); // For price-based queries
+
+// Text search index for dynamic attributes
+productSchema.index({ 
+    'common_attributes.name': 'text',
+    'specific_attributes.name': 'text',
+    brand: 'text',
+    category_path: 'text'
+});
 
 module.exports = mongoose.model('Product', productSchema);

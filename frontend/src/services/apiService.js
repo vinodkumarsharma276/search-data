@@ -91,10 +91,12 @@ const apiService = {
 
     // Category API methods for dynamic forms
     categories: {
+        getAll: () => apiClient.get('/dropdowns/categories'),
         getTopLevel: () => apiClient.get('/categories/top-level'),
         getById: (id) => apiClient.get(`/categories/${id}`),
         getChildren: (id) => apiClient.get(`/categories/${id}/children`),
         getFullSchema: (id) => apiClient.get(`/categories/${id}/full-schema`),
+        getFormSchema: (id) => apiClient.get(`/categories/${id}/full-schema`), // Add this alias
         updateFieldOptions: (id, data) => apiClient.put(`/categories/${id}/update-field-options`, data),
         getCategoryPath: (id) => apiClient.get(`/categories/${id}/path`)
     },

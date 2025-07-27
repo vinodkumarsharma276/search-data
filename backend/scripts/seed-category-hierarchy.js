@@ -1,15 +1,175 @@
 /**
- * Seed script to create a hierarchical category system for dynamic product forms
- * This will create Electronics > Smartphones > Android/iPhone categories with form schemas
+ * Comprehensive Category Hierarchy Seeding Script
+ * Creates a complete category structure with common fields for all products
+ * Includes: Brand, Model, Serial Number, MRP, Warranty, Color as universal fields
  */
 
 const mongoose = require('mongoose');
 const Category = require('../models/Category');
 require('dotenv').config();
 
+// Common fields that apply to ALL products (truly universal fields only)
+const COMMON_PRODUCT_FIELDS = [
+    {
+        field_id: 'common_price',
+        label: 'MRP (₹)',
+        type: 'number',
+        is_required: true,
+        enabled: true,
+        display_order: 1
+    },
+    {
+        field_id: 'common_warranty_months',
+        label: 'Warranty (Months)',
+        type: 'number',
+        default_value: 12,
+        is_required: true,
+        enabled: true,
+        display_order: 2
+    },
+    {
+        field_id: 'common_color',
+        label: 'Color',
+        type: 'text',
+        is_required: false,
+        enabled: true,
+        display_order: 3
+    }
+];
+
+// Category hierarchy definition
+const CATEGORY_HIERARCHY = [
+    // ROOT: Electronics
+    {
+        name: 'Electronics',
+        parent_id: null,
+        is_leaf: false,
+        form_schema: COMMON_PRODUCT_FIELDS, // All products get these common fields
+        description: 'Electronic devices and gadgets'
+    },
+    
+    // LEVEL 1: Main Categories
+    {
+        name: 'Smartphones',
+        parent: 'Electronics',
+        is_leaf: false,
+        form_schema: [
+            {
+                field_id: 'common_storage_gb',
+                label: 'Storage (GB)',
+                type: 'dropdown',
+                options: [
+                    { value: '32', label: '32 GB' },
+                    { value: '64', label: '64 GB' },
+                    { value: '128', label: '128 GB' },
+                    { value: '256', label: '256 GB' },
+                    { value: '512', label: '512 GB' },
+                    { value: '1024', label: '1 TB' }
+                ],
+                is_required: true,
+                enabled: true,
+                display_order: 10
+            },
+            {
+                field_id: 'common_ram_gb',
+                label: 'RAM (GB)',
+                type: 'dropdown',
+                options: [
+                    { value: '2', label: '2 GB' },
+                    { value: '3', label: '3 GB' },
+                    { value: '4', label: '4 GB' },
+                    { value: '6', label: '6 GB' },
+                    { value: '8', label: '8 GB' },
+                    { value: '12', label: '12 GB' },
+                    { value: '16', label: '16 GB' }
+                ],
+                is_required: true,
+                enabled: true,
+                display_order: 11
+            },
+            {
+                field_id: 'common_screen_size',
+                label: 'Screen Size (inches)',
+                type: 'text',
+                is_required: false,
+                enabled: true,
+                display_order: 12
+            }
+        ],
+        description: 'Mobile phones and smartphones'
+    },
+    
+    {
+        name: 'Laptops',
+        parent: 'Electronics',
+        is_leaf: false,
+        form_schema: [
+            {
+                field_id: 'common_processor',
+                label: 'Processor',
+                type: 'text',
+                is_required: true,
+                enabled: true,
+                display_order: 10
+            },
+            {
+                field_id: 'common_ram_gb',
+                label: 'RAM (GB)',
+                type: 'dropdown',
+                options: [
+                    { value: '4', label: '4 GB' },
+                    { value: '8', label: '8 GB' },
+                    { value: '16', label: '16 GB' },
+                    { value: '32', label: '32 GB' },
+                    { value: '64', label: '64 GB' }
+                ],
+                is_required: true,
+                enabled: true,
+                display_order: 11
+            },
+            {
+                field_id: 'common_storage_type',
+                label: 'Storage Type',
+                type: 'dropdown',
+                options: [
+                    { value: 'HDD', label: 'HDD' },
+                    { value: 'SSD', label: 'SSD' },
+                    { value: 'Hybrid', label: 'Hybrid' }
+                ],
+                is_required: true,
+                enabled: true,
+                display_order: 12
+            },
+            {
+                field_id: 'common_storage_gb',
+                label: 'Storage (GB)',
+                type: 'dropdown',
+                options: [
+                    { value: '256', label: '256 GB' },
+                    { value: '512', label: '512 GB' },
+                    { value: '1024', label: '1 TB' },
+                    { value: '2048', label: '2 TB' }
+                ],
+                is_required: true,
+                enabled: true,
+                display_order: 13
+            },
+            {
+                field_id: 'common_screen_size',
+                label: 'Screen Size (inches)',
+                type: 'text',
+                is_required: false,
+                enabled: true,
+                display_order: 14
+            }
+        ],
+        description: 'Laptop computers'
+    }
+];
+
 async function seedCategoryHierarchy() {
     try {
-        console.log('🌱 Starting category hierarchy seeding...');
+        console.log('🌱 Starting comprehensive category hierarchy seeding...');
         
         // Connect to MongoDB
         await mongoose.connect(process.env.MONGODB_URI);
@@ -19,35 +179,25 @@ async function seedCategoryHierarchy() {
         await Category.deleteMany({});
         console.log('🧹 Cleared existing categories');
 
-        // 1. Create Smartphones category (top-level)
-        const smartphones = new Category({
-            name: 'Smartphones',
-            description: 'Mobile phones and smartphones',
+        // Store created categories for parent references
+        const createdCategories = {};
+        
+        // Create root category first
+        const electronics = new Category({
+            name: 'Electronics',
             parent_id: null,
             is_leaf: false,
-            form_schema: [
-                {
-                    field_id: 'common_brand',
-                    label: 'Brand',
-                    type: 'combobox',
-                    is_required: true,
-                    enabled: true,
-                    options: [
-                        { value: 'Samsung', label: 'Samsung' },
-                        { value: 'Apple', label: 'Apple' },
-                        { value: 'Xiaomi', label: 'Xiaomi' },
-                        { value: 'OnePlus', label: 'OnePlus' },
-                        { value: 'Realme', label: 'Realme' }
-                    ],
-                    display_order: 1
-                },
-                {
-                    field_id: 'common_warranty_months',
-                    label: 'Warranty (Months)',
-                    type: 'number',
-                    is_required: true,
-                    enabled: true,
-                    default_value: 12,
+            form_schema: COMMON_PRODUCT_FIELDS,
+            description: 'Electronic devices and gadgets',
+            isActive: true
+        });
+        
+        await electronics.save();
+        createdCategories['Electronics'] = electronics._id;
+        console.log(`✅ Created ROOT category: Electronics (${COMMON_PRODUCT_FIELDS.length} common fields)`);
+
+        // Create Smartphones category
+        const smartphones = new Category({
                     display_order: 2
                 },
                 {

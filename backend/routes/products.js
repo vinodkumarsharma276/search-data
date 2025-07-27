@@ -97,43 +97,31 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
     
     try {
         const {
-            // Dynamic System Fields
+            // Dynamic System Fields (Required)
             category_path,
             category_path_ids,
             selected_category_id,
             common_attributes,
             specific_attributes,
-            supplierId,
-            
-            // Legacy System Fields (backward compatibility)
-            name,
-            modelNumber,
-            brandId,
-            categoryId,
-            purchasePrice,
-            mrp,
-            sellingPrice,
-            currentStock,
-            minimumStock,
-            maximumStock,
-            gstRate,
-            hsnCode,
-            description,
-            features,
-            warrantyPeriod,
-            weight,
-            dimensions,
-            images,
-            specifications
+            supplierId
         } = req.body;
 
-        console.log('🏷️ Processing product creation for:', {
-            isDynamic: !!selected_category_id,
-            isLegacy: !!categoryId,
-            supplierId
+        console.log('🏷️ Processing dynamic product creation for:', {
+            category_path,
+            selected_category_id,
+            supplierId,
+            hasCommonAttrs: !!common_attributes,
+            hasSpecificAttrs: !!specific_attributes
         });
 
-        // Validate distributor (required for both systems)
+        // Validate required fields
+        if (!selected_category_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category selection is required'
+            });
+        }
+
         if (!supplierId) {
             return res.status(400).json({
                 success: false,
@@ -141,6 +129,7 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
             });
         }
 
+        // Validate distributor exists
         const Distributor = require('../models/Distributor');
         const distributor = await Distributor.findById(supplierId);
         if (!distributor) {
@@ -150,145 +139,78 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
             });
         }
 
-        let product;
+        // Extract universal required fields from attributes
+        const brand = common_attributes?.common_brand || specific_attributes?.brand;
+        const price = common_attributes?.common_price || specific_attributes?.price;
+        const warrantyMonths = common_attributes?.common_warranty_months || specific_attributes?.warranty_months || 12;
+        const serialNumber = common_attributes?.common_serial_number || specific_attributes?.serial_number;
 
-        // Handle Dynamic Category System
-        if (selected_category_id && (common_attributes || specific_attributes)) {
-            console.log('📋 Creating dynamic product');
-            
-            // Validate dynamic category
-            const category = await Category.findById(selected_category_id);
-            if (!category) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid category ID'
-                });
-            }
-            
-            if (!category.is_leaf) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Can only create products for leaf categories'
-                });
-            }
-
-            // Validate that required fields are present in attributes
-            const displayName = common_attributes?.name || specific_attributes?.name || 
-                               common_attributes?.product_name || specific_attributes?.product_name;
-            
-            if (!displayName) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Product name is required in attributes'
-                });
-            }
-
-            // Extract serial number from attributes
-            const serialNumber = common_attributes?.common_serial_number || 
-                                specific_attributes?.specific_serial_number;
-
-            product = new Product({
-                category_path: category_path || [],
-                category_path_ids: category_path_ids || [],
-                selected_category_id,
-                common_attributes: common_attributes || {},
-                specific_attributes: specific_attributes || {},
-                serialNumber: serialNumber || undefined,
-                supplierId,
-                isActive: true
-            });
-
-            console.log('✅ Dynamic product created');
-        }
-        // Handle Legacy System (backward compatibility)
-        else if (name && modelNumber && brandId && categoryId) {
-            console.log('📋 Creating legacy product');
-            
-            // Validate required fields for legacy system
-            if (!purchasePrice || !mrp || !sellingPrice) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Required fields for legacy system: name, modelNumber, brandId, categoryId, purchasePrice, mrp, sellingPrice'
-                });
-            }
-
-            // Validate brand and category exist
-            const brand = await Brand.findById(brandId);
-            if (!brand) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid brand ID'
-                });
-            }
-
-            const category = await Category.findById(categoryId);
-            if (!category) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid category ID'
-                });
-            }
-
-            // Validate pricing logic
-            if (sellingPrice > mrp) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Selling price cannot be greater than MRP'
-                });
-            }
-
-            if (purchasePrice >= sellingPrice) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Purchase price should be less than selling price'
-                });
-            }
-
-            product = new Product({
-                name,
-                modelNumber,
-                brandId,
-                categoryId,
-                purchasePrice,
-                mrp,
-                sellingPrice,
-                currentStock: currentStock || 0,
-                minimumStock: minimumStock || 5,
-                maximumStock: maximumStock || 100,
-                gstRate: gstRate || 18,
-                hsnCode,
-                description,
-                features,
-                warrantyPeriod: warrantyPeriod || 12,
-                weight,
-                dimensions,
-                images,
-                specifications,
-                basePrice: purchasePrice, // Set basePrice for backward compatibility
-                supplierId
-            });
-
-            console.log('✅ Legacy product created');
-        }
-        else {
+        if (!brand) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid product data. Must provide either dynamic category system data or legacy system data.'
+                message: 'Brand is required'
             });
         }
+
+        if (!price || price <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid price is required'
+            });
+        }
+
+        // Validate dynamic category
+        const category = await Category.findById(selected_category_id);
+        if (!category) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid category ID'
+            });
+        }
+        
+        if (!category.is_leaf) {
+            return res.status(400).json({
+                success: false,
+                message: 'Can only create products for leaf categories'
+            });
+        }
+
+        // Create the product with simplified model
+        const product = new Product({
+            // Core required fields
+            category_path: category_path || [],
+            category_path_ids: category_path_ids || [],
+            selected_category_id,
+            supplierId,
+            
+            // Universal required fields extracted from attributes
+            brand,
+            price,
+            warrantyMonths,
+            serialNumber: serialNumber || undefined,
+            
+            // Dynamic attributes (can contain any fields)
+            common_attributes: common_attributes || {},
+            specific_attributes: specific_attributes || {},
+            
+            // System fields
+            isActive: true,
+            lastPurchaseDate: new Date()
+        });
+
+        console.log('💾 Saving product:', {
+            brand,
+            price,
+            serialNumber,
+            categoryPath: category_path
+        });
 
         await product.save();
         console.log('✅ Product saved successfully:', product._id);
         
-        // Populate response based on product type
-        if (product.isDynamicProduct()) {
-            await product.populate('selected_category_id', 'name');
-            await product.populate('supplierId', 'name gstNumber');
-        } else {
-            await product.populate('brandId', 'name');
-            await product.populate('categoryId', 'name');
-            await product.populate('supplierId', 'name gstNumber');
-        }
+        // Populate response 
+        await product.populate('selected_category_id', 'name');
+        await product.populate('supplierId', 'name gstNumber');
 
         res.status(201).json({
             success: true,
@@ -299,9 +221,10 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
         console.error('Create product error:', error);
         
         if (error.code === 11000) {
+            const duplicateField = Object.keys(error.keyPattern)[0];
             return res.status(400).json({
                 success: false,
-                message: 'Product with this model number already exists'
+                message: `Product with this ${duplicateField} already exists`
             });
         }
         
