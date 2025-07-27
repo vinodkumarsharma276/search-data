@@ -15,7 +15,8 @@ import {
     InputNumber,
     Upload,
     Switch,
-    AutoComplete
+    AutoComplete,
+    Divider
 } from 'antd';
 import {
     SaveOutlined,
@@ -42,6 +43,11 @@ const AddProduct = () => {
     const [distributorOptions, setDistributorOptions] = useState([]);
     const [distributorSearchValue, setDistributorSearchValue] = useState('');
     const [selectedDistributor, setSelectedDistributor] = useState(null);
+    const [categoryLevels, setCategoryLevels] = useState([]); // Array of category levels for hierarchical selection
+    const [selectedCategoryPath, setSelectedCategoryPath] = useState([]); // Track selected category path
+    const [finalCategoryId, setFinalCategoryId] = useState(null); // Final leaf category ID
+    const [categoryFormSchema, setCategoryFormSchema] = useState([]);
+    const [loadingCategorySchema, setLoadingCategorySchema] = useState(false);
 
     useEffect(() => {
         fetchDropdownData();
@@ -66,7 +72,6 @@ const AddProduct = () => {
             const response = await apiService.dropdowns.getAll();
             if (response.data.success) {
                 const data = response.data.data;
-                setCategories(data.categories || []);
                 setBrands(data.brands || []);
             }
 
@@ -76,8 +81,24 @@ const AddProduct = () => {
                 setDistributors(distributorsResponse.data.distributors || []);
                 console.log('✅ Loaded distributors:', distributorsResponse.data.distributors?.length);
             }
+
+            // Fetch top-level categories for hierarchical selection
+            await fetchTopLevelCategories();
         } catch (error) {
             console.error('❌ Error fetching dropdown data:', error);
+        }
+    };
+
+    // Fetch top-level categories
+    const fetchTopLevelCategories = async () => {
+        try {
+            const response = await apiService.categories.getTopLevel();
+            if (response.data.success) {
+                setCategoryLevels([response.data.data]);
+                console.log('✅ Loaded top-level categories:', response.data.data?.length);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching top-level categories:', error);
         }
     };
 
@@ -129,6 +150,76 @@ const AddProduct = () => {
         }
     }, [form]);
 
+    // Handle hierarchical category selection
+    const handleCategorySelection = async (categoryId, levelIndex) => {
+        console.log('🎯 Category selected at level', levelIndex, ':', categoryId);
+        
+        // Update selected category path up to current level
+        const newPath = selectedCategoryPath.slice(0, levelIndex);
+        newPath[levelIndex] = categoryId;
+        setSelectedCategoryPath(newPath);
+        
+        // Clear category levels after current level
+        const newLevels = categoryLevels.slice(0, levelIndex + 1);
+        setCategoryLevels(newLevels);
+        
+        try {
+            // Get the selected category details
+            const categoryResponse = await apiService.categories.getById(categoryId);
+            if (categoryResponse.data.success) {
+                const category = categoryResponse.data.data;
+                
+                if (category.is_leaf) {
+                    // This is a leaf category - load form schema
+                    console.log('� Leaf category selected, loading form schema...');
+                    setFinalCategoryId(categoryId);
+                    await loadCategoryFormSchema(categoryId);
+                    
+                    // Update form field
+                    form.setFieldsValue({ categoryId: categoryId });
+                } else {
+                    // Not a leaf - fetch children for next level
+                    console.log('🌿 Non-leaf category, fetching children...');
+                    setFinalCategoryId(null);
+                    setCategoryFormSchema([]);
+                    
+                    const childrenResponse = await apiService.categories.getChildren(categoryId);
+                    if (childrenResponse.data.success && childrenResponse.data.data.length > 0) {
+                        setCategoryLevels([...newLevels, childrenResponse.data.data]);
+                        console.log('✅ Loaded children for next level:', childrenResponse.data.data.length);
+                    }
+                    
+                    // Clear form field as selection is not complete
+                    form.setFieldsValue({ categoryId: undefined });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error handling category selection:', error);
+        }
+    };
+
+    // Load category form schema
+    const loadCategoryFormSchema = async (categoryId) => {
+        setLoadingCategorySchema(true);
+        try {
+            const response = await apiService.categories.getFormSchema(categoryId);
+            console.log('📋 Category form schema response:', response.data);
+            
+            if (response.data.success) {
+                setCategoryFormSchema(response.data.data || []);
+                console.log('✅ Category form schema loaded:', response.data.data?.length, 'fields');
+            } else {
+                console.warn('⚠️ Failed to load category form schema:', response.data.message);
+                setCategoryFormSchema([]);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching category form schema:', error);
+            setCategoryFormSchema([]);
+        } finally {
+            setLoadingCategorySchema(false);
+        }
+    };
+
     const handleSubmit = async (values) => {
         console.log('📦 Submitting product data:', values);
         
@@ -141,14 +232,36 @@ const AddProduct = () => {
         setLoading(true);
 
         try {
+            // Separate dynamic category fields from main product data
+            const dynamicFields = {};
+            const mainFields = {};
+            
+            // Extract category-specific fields
+            if (categoryFormSchema.length > 0) {
+                categoryFormSchema.forEach(field => {
+                    if (values[field.field_id] !== undefined) {
+                        dynamicFields[field.field_id] = values[field.field_id];
+                    }
+                });
+            }
+            
+            // Main product fields
+            Object.keys(values).forEach(key => {
+                if (!dynamicFields.hasOwnProperty(key)) {
+                    mainFields[key] = values[key];
+                }
+            });
+            
             // Map distributorId to supplierId for backend compatibility
             const productData = {
-                ...values,
-                supplierId: values.distributorId
+                ...mainFields,
+                supplierId: values.distributorId,
+                categoryFormData: dynamicFields // Send dynamic fields separately
             };
             delete productData.distributorId; // Remove the frontend field name
             
             console.log('📤 Sending to backend:', productData);
+            console.log('🎯 Dynamic category fields:', dynamicFields);
             
             const response = await apiService.products.create(productData);
             
@@ -156,10 +269,16 @@ const AddProduct = () => {
                 message.success('Product added successfully!');
                 console.log('✅ Product saved:', response.data);
                 form.resetFields();
-                // Clear distributor search states
+                // Clear all states
                 setDistributorSearchValue('');
                 setDistributorOptions([]);
                 setSelectedDistributor(null);
+                setCategoryLevels([]);
+                setSelectedCategoryPath([]);
+                setFinalCategoryId(null);
+                setCategoryFormSchema([]);
+                // Reload top-level categories
+                await fetchTopLevelCategories();
             } else {
                 message.error(response.data.message || 'Failed to add product');
                 console.error('❌ Error saving product:', response.data);
@@ -290,314 +409,375 @@ const AddProduct = () => {
                             )}
                         </Card>
 
-                        {/* Product Information Section */}
+                        {/* Product Details Section - All Fields Combined */}
                         <Card
-                            title="Product Information"
+                            title="Product Details"
                             style={{ marginBottom: 24 }}
                             bodyStyle={{ padding: '16px' }}
                             size="small"
                         >
+                            {/* Hierarchical Category Selection */}
+                            <div style={{ marginBottom: 24 }}>
+                                <Text strong style={{ fontSize: '16px', color: '#333', marginBottom: '12px', display: 'block' }}>
+                                    Category Selection
+                                </Text>
+                                
+                                {/* Category dropdowns in 5-column grid layout */}
+                                <Row gutter={[16, 16]}>
+                                    {categoryLevels.map((levelCategories, levelIndex) => (
+                                        <Col key={levelIndex} xs={24} sm={12} md={8} lg={5} xl={5}>
+                                            <Form.Item
+                                                label={`Level ${levelIndex + 1}: ${levelIndex === 0 ? 'Main Category' : levelIndex === 1 ? 'Sub Category' : `Category ${levelIndex + 1}`}`}
+                                                style={{ margin: 0 }}
+                                            >
+                                                <Select
+                                                    placeholder={`Select ${levelIndex === 0 ? 'main category' : 'sub category'}`}
+                                                    size="large"
+                                                    style={{ width: '100%' }}
+                                                    value={selectedCategoryPath[levelIndex]}
+                                                    onChange={(value) => handleCategorySelection(value, levelIndex)}
+                                                    loading={loadingCategorySchema && levelIndex === categoryLevels.length - 1}
+                                                >
+                                                    {levelCategories.map(category => (
+                                                        <Option key={category._id} value={category._id}>
+                                                            {category.name} {category.is_leaf ? '(Leaf)' : ''}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    ))}
+                                </Row>
+                                
+                                {/* Hidden form field for final category ID */}
+                                <Form.Item name="categoryId" style={{ display: 'none' }}>
+                                    <Input />
+                                </Form.Item>
+                            </div>
 
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Product Name"
-                                    name="name"
-                                    rules={[
-                                        { required: true, message: 'Please enter product name' },
-                                        { min: 2, message: 'Product name must be at least 2 characters' }
-                                    ]}
-                                >
-                                    <Input 
-                                        placeholder="Enter product name"
-                                        size="large"
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Condition"
-                                    name="condition"
-                                    rules={[{ required: true, message: 'Please select condition' }]}
-                                >
-                                    <Select placeholder="Select condition" size="large">
-                                        <Option value="New">New</Option>
-                                        <Option value="Refurbished">Refurbished</Option>
-                                        <Option value="Used">Used</Option>
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                        </Row>
+                            {/* Basic Product Information */}
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Product Name"
+                                        name="name"
+                                        rules={[
+                                            { required: true, message: 'Please enter product name' },
+                                            { min: 2, message: 'Product name must be at least 2 characters' }
+                                        ]}
+                                    >
+                                        <Input 
+                                            placeholder="Enter product name"
+                                            size="large"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Condition"
+                                        name="condition"
+                                        rules={[{ required: true, message: 'Please select condition' }]}
+                                    >
+                                        <Select placeholder="Select condition" size="large">
+                                            <Option value="New">New</Option>
+                                            <Option value="Refurbished">Refurbished</Option>
+                                            <Option value="Used">Used</Option>
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Purchase Price (₹)"
+                                        name="purchasePrice"
+                                        rules={[
+                                            { required: true, message: 'Please enter purchase price' },
+                                            { type: 'number', min: 0, message: 'Price must be positive' }
+                                        ]}
+                                    >
+                                        <InputNumber 
+                                            placeholder="0.00"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            precision={2}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="MRP (₹)"
+                                        name="mrp"
+                                        rules={[
+                                            { required: true, message: 'Please enter MRP' },
+                                            { type: 'number', min: 0, message: 'MRP must be positive' }
+                                        ]}
+                                    >
+                                        <InputNumber 
+                                            placeholder="0.00"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            precision={2}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
+                                    <Form.Item
+                                        label="Status"
+                                        name="isActive"
+                                        valuePropName="checked"
+                                        initialValue={true}
+                                    >
+                                        <Switch 
+                                            checkedChildren="Active" 
+                                            unCheckedChildren="Inactive" 
+                                            size="default"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
 
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Category"
-                                    name="categoryId"
-                                    rules={[{ required: true, message: 'Please select category' }]}
-                                >
-                                    <Select placeholder="Select category" size="large">
-                                        {categories.map(cat => (
-                                            <Option key={cat._id} value={cat._id}>{cat.name}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Brand"
-                                    name="brandId"
-                                    rules={[{ required: true, message: 'Please select brand' }]}
-                                >
-                                    <Select placeholder="Select brand" size="large">
-                                        {brands.map(brand => (
-                                            <Option key={brand._id} value={brand._id}>{brand.name}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                        </Row>
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Selling Price (₹)"
+                                        name="sellingPrice"
+                                        rules={[
+                                            { required: true, message: 'Please enter selling price' },
+                                            { type: 'number', min: 0, message: 'Price must be positive' }
+                                        ]}
+                                    >
+                                        <InputNumber 
+                                            placeholder="0.00"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            precision={2}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="GST Rate (%)"
+                                        name="gstRate"
+                                        rules={[{ required: true, message: 'Please enter GST rate' }]}
+                                    >
+                                        <Select placeholder="Select GST rate" size="large">
+                                            <Option value={0}>0%</Option>
+                                            <Option value={5}>5%</Option>
+                                            <Option value={12}>12%</Option>
+                                            <Option value={18}>18%</Option>
+                                            <Option value={28}>28%</Option>
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="HSN Code"
+                                        name="hsnCode"
+                                        rules={[{ required: true, message: 'Please enter HSN code' }]}
+                                    >
+                                        <Input 
+                                            placeholder="8471"
+                                            size="large"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Current Stock"
+                                        name="currentStock"
+                                        rules={[
+                                            { required: true, message: 'Please enter current stock' },
+                                            { type: 'number', min: 0, message: 'Stock must be non-negative' }
+                                        ]}
+                                    >
+                                        <InputNumber 
+                                            placeholder="0"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
+                                    <Form.Item
+                                        label="Minimum Stock"
+                                        name="minimumStock"
+                                        rules={[
+                                            { required: true, message: 'Please enter minimum stock level' },
+                                            { type: 'number', min: 0, message: 'Stock level must be non-negative' }
+                                        ]}
+                                    >
+                                        <InputNumber 
+                                            placeholder="5"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
 
-                        <Form.Item
-                            label="Description"
-                            name="description"
-                            rules={[{ required: true, message: 'Please enter product description' }]}
-                        >
-                            <TextArea 
-                                placeholder="Enter detailed product description"
-                                rows={3}
-                                size="large"
-                            />
-                        </Form.Item>
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Maximum Stock"
+                                        name="maximumStock"
+                                    >
+                                        <InputNumber 
+                                            placeholder="100"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Warranty (months)"
+                                        name="warrantyPeriod"
+                                    >
+                                        <InputNumber 
+                                            placeholder="12"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Weight (grams)"
+                                        name="weight"
+                                    >
+                                        <InputNumber 
+                                            placeholder="1000"
+                                            size="large"
+                                            style={{ width: '100%' }}
+                                            min={0}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                    <Form.Item
+                                        label="Brand"
+                                        name="brandId"
+                                        rules={[{ required: true, message: 'Please select brand' }]}
+                                    >
+                                        <Select placeholder="Select brand" size="large">
+                                            {brands.map(brand => (
+                                                <Option key={brand._id} value={brand._id}>{brand.name}</Option>
+                                            ))}
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
+                                    <Form.Item
+                                        label="Notes"
+                                        name="notes"
+                                    >
+                                        <Input 
+                                            placeholder="Additional notes"
+                                            size="large"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
 
-                        {/* Pricing Information */}
-                        <Title level={4} style={{ marginTop: '24px', color: '#333333' }}>
-                            <DollarOutlined style={{ marginRight: '8px', color: '#fa8c16' }} />
-                            Pricing Information
-                        </Title>
+                            <Row gutter={[16, 16]}>
+                                <Col span={24}>
+                                    <Form.Item
+                                        label="Description"
+                                        name="description"
+                                        rules={[{ required: true, message: 'Please enter product description' }]}
+                                    >
+                                        <TextArea 
+                                            placeholder="Enter detailed product description"
+                                            rows={3}
+                                            size="large"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
 
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="Purchase Price (₹)"
-                                    name="purchasePrice"
-                                    rules={[
-                                        { required: true, message: 'Please enter purchase price' },
-                                        { type: 'number', min: 0, message: 'Price must be positive' }
-                                    ]}
-                                >
-                                    <InputNumber 
-                                        placeholder="0.00"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        precision={2}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="MRP (₹)"
-                                    name="mrp"
-                                    rules={[
-                                        { required: true, message: 'Please enter MRP' },
-                                        { type: 'number', min: 0, message: 'MRP must be positive' }
-                                    ]}
-                                >
-                                    <InputNumber 
-                                        placeholder="0.00"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        precision={2}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="Selling Price (₹)"
-                                    name="sellingPrice"
-                                    rules={[
-                                        { required: true, message: 'Please enter selling price' },
-                                        { type: 'number', min: 0, message: 'Price must be positive' }
-                                    ]}
-                                >
-                                    <InputNumber 
-                                        placeholder="0.00"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        precision={2}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="GST Rate (%)"
-                                    name="gstRate"
-                                    rules={[{ required: true, message: 'Please enter GST rate' }]}
-                                >
-                                    <Select placeholder="Select GST rate" size="large">
-                                        <Option value={0}>0%</Option>
-                                        <Option value={5}>5%</Option>
-                                        <Option value={12}>12%</Option>
-                                        <Option value={18}>18%</Option>
-                                        <Option value={28}>28%</Option>
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="HSN Code"
-                                    name="hsnCode"
-                                    rules={[{ required: true, message: 'Please enter HSN code' }]}
-                                >
-                                    <Input 
-                                        placeholder="8471"
-                                        size="large"
-                                    />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        {/* Inventory Information */}
-                        <Title level={4} style={{ marginTop: '24px', color: '#333333' }}>
-                            Inventory Information
-                        </Title>
-
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="Current Stock"
-                                    name="currentStock"
-                                    rules={[
-                                        { required: true, message: 'Please enter current stock' },
-                                        { type: 'number', min: 0, message: 'Stock must be non-negative' }
-                                    ]}
-                                >
-                                    <InputNumber 
-                                        placeholder="0"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="Minimum Stock Level"
-                                    name="minimumStock"
-                                    rules={[
-                                        { required: true, message: 'Please enter minimum stock level' },
-                                        { type: 'number', min: 0, message: 'Stock level must be non-negative' }
-                                    ]}
-                                >
-                                    <InputNumber 
-                                        placeholder="5"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    label="Maximum Stock Level"
-                                    name="maximumStock"
-                                >
-                                    <InputNumber 
-                                        placeholder="100"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        {/* Additional Information */}
-                        <Title level={4} style={{ marginTop: '24px', color: '#333333' }}>
-                            Additional Information
-                        </Title>
-
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Warranty Period (months)"
-                                    name="warrantyPeriod"
-                                >
-                                    <InputNumber 
-                                        placeholder="12"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Weight (grams)"
-                                    name="weight"
-                                >
-                                    <InputNumber 
-                                        placeholder="1000"
-                                        size="large"
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                    />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    label="Active Status"
-                                    name="isActive"
-                                    valuePropName="checked"
-                                    initialValue={true}
-                                >
-                                    <Switch 
-                                        checkedChildren="Active" 
-                                        unCheckedChildren="Inactive" 
-                                        size="default"
-                                    />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        <Form.Item
-                            label="Product Images"
-                            name="images"
-                        >
-                            <Upload
-                                listType="picture-card"
-                                showUploadList={{
-                                    showPreviewIcon: true,
-                                    showRemoveIcon: true,
-                                }}
-                                beforeUpload={() => false} // Prevent auto upload
-                            >
-                                <div>
-                                    <UploadOutlined />
-                                    <div style={{ marginTop: 8 }}>Upload Images</div>
+                            {/* Dynamic Category-based Fields */}
+                            {finalCategoryId && categoryFormSchema.length > 0 && (
+                                <div style={{ marginTop: 24 }}>
+                                    <Divider orientation="left">
+                                        <Text strong style={{ fontSize: '16px', color: '#333' }}>
+                                            Category Fields (Common + Specific)
+                                        </Text>
+                                    </Divider>
+                                    {/* Render dynamic fields in rows of 5 - no filtering needed as categories are now clean */}
+                                    {(() => {
+                                        return Array.from({ length: Math.ceil(categoryFormSchema.length / 5) }, (_, rowIndex) => (
+                                            <Row key={rowIndex} gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                                                {categoryFormSchema.slice(rowIndex * 5, (rowIndex + 1) * 5).map((field) => (
+                                                    <Col key={field.field_id} xs={24} sm={12} md={8} lg={5} xl={Math.floor(24 / Math.min(5, categoryFormSchema.slice(rowIndex * 5, (rowIndex + 1) * 5).length))}>
+                                                        <Form.Item
+                                                            label={field.label}
+                                                            name={field.field_id}
+                                                            rules={[
+                                                                ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
+                                                                ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
+                                                            ]}
+                                                        >
+                                                            {field.type === 'text' && (
+                                                                <Input 
+                                                                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                                    size="large"
+                                                                />
+                                                            )}
+                                                            {field.type === 'number' && (
+                                                                <InputNumber 
+                                                                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                                    size="large"
+                                                                    style={{ width: '100%' }}
+                                                                    min={field.validation?.min || 0}
+                                                                    max={field.validation?.max}
+                                                                />
+                                                            )}
+                                                            {(field.type === 'dropdown' || field.type === 'combobox') && (
+                                                                <Select 
+                                                                    placeholder={`Select ${field.label.toLowerCase()}`}
+                                                                    size="large"
+                                                                    mode={field.type === 'combobox' ? 'tags' : undefined}
+                                                                    allowClear
+                                                                >
+                                                                    {field.options && field.options.map(option => (
+                                                                        <Option 
+                                                                            key={typeof option === 'string' ? option : option.value} 
+                                                                            value={typeof option === 'string' ? option : option.value}
+                                                                        >
+                                                                            {typeof option === 'string' ? option : option.label}
+                                                                        </Option>
+                                                                    ))}
+                                                                </Select>
+                                                            )}
+                                                            {field.type === 'boolean' && (
+                                                                <Switch 
+                                                                    checkedChildren="Yes" 
+                                                                    unCheckedChildren="No" 
+                                                                    size="default"
+                                                                    defaultChecked={field.default_value}
+                                                                />
+                                                            )}
+                                                        </Form.Item>
+                                                    </Col>
+                                                ))}
+                                            </Row>
+                                        ));
+                                    })()}
                                 </div>
-                            </Upload>
-                        </Form.Item>
+                            )}
 
-                        <Form.Item
-                            label="Additional Notes"
-                            name="notes"
-                        >
-                            <TextArea 
-                                placeholder="Any additional notes about the product"
-                                rows={3}
-                                size="large"
-                            />
-                        </Form.Item>
+                            {/* Loading state for category schema */}
+                            {loadingCategorySchema && (
+                                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                                    <Text type="secondary">Loading category fields...</Text>
+                                </div>
+                            )}
                         </Card>
 
                         {/* Submit Button */}
@@ -611,6 +791,12 @@ const AddProduct = () => {
                                         setDistributorSearchValue('');
                                         setDistributorOptions([]);
                                         setSelectedDistributor(null);
+                                        setCategoryLevels([]);
+                                        setSelectedCategoryPath([]);
+                                        setFinalCategoryId(null);
+                                        setCategoryFormSchema([]);
+                                        // Reload top-level categories
+                                        fetchTopLevelCategories();
                                     }}
                                 >
                                     Reset Form
