@@ -47,10 +47,12 @@ const AddProduct = () => {
     const [selectedCategoryPath, setSelectedCategoryPath] = useState([]); // Track selected category path
     const [finalCategoryId, setFinalCategoryId] = useState(null); // Final leaf category ID
     const [categoryFormSchema, setCategoryFormSchema] = useState([]);
+    const [commonFields, setCommonFields] = useState([]); // Common fields from Electronics category
     const [loadingCategorySchema, setLoadingCategorySchema] = useState(false);
 
     useEffect(() => {
         fetchDropdownData();
+        loadCommonFields(); // Load common fields immediately
     }, []);
 
     // Watch for distributors loading to sync any existing form values
@@ -220,6 +222,25 @@ const AddProduct = () => {
         }
     };
 
+    // Load common fields from Electronics category
+    const loadCommonFields = async () => {
+        try {
+            console.log('📋 Loading common fields...');
+            const response = await apiService.categories.getCommonFields();
+            
+            if (response.data.success) {
+                setCommonFields(response.data.data || []);
+                console.log('✅ Common fields loaded:', response.data.data?.length, 'fields');
+            } else {
+                console.warn('⚠️ Failed to load common fields:', response.data.message);
+                setCommonFields([]);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching common fields:', error);
+            setCommonFields([]);
+        }
+    };
+
     const handleSubmit = async (values) => {
         console.log('📦 Submitting product data:', values);
         
@@ -232,9 +253,18 @@ const AddProduct = () => {
         setLoading(true);
 
         try {
-            // Separate dynamic category fields from main product data
+            // Separate dynamic fields (common + category-specific) from main product data
             const dynamicFields = {};
             const mainFields = {};
+            
+            // Extract common fields
+            if (commonFields.length > 0) {
+                commonFields.forEach(field => {
+                    if (values[field.field_id] !== undefined) {
+                        dynamicFields[field.field_id] = values[field.field_id];
+                    }
+                });
+            }
             
             // Extract category-specific fields
             if (categoryFormSchema.length > 0) {
@@ -680,6 +710,69 @@ const AddProduct = () => {
                                         <Input placeholder="Notes" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
+
+                                {/* Common Fields - always visible */}
+                                {commonFields.map((field, index) => (
+                                    <Col key={`common-${field.field_id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Form.Item
+                                            label={<span style={{ fontSize: '10px', fontWeight: 500 }}>{field.label}</span>}
+                                            name={field.field_id}
+                                            rules={field.is_required ? [{ required: true, message: `Please enter ${field.label}` }] : []}
+                                        >
+                                            {field.type === 'dropdown' ? (
+                                                <Select 
+                                                    placeholder={field.placeholder || field.label}
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                    dropdownStyle={{ fontSize: '10px' }}
+                                                >
+                                                    {field.options?.map(option => (
+                                                        <Option key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            ) : field.type === 'combobox' ? (
+                                                <Select 
+                                                    mode="combobox"
+                                                    placeholder={field.placeholder || field.label}
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                    dropdownStyle={{ fontSize: '10px' }}
+                                                >
+                                                    {field.options?.map(option => (
+                                                        <Option key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            ) : field.type === 'number' ? (
+                                                <InputNumber
+                                                    placeholder={field.placeholder || field.label}
+                                                    style={{ width: '100%', fontSize: '10px' }}
+                                                    min={0}
+                                                    size="small"
+                                                />
+                                            ) : field.type === 'boolean' ? (
+                                                <Select 
+                                                    placeholder={field.placeholder || 'Select'}
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                    dropdownStyle={{ fontSize: '10px' }}
+                                                >
+                                                    <Option value={true}>Yes</Option>
+                                                    <Option value={false}>No</Option>
+                                                </Select>
+                                            ) : (
+                                                <Input 
+                                                    placeholder={field.placeholder || field.label}
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                />
+                                            )}
+                                        </Form.Item>
+                                    </Col>
+                                ))}
 
                                 {/* Dynamic Category-based Fields - merged into main grid */}
                                 {finalCategoryId && categoryFormSchema.length > 0 && 

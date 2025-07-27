@@ -32,6 +32,43 @@ router.get('/top-level', protect, async (req, res) => {
     }
 });
 
+// @route   GET /api/categories/common-fields
+// @desc    Get common fields from Electronics category (root category with common fields)
+// @access  Protected
+router.get('/common-fields', protect, async (req, res) => {
+    try {
+        console.log('📋 GET /api/categories/common-fields - Fetching common fields');
+        
+        // Find Electronics category (root category with common fields)
+        const electronicsCategory = await Category.findOne({ 
+            name: 'Electronics', 
+            parent_id: null 
+        });
+        
+        if (!electronicsCategory) {
+            return res.status(404).json({
+                success: false,
+                message: 'Electronics category not found'
+            });
+        }
+
+        const commonFields = electronicsCategory.form_schema || [];
+        
+        console.log('✅ Common fields found:', commonFields.length);
+
+        res.json({
+            success: true,
+            data: commonFields
+        });
+    } catch (error) {
+        console.error('❌ Error fetching common fields:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to fetch common fields'
+        });
+    }
+});
+
 // @route   GET /api/categories/:id
 // @desc    Get category by ID with full details
 // @access  Protected

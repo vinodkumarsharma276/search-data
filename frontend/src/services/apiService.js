@@ -97,6 +97,7 @@ const apiService = {
         getChildren: (id) => apiClient.get(`/categories/${id}/children`),
         getFullSchema: (id) => apiClient.get(`/categories/${id}/full-schema`),
         getFormSchema: (id) => apiClient.get(`/categories/${id}/full-schema`), // Add this alias
+        getCommonFields: () => apiClient.get('/categories/common-fields'), // Get common fields from Electronics category
         updateFieldOptions: (id, data) => apiClient.put(`/categories/${id}/update-field-options`, data),
         getCategoryPath: (id) => apiClient.get(`/categories/${id}/path`)
     },
