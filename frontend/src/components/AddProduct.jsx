@@ -18,6 +18,65 @@ import {
     AutoComplete,
     Divider
 } from 'antd';
+
+// Custom styles for error messages and form validation
+const customStyles = `
+    .ant-form-item-explain-error {
+        font-size: 8px !important;
+        line-height: 1.2 !important;
+        margin-top: 2px !important;
+    }
+    
+    .ant-form-item-has-error .ant-input,
+    .ant-form-item-has-error .ant-select-selector,
+    .ant-form-item-has-error .ant-input-number {
+        border-color: #ff4d4f !important;
+        box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+    }
+    
+    .ant-form-item-has-error .ant-input:focus,
+    .ant-form-item-has-error .ant-select-focused .ant-select-selector,
+    .ant-form-item-has-error .ant-input-number:focus {
+        border-color: #ff4d4f !important;
+        box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+    }
+    
+    /* Ensure consistent field heights */
+    .ant-input-sm,
+    .ant-select-sm .ant-select-selector,
+    .ant-input-number-sm,
+    .ant-input-number-sm .ant-input-number-input {
+        height: 24px !important;
+        min-height: 24px !important;
+        line-height: 22px !important;
+        font-size: 10px !important;
+    }
+    
+    .ant-select-sm .ant-select-selection-item {
+        line-height: 22px !important;
+        font-size: 10px !important;
+    }
+    
+    .ant-select-sm .ant-select-selection-placeholder {
+        line-height: 22px !important;
+        font-size: 10px !important;
+    }
+    
+    .ant-input-number-sm .ant-input-number-input {
+        padding: 0 7px !important;
+    }
+`;
+
+// Inject custom styles
+if (typeof document !== 'undefined') {
+    const styleSheet = document.createElement('style');
+    styleSheet.type = 'text/css';
+    styleSheet.innerText = customStyles;
+    if (!document.head.querySelector('[data-form-styles]')) {
+        styleSheet.setAttribute('data-form-styles', 'true');
+        document.head.appendChild(styleSheet);
+    }
+}
 import {
     SaveOutlined,
     ArrowLeftOutlined,
@@ -550,6 +609,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>MRP (₹)</span>}
                                         name="mrp"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[
                                             { required: true, message: 'Please enter MRP' },
                                             { type: 'number', min: 0, message: 'MRP must be positive' }
@@ -569,6 +629,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Selling Price (₹)</span>}
                                         name="sellingPrice"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[
                                             { required: true, message: 'Please enter selling price' },
                                             { type: 'number', min: 0, message: 'Price must be positive' }
@@ -588,6 +649,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>GST Rate (%)</span>}
                                         name="gstRate"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please enter GST rate' }]}
                                     >
                                         <Select placeholder="GST %" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
@@ -604,6 +666,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>HSN Code</span>}
                                         name="hsnCode"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please enter HSN code' }]}
                                     >
                                         <Input placeholder="8471" size="small" style={{ fontSize: '10px' }} />
@@ -614,6 +677,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Current Stock</span>}
                                         name="currentStock"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[
                                             { required: true, message: 'Please enter current stock' },
                                             { type: 'number', min: 0, message: 'Stock must be non-negative' }
@@ -632,6 +696,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Minimum Stock</span>}
                                         name="minimumStock"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[
                                             { required: true, message: 'Please enter minimum stock level' },
                                             { type: 'number', min: 0, message: 'Stock level must be non-negative' }
@@ -650,6 +715,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Maximum Stock</span>}
                                         name="maximumStock"
+                                        style={{ marginBottom: '12px' }}
                                     >
                                         <InputNumber 
                                             placeholder="100"
@@ -664,6 +730,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Warranty (months)</span>}
                                         name="warrantyPeriod"
+                                        style={{ marginBottom: '12px' }}
                                     >
                                         <InputNumber 
                                             placeholder="12"
@@ -678,6 +745,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Weight (grams)</span>}
                                         name="weight"
+                                        style={{ marginBottom: '12px' }}
                                     >
                                         <InputNumber 
                                             placeholder="1000"
@@ -692,6 +760,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Brand</span>}
                                         name="brandId"
+                                        style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please select brand' }]}
                                     >
                                         <Select placeholder="Brand" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
@@ -706,6 +775,7 @@ const AddProduct = () => {
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Notes</span>}
                                         name="notes"
+                                        style={{ marginBottom: '12px' }}
                                     >
                                         <Input placeholder="Notes" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
@@ -717,6 +787,7 @@ const AddProduct = () => {
                                         <Form.Item
                                             label={<span style={{ fontSize: '10px', fontWeight: 500 }}>{field.label}</span>}
                                             name={field.field_id}
+                                            style={{ marginBottom: '12px' }}
                                             rules={field.is_required ? [{ required: true, message: `Please enter ${field.label}` }] : []}
                                         >
                                             {field.type === 'dropdown' ? (
