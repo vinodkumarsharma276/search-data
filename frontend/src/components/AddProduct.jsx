@@ -353,12 +353,12 @@ const AddProduct = () => {
                                     style={{ margin: 0 }}
                                 >
                                     <AutoComplete
-                                        style={{ width: '100%' }}
+                                        style={{ width: '100%', fontSize: '10px' }}
                                         options={distributorOptions}
                                         onSearch={handleDistributorSearch}
                                         onSelect={handleDistributorSelect}
                                         value={distributorSearchValue}
-                                        placeholder="Type at least 3 characters to search by name, GST, PAN, mobile, or address..."
+                                        placeholder="Type 3+ chars to search name, GST, PAN, mobile, address..."
                                         allowClear
                                         onClear={() => {
                                             setDistributorSearchValue('');
@@ -419,32 +419,51 @@ const AddProduct = () => {
                             {/* All fields in compact layout with balanced responsive sizing */}
                             <Row gutter={12}>
                                 {/* Category Selection */}
-                                {categoryLevels.map((levelCategories, levelIndex) => (
-                                    <Col key={levelIndex} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                {categoryLevels.length > 0 ? (
+                                    categoryLevels.map((levelCategories, levelIndex) => (
+                                        <Col key={levelIndex} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Form.Item
+                                                label={
+                                                    <span style={{ fontSize: '10px', fontWeight: 500 }}>
+                                                        {levelIndex === 0 ? 'Main Category' : levelIndex === 1 ? 'Sub Category' : `Category ${levelIndex + 1}`}
+                                                    </span>
+                                                }
+                                                style={{ marginBottom: '12px' }}
+                                            >
+                                                <Select
+                                                    placeholder={levelIndex === 0 ? 'Main' : 'Sub'}
+                                                    value={selectedCategoryPath[levelIndex]}
+                                                    onChange={(value) => handleCategorySelection(value, levelIndex)}
+                                                    loading={loadingCategorySchema && levelIndex === categoryLevels.length - 1}
+                                                    size="small"
+                                                    style={{ fontSize: '10px' }}
+                                                    dropdownStyle={{ fontSize: '10px' }}
+                                                >
+                                                    {levelCategories.map(category => (
+                                                        <Option key={category._id} value={category._id}>
+                                                            {category.name}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    ))
+                                ) : (
+                                    <Col xs={24} sm={12} md={6} lg={2} xl={2}>
                                         <Form.Item
-                                            label={
-                                                <span style={{ fontSize: '10px', fontWeight: 500 }}>
-                                                    {levelIndex === 0 ? 'Main Category' : levelIndex === 1 ? 'Sub Category' : `Category ${levelIndex + 1}`}
-                                                </span>
-                                            }
+                                            label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Main Category</span>}
                                             style={{ marginBottom: '12px' }}
                                         >
                                             <Select
-                                                placeholder={`Select ${levelIndex === 0 ? 'main category' : 'sub category'}`}
-                                                value={selectedCategoryPath[levelIndex]}
-                                                onChange={(value) => handleCategorySelection(value, levelIndex)}
-                                                loading={loadingCategorySchema && levelIndex === categoryLevels.length - 1}
+                                                placeholder="Loading..."
+                                                disabled
                                                 size="small"
-                                            >
-                                                {levelCategories.map(category => (
-                                                    <Option key={category._id} value={category._id}>
-                                                        {category.name}
-                                                    </Option>
-                                                ))}
-                                            </Select>
+                                                style={{ fontSize: '10px' }}
+                                                dropdownStyle={{ fontSize: '10px' }}
+                                            />
                                         </Form.Item>
                                     </Col>
-                                ))}
+                                )}
                                 
                                 <Col xs={24} sm={12} md={6} lg={2} xl={2}>
                                     <Form.Item
@@ -456,7 +475,7 @@ const AddProduct = () => {
                                             { min: 2, message: 'Product name must be at least 2 characters' }
                                         ]}
                                     >
-                                        <Input placeholder="Enter product name" size="small" />
+                                        <Input placeholder="Name" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
                                 
@@ -467,7 +486,7 @@ const AddProduct = () => {
                                         style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please enter model number' }]}
                                     >
-                                        <Input placeholder="Enter model number" size="small" />
+                                        <Input placeholder="Model" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
                                 
@@ -478,7 +497,7 @@ const AddProduct = () => {
                                         style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please enter serial number' }]}
                                     >
-                                        <Input placeholder="Enter serial number" size="small" />
+                                        <Input placeholder="Serial" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
                                 
@@ -489,30 +508,11 @@ const AddProduct = () => {
                                         style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please select condition' }]}
                                     >
-                                        <Select placeholder="Select condition" size="small">
+                                        <Select placeholder="Condition" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
                                             <Option value="New">New</Option>
                                             <Option value="Refurbished">Refurbished</Option>
                                             <Option value="Used">Used</Option>
                                         </Select>
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>DP (Dealer Price) (₹)</span>}
-                                        name="purchasePrice"
-                                        rules={[
-                                            { required: true, message: 'Please enter dealer price' },
-                                            { type: 'number', min: 0, message: 'Price must be positive' }
-                                        ]}
-                                    >
-                                        <InputNumber 
-                                            placeholder="0.00"
-                                            style={{ width: '100%' }}
-                                            precision={2}
-                                            min={0}
-                                            size="small"
-                                        />
                                     </Form.Item>
                                 </Col>
                                 
@@ -526,8 +526,8 @@ const AddProduct = () => {
                                         ]}
                                     >
                                         <InputNumber 
-                                            placeholder="0.00"
-                                            style={{ width: '100%' }}
+                                            placeholder="0"
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             precision={2}
                                             min={0}
                                             size="small"
@@ -545,8 +545,8 @@ const AddProduct = () => {
                                         ]}
                                     >
                                         <InputNumber 
-                                            placeholder="0.00"
-                                            style={{ width: '100%' }}
+                                            placeholder="0"
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             precision={2}
                                             min={0}
                                             size="small"
@@ -560,7 +560,7 @@ const AddProduct = () => {
                                         name="gstRate"
                                         rules={[{ required: true, message: 'Please enter GST rate' }]}
                                     >
-                                        <Select placeholder="Select GST rate" size="small">
+                                        <Select placeholder="GST %" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
                                             <Option value={0}>0%</Option>
                                             <Option value={5}>5%</Option>
                                             <Option value={12}>12%</Option>
@@ -576,7 +576,7 @@ const AddProduct = () => {
                                         name="hsnCode"
                                         rules={[{ required: true, message: 'Please enter HSN code' }]}
                                     >
-                                        <Input placeholder="8471" size="small" />
+                                        <Input placeholder="8471" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
                                 
@@ -591,7 +591,7 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="0"
-                                            style={{ width: '100%' }}
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             min={0}
                                             size="small"
                                         />
@@ -609,7 +609,7 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="5"
-                                            style={{ width: '100%' }}
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             min={0}
                                             size="small"
                                         />
@@ -623,7 +623,7 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="100"
-                                            style={{ width: '100%' }}
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             min={0}
                                             size="small"
                                         />
@@ -637,7 +637,7 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="12"
-                                            style={{ width: '100%' }}
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             min={0}
                                             size="small"
                                         />
@@ -651,7 +651,7 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="1000"
-                                            style={{ width: '100%' }}
+                                            style={{ width: '100%', fontSize: '10px' }}
                                             min={0}
                                             size="small"
                                         />
@@ -664,7 +664,7 @@ const AddProduct = () => {
                                         name="brandId"
                                         rules={[{ required: true, message: 'Please select brand' }]}
                                     >
-                                        <Select placeholder="Select brand" size="small">
+                                        <Select placeholder="Brand" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
                                             {brands.map(brand => (
                                                 <Option key={brand._id} value={brand._id}>{brand.name}</Option>
                                             ))}
@@ -677,7 +677,7 @@ const AddProduct = () => {
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Notes</span>}
                                         name="notes"
                                     >
-                                        <Input placeholder="Additional notes" size="small" />
+                                        <Input placeholder="Notes" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
 
@@ -696,14 +696,15 @@ const AddProduct = () => {
                                             >
                                                 {field.type === 'text' && (
                                                     <Input 
-                                                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                        placeholder={field.label}
                                                         size="small"
+                                                        style={{ fontSize: '10px' }}
                                                     />
                                                 )}
                                                 {field.type === 'number' && (
                                                     <InputNumber 
-                                                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                                                        style={{ width: '100%' }}
+                                                        placeholder={field.label}
+                                                        style={{ width: '100%', fontSize: '10px' }}
                                                         min={field.validation?.min || 0}
                                                         max={field.validation?.max}
                                                         size="small"
@@ -711,10 +712,12 @@ const AddProduct = () => {
                                                 )}
                                                 {(field.type === 'dropdown' || field.type === 'combobox') && (
                                                     <Select 
-                                                        placeholder={`Select ${field.label.toLowerCase()}`}
+                                                        placeholder={field.label}
                                                         mode={field.type === 'combobox' ? 'tags' : undefined}
                                                         allowClear
                                                         size="small"
+                                                        style={{ fontSize: '10px' }}
+                                                        dropdownStyle={{ fontSize: '10px' }}
                                                     >
                                                         {field.options && field.options.map(option => (
                                                             <Option 

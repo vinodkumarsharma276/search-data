@@ -36,12 +36,20 @@ const COMMON_FIELDS = [
         display_order: 3
     },
     {
+        field_id: 'common_dp_dealer_price',
+        label: 'DP (Dealer Price) (₹)',
+        type: 'number',
+        is_required: true,
+        enabled: true,
+        display_order: 4
+    },
+    {
         field_id: 'common_mrp',
         label: 'MRP (₹)',
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 4
+        display_order: 5
     },
     {
         field_id: 'common_igst',
@@ -49,7 +57,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 5,
+        display_order: 6,
         default_value: 18
     },
     {
@@ -58,7 +66,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 6,
+        display_order: 7,
         default_value: 18
     }
 ];
