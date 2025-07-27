@@ -68,7 +68,6 @@ async function seedCleanCategories() {
             parent_id: null,
             is_leaf: false,
             form_schema: COMMON_FIELDS,
-            description: 'Electronic devices - Contains common product fields',
             isActive: true
         });
         
@@ -161,7 +160,6 @@ async function seedCleanCategories() {
                     display_order: 7
                 }
             ],
-            description: 'Mobile phones and smartphones',
             isActive: true
         });
         
@@ -270,7 +268,6 @@ async function seedCleanCategories() {
                     default_value: true
                 }
             ],
-            description: 'Smart televisions and display devices',
             isActive: true
         });
         
@@ -374,7 +371,6 @@ async function seedCleanCategories() {
                     default_value: false
                 }
             ],
-            description: 'Refrigerators and cooling appliances',
             isActive: true
         });
         
@@ -491,7 +487,6 @@ async function seedCleanCategories() {
                     ]
                 }
             ],
-            description: 'Air conditioners and cooling systems',
             isActive: true
         });
         

@@ -416,48 +416,31 @@ const AddProduct = () => {
                             bodyStyle={{ padding: '16px' }}
                             size="small"
                         >
-                            {/* Hierarchical Category Selection */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ fontSize: '16px', color: '#333', marginBottom: '12px', display: 'block' }}>
-                                    Category Selection
-                                </Text>
-                                
-                                {/* Category dropdowns in 5-column grid layout */}
-                                <Row gutter={[16, 16]}>
-                                    {categoryLevels.map((levelCategories, levelIndex) => (
-                                        <Col key={levelIndex} xs={24} sm={12} md={8} lg={5} xl={5}>
-                                            <Form.Item
-                                                label={`Level ${levelIndex + 1}: ${levelIndex === 0 ? 'Main Category' : levelIndex === 1 ? 'Sub Category' : `Category ${levelIndex + 1}`}`}
-                                                style={{ margin: 0 }}
+                            {/* All fields in 5-column layout with AddSale field sizing */}
+                            <Row gutter={16}>
+                                {/* Category Selection */}
+                                {categoryLevels.map((levelCategories, levelIndex) => (
+                                    <Col key={levelIndex} xs={24} sm={12} md={8} lg={4} xl={4}>
+                                        <Form.Item
+                                            label={`${levelIndex === 0 ? 'Main Category' : levelIndex === 1 ? 'Sub Category' : `Category ${levelIndex + 1}`}`}
+                                        >
+                                            <Select
+                                                placeholder={`Select ${levelIndex === 0 ? 'main category' : 'sub category'}`}
+                                                value={selectedCategoryPath[levelIndex]}
+                                                onChange={(value) => handleCategorySelection(value, levelIndex)}
+                                                loading={loadingCategorySchema && levelIndex === categoryLevels.length - 1}
                                             >
-                                                <Select
-                                                    placeholder={`Select ${levelIndex === 0 ? 'main category' : 'sub category'}`}
-                                                    size="large"
-                                                    style={{ width: '100%' }}
-                                                    value={selectedCategoryPath[levelIndex]}
-                                                    onChange={(value) => handleCategorySelection(value, levelIndex)}
-                                                    loading={loadingCategorySchema && levelIndex === categoryLevels.length - 1}
-                                                >
-                                                    {levelCategories.map(category => (
-                                                        <Option key={category._id} value={category._id}>
-                                                            {category.name} {category.is_leaf ? '(Leaf)' : ''}
-                                                        </Option>
-                                                    ))}
-                                                </Select>
-                                            </Form.Item>
-                                        </Col>
-                                    ))}
-                                </Row>
+                                                {levelCategories.map(category => (
+                                                    <Option key={category._id} value={category._id}>
+                                                        {category.name} {category.is_leaf ? '(Leaf)' : ''}
+                                                    </Option>
+                                                ))}
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+                                ))}
                                 
-                                {/* Hidden form field for final category ID */}
-                                <Form.Item name="categoryId" style={{ display: 'none' }}>
-                                    <Input />
-                                </Form.Item>
-                            </div>
-
-                            {/* Basic Product Information */}
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Product Name"
                                         name="name"
@@ -466,26 +449,25 @@ const AddProduct = () => {
                                             { min: 2, message: 'Product name must be at least 2 characters' }
                                         ]}
                                     >
-                                        <Input 
-                                            placeholder="Enter product name"
-                                            size="large"
-                                        />
+                                        <Input placeholder="Enter product name" />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Condition"
                                         name="condition"
                                         rules={[{ required: true, message: 'Please select condition' }]}
                                     >
-                                        <Select placeholder="Select condition" size="large">
+                                        <Select placeholder="Select condition">
                                             <Option value="New">New</Option>
                                             <Option value="Refurbished">Refurbished</Option>
                                             <Option value="Used">Used</Option>
                                         </Select>
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Purchase Price (₹)"
                                         name="purchasePrice"
@@ -496,14 +478,14 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="0.00"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             precision={2}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="MRP (₹)"
                                         name="mrp"
@@ -514,31 +496,14 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="0.00"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             precision={2}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
+                                
                                 <Col xs={24} sm={12} md={8} lg={4} xl={4}>
-                                    <Form.Item
-                                        label="Status"
-                                        name="isActive"
-                                        valuePropName="checked"
-                                        initialValue={true}
-                                    >
-                                        <Switch 
-                                            checkedChildren="Active" 
-                                            unCheckedChildren="Inactive" 
-                                            size="default"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
                                     <Form.Item
                                         label="Selling Price (₹)"
                                         name="sellingPrice"
@@ -549,20 +514,20 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="0.00"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             precision={2}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="GST Rate (%)"
                                         name="gstRate"
                                         rules={[{ required: true, message: 'Please enter GST rate' }]}
                                     >
-                                        <Select placeholder="Select GST rate" size="large">
+                                        <Select placeholder="Select GST rate">
                                             <Option value={0}>0%</Option>
                                             <Option value={5}>5%</Option>
                                             <Option value={12}>12%</Option>
@@ -571,19 +536,18 @@ const AddProduct = () => {
                                         </Select>
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="HSN Code"
                                         name="hsnCode"
                                         rules={[{ required: true, message: 'Please enter HSN code' }]}
                                     >
-                                        <Input 
-                                            placeholder="8471"
-                                            size="large"
-                                        />
+                                        <Input placeholder="8471" />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Current Stock"
                                         name="currentStock"
@@ -594,12 +558,12 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="0"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
+                                
                                 <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Minimum Stock"
@@ -611,166 +575,133 @@ const AddProduct = () => {
                                     >
                                         <InputNumber 
                                             placeholder="5"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
-                            </Row>
-
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Maximum Stock"
                                         name="maximumStock"
                                     >
                                         <InputNumber 
                                             placeholder="100"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Warranty (months)"
                                         name="warrantyPeriod"
                                     >
                                         <InputNumber 
                                             placeholder="12"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Weight (grams)"
                                         name="weight"
                                     >
                                         <InputNumber 
                                             placeholder="1000"
-                                            size="large"
                                             style={{ width: '100%' }}
                                             min={0}
                                         />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12} md={8} lg={5} xl={5}>
+                                
+                                <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Brand"
                                         name="brandId"
                                         rules={[{ required: true, message: 'Please select brand' }]}
                                     >
-                                        <Select placeholder="Select brand" size="large">
+                                        <Select placeholder="Select brand">
                                             {brands.map(brand => (
                                                 <Option key={brand._id} value={brand._id}>{brand.name}</Option>
                                             ))}
                                         </Select>
                                     </Form.Item>
                                 </Col>
+                                
                                 <Col xs={24} sm={12} md={8} lg={4} xl={4}>
                                     <Form.Item
                                         label="Notes"
                                         name="notes"
                                     >
-                                        <Input 
-                                            placeholder="Additional notes"
-                                            size="large"
-                                        />
+                                        <Input placeholder="Additional notes" />
                                     </Form.Item>
                                 </Col>
-                            </Row>
 
-                            <Row gutter={[16, 16]}>
-                                <Col span={24}>
-                                    <Form.Item
-                                        label="Description"
-                                        name="description"
-                                        rules={[{ required: true, message: 'Please enter product description' }]}
-                                    >
-                                        <TextArea 
-                                            placeholder="Enter detailed product description"
-                                            rows={3}
-                                            size="large"
-                                        />
-                                    </Form.Item>
-                                </Col>
+                                {/* Dynamic Category-based Fields - merged into main grid */}
+                                {finalCategoryId && categoryFormSchema.length > 0 && 
+                                    categoryFormSchema.map((field, index) => (
+                                        <Col key={field.field_id} xs={24} sm={12} md={8} lg={4} xl={4}>
+                                            <Form.Item
+                                                label={field.label}
+                                                name={field.field_id}
+                                                rules={[
+                                                    ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
+                                                    ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
+                                                ]}
+                                            >
+                                                {field.type === 'text' && (
+                                                    <Input 
+                                                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                    />
+                                                )}
+                                                {field.type === 'number' && (
+                                                    <InputNumber 
+                                                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                        style={{ width: '100%' }}
+                                                        min={field.validation?.min || 0}
+                                                        max={field.validation?.max}
+                                                    />
+                                                )}
+                                                {(field.type === 'dropdown' || field.type === 'combobox') && (
+                                                    <Select 
+                                                        placeholder={`Select ${field.label.toLowerCase()}`}
+                                                        mode={field.type === 'combobox' ? 'tags' : undefined}
+                                                        allowClear
+                                                    >
+                                                        {field.options && field.options.map(option => (
+                                                            <Option 
+                                                                key={typeof option === 'string' ? option : option.value} 
+                                                                value={typeof option === 'string' ? option : option.value}
+                                                            >
+                                                                {typeof option === 'string' ? option : option.label}
+                                                            </Option>
+                                                        ))}
+                                                    </Select>
+                                                )}
+                                                {field.type === 'boolean' && (
+                                                    <Switch 
+                                                        checkedChildren="Yes" 
+                                                        unCheckedChildren="No" 
+                                                        size="default"
+                                                        defaultChecked={field.default_value}
+                                                    />
+                                                )}
+                                            </Form.Item>
+                                        </Col>
+                                    ))
+                                }
                             </Row>
-
-                            {/* Dynamic Category-based Fields */}
-                            {finalCategoryId && categoryFormSchema.length > 0 && (
-                                <div style={{ marginTop: 24 }}>
-                                    <Divider orientation="left">
-                                        <Text strong style={{ fontSize: '16px', color: '#333' }}>
-                                            Category Fields (Common + Specific)
-                                        </Text>
-                                    </Divider>
-                                    {/* Render dynamic fields in rows of 5 - no filtering needed as categories are now clean */}
-                                    {(() => {
-                                        return Array.from({ length: Math.ceil(categoryFormSchema.length / 5) }, (_, rowIndex) => (
-                                            <Row key={rowIndex} gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                                                {categoryFormSchema.slice(rowIndex * 5, (rowIndex + 1) * 5).map((field) => (
-                                                    <Col key={field.field_id} xs={24} sm={12} md={8} lg={5} xl={Math.floor(24 / Math.min(5, categoryFormSchema.slice(rowIndex * 5, (rowIndex + 1) * 5).length))}>
-                                                        <Form.Item
-                                                            label={field.label}
-                                                            name={field.field_id}
-                                                            rules={[
-                                                                ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
-                                                                ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
-                                                            ]}
-                                                        >
-                                                            {field.type === 'text' && (
-                                                                <Input 
-                                                                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                                                                    size="large"
-                                                                />
-                                                            )}
-                                                            {field.type === 'number' && (
-                                                                <InputNumber 
-                                                                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                                                                    size="large"
-                                                                    style={{ width: '100%' }}
-                                                                    min={field.validation?.min || 0}
-                                                                    max={field.validation?.max}
-                                                                />
-                                                            )}
-                                                            {(field.type === 'dropdown' || field.type === 'combobox') && (
-                                                                <Select 
-                                                                    placeholder={`Select ${field.label.toLowerCase()}`}
-                                                                    size="large"
-                                                                    mode={field.type === 'combobox' ? 'tags' : undefined}
-                                                                    allowClear
-                                                                >
-                                                                    {field.options && field.options.map(option => (
-                                                                        <Option 
-                                                                            key={typeof option === 'string' ? option : option.value} 
-                                                                            value={typeof option === 'string' ? option : option.value}
-                                                                        >
-                                                                            {typeof option === 'string' ? option : option.label}
-                                                                        </Option>
-                                                                    ))}
-                                                                </Select>
-                                                            )}
-                                                            {field.type === 'boolean' && (
-                                                                <Switch 
-                                                                    checkedChildren="Yes" 
-                                                                    unCheckedChildren="No" 
-                                                                    size="default"
-                                                                    defaultChecked={field.default_value}
-                                                                />
-                                                            )}
-                                                        </Form.Item>
-                                                    </Col>
-                                                ))}
-                                            </Row>
-                                        ));
-                                    })()}
-                                </div>
-                            )}
+                            
+                            {/* Hidden form field for final category ID */}
+                            <Form.Item name="categoryId" style={{ display: 'none' }}>
+                                <Input />
+                            </Form.Item>
 
                             {/* Loading state for category schema */}
                             {loadingCategorySchema && (
