@@ -12,20 +12,12 @@ require('dotenv').config();
 // Common fields that apply to ALL products
 const COMMON_FIELDS = [
     {
-        field_id: 'common_brand',
-        label: 'Brand',
-        type: 'text',
-        is_required: true,
-        enabled: true,
-        display_order: 1
-    },
-    {
         field_id: 'common_model_number',
         label: 'Model Number',
         type: 'text',
         is_required: true,
         enabled: true,
-        display_order: 2
+        display_order: 1
     },
     {
         field_id: 'common_serial_number',
@@ -33,7 +25,7 @@ const COMMON_FIELDS = [
         type: 'text',
         is_required: true,
         enabled: true,
-        display_order: 3
+        display_order: 2
     },
     {
         field_id: 'common_dp_dealer_price',
@@ -41,7 +33,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 4
+        display_order: 3
     },
     {
         field_id: 'common_mrp',
@@ -49,7 +41,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 5
+        display_order: 4
     },
     {
         field_id: 'common_igst',
@@ -57,7 +49,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 6,
+        display_order: 5,
         default_value: 18
     },
     {
@@ -66,7 +58,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 7,
+        display_order: 6,
         default_value: 9
     }
 ];
@@ -106,12 +98,37 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
+                    field_id: 'mobile_brand',
+                    label: 'Brand',
+                    type: 'dropdown',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 1,
+                    options: [
+                        { value: 'Apple', label: 'Apple' },
+                        { value: 'Samsung', label: 'Samsung' },
+                        { value: 'Xiaomi', label: 'Xiaomi' },
+                        { value: 'OnePlus', label: 'OnePlus' },
+                        { value: 'Oppo', label: 'Oppo' },
+                        { value: 'Vivo', label: 'Vivo' },
+                        { value: 'Realme', label: 'Realme' },
+                        { value: 'Google', label: 'Google' },
+                        { value: 'Nothing', label: 'Nothing' },
+                        { value: 'Motorola', label: 'Motorola' },
+                        { value: 'Nokia', label: 'Nokia' },
+                        { value: 'Huawei', label: 'Huawei' },
+                        { value: 'Honor', label: 'Honor' },
+                        { value: 'Asus', label: 'Asus' },
+                        { value: 'Other', label: 'Other' }
+                    ]
+                },
+                {
                     field_id: 'mobile_imei',
                     label: 'IMEI Number',
                     type: 'text',
                     is_required: true,
                     enabled: true,
-                    display_order: 1
+                    display_order: 2
                 },
                 {
                     field_id: 'mobile_os',
@@ -119,7 +136,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 2,
+                    display_order: 3,
                     options: [
                         { value: 'Android', label: 'Android' },
                         { value: 'iOS', label: 'iOS' },
@@ -132,7 +149,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 3,
+                    display_order: 4,
                     options: [
                         { value: '32', label: '32 GB' },
                         { value: '64', label: '64 GB' },
@@ -148,7 +165,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 4,
+                    display_order: 5,
                     options: [
                         { value: '2', label: '2 GB' },
                         { value: '3', label: '3 GB' },
@@ -165,7 +182,7 @@ async function seedCleanCategories() {
                     type: 'number',
                     is_required: false,
                     enabled: true,
-                    display_order: 5
+                    display_order: 6
                 },
                 {
                     field_id: 'mobile_screen_size',
@@ -173,7 +190,7 @@ async function seedCleanCategories() {
                     type: 'text',
                     is_required: false,
                     enabled: true,
-                    display_order: 6
+                    display_order: 7
                 },
                 {
                     field_id: 'mobile_camera_mp',
@@ -181,7 +198,7 @@ async function seedCleanCategories() {
                     type: 'text',
                     is_required: false,
                     enabled: true,
-                    display_order: 7
+                    display_order: 8
                 }
             ],
             isActive: true
@@ -198,12 +215,36 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
+                    field_id: 'tv_brand',
+                    label: 'Brand',
+                    type: 'dropdown',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 1,
+                    options: [
+                        { value: 'Samsung', label: 'Samsung' },
+                        { value: 'LG', label: 'LG' },
+                        { value: 'Sony', label: 'Sony' },
+                        { value: 'TCL', label: 'TCL' },
+                        { value: 'Hisense', label: 'Hisense' },
+                        { value: 'Panasonic', label: 'Panasonic' },
+                        { value: 'Philips', label: 'Philips' },
+                        { value: 'Xiaomi', label: 'Xiaomi' },
+                        { value: 'OnePlus', label: 'OnePlus' },
+                        { value: 'Realme', label: 'Realme' },
+                        { value: 'VU', label: 'VU' },
+                        { value: 'Power Guard', label: 'Power Guard' },
+                        { value: 'Toshiba', label: 'Toshiba' },
+                        { value: 'Other', label: 'Other' }
+                    ]
+                },
+                {
                     field_id: 'tv_screen_size',
                     label: 'Screen Size (inches)',
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 1,
+                    display_order: 2,
                     options: [
                         { value: '32', label: '32"' },
                         { value: '40', label: '40"' },
@@ -221,7 +262,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 2,
+                    display_order: 3,
                     options: [
                         { value: 'HD', label: 'HD (720p)' },
                         { value: 'FHD', label: 'Full HD (1080p)' },
@@ -235,7 +276,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 3,
+                    display_order: 4,
                     options: [
                         { value: 'Android TV', label: 'Android TV' },
                         { value: 'webOS', label: 'LG webOS' },
@@ -251,7 +292,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 4,
+                    display_order: 5,
                     options: [
                         { value: 'LED', label: 'LED' },
                         { value: 'OLED', label: 'OLED' },
@@ -266,7 +307,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 5,
+                    display_order: 6,
                     options: [
                         { value: '60', label: '60 Hz' },
                         { value: '120', label: '120 Hz' },
@@ -280,7 +321,7 @@ async function seedCleanCategories() {
                     type: 'number',
                     is_required: false,
                     enabled: true,
-                    display_order: 6
+                    display_order: 7
                 },
                 {
                     field_id: 'tv_wifi',
@@ -288,7 +329,7 @@ async function seedCleanCategories() {
                     type: 'boolean',
                     is_required: false,
                     enabled: true,
-                    display_order: 7,
+                    display_order: 8,
                     default_value: true
                 }
             ],
@@ -306,12 +347,35 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
+                    field_id: 'fridge_brand',
+                    label: 'Brand',
+                    type: 'dropdown',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 1,
+                    options: [
+                        { value: 'Samsung', label: 'Samsung' },
+                        { value: 'LG', label: 'LG' },
+                        { value: 'Whirlpool', label: 'Whirlpool' },
+                        { value: 'Haier', label: 'Haier' },
+                        { value: 'Godrej', label: 'Godrej' },
+                        { value: 'Bosch', label: 'Bosch' },
+                        { value: 'IFB', label: 'IFB' },
+                        { value: 'Panasonic', label: 'Panasonic' },
+                        { value: 'Videocon', label: 'Videocon' },
+                        { value: 'Electrolux', label: 'Electrolux' },
+                        { value: 'Voltas', label: 'Voltas' },
+                        { value: 'Hitachi', label: 'Hitachi' },
+                        { value: 'Other', label: 'Other' }
+                    ]
+                },
+                {
                     field_id: 'fridge_capacity',
                     label: 'Capacity (Liters)',
                     type: 'number',
                     is_required: true,
                     enabled: true,
-                    display_order: 1
+                    display_order: 2
                 },
                 {
                     field_id: 'fridge_type',
@@ -319,7 +383,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 2,
+                    display_order: 3,
                     options: [
                         { value: 'Single Door', label: 'Single Door' },
                         { value: 'Double Door', label: 'Double Door' },
@@ -335,7 +399,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 3,
+                    display_order: 4,
                     options: [
                         { value: '1', label: '1 Star' },
                         { value: '2', label: '2 Star' },
@@ -350,7 +414,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 4,
+                    display_order: 5,
                     options: [
                         { value: 'Manual', label: 'Manual Defrost' },
                         { value: 'Auto', label: 'Auto Defrost' },
@@ -363,7 +427,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 5,
+                    display_order: 6,
                     options: [
                         { value: 'Reciprocating', label: 'Reciprocating' },
                         { value: 'Linear', label: 'Linear' },
@@ -377,7 +441,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 6,
+                    display_order: 7,
                     options: [
                         { value: 'Steel', label: 'Stainless Steel' },
                         { value: 'Glass', label: 'Glass' },
@@ -391,7 +455,7 @@ async function seedCleanCategories() {
                     type: 'boolean',
                     is_required: false,
                     enabled: true,
-                    display_order: 7,
+                    display_order: 8,
                     default_value: false
                 }
             ],
@@ -409,12 +473,37 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
+                    field_id: 'ac_brand',
+                    label: 'Brand',
+                    type: 'dropdown',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 1,
+                    options: [
+                        { value: 'Daikin', label: 'Daikin' },
+                        { value: 'LG', label: 'LG' },
+                        { value: 'Samsung', label: 'Samsung' },
+                        { value: 'Voltas', label: 'Voltas' },
+                        { value: 'Blue Star', label: 'Blue Star' },
+                        { value: 'Carrier', label: 'Carrier' },
+                        { value: 'Hitachi', label: 'Hitachi' },
+                        { value: 'Panasonic', label: 'Panasonic' },
+                        { value: 'Whirlpool', label: 'Whirlpool' },
+                        { value: 'Godrej', label: 'Godrej' },
+                        { value: 'Haier', label: 'Haier' },
+                        { value: 'Lloyd', label: 'Lloyd' },
+                        { value: 'O General', label: 'O General' },
+                        { value: 'Mitsubishi', label: 'Mitsubishi' },
+                        { value: 'Other', label: 'Other' }
+                    ]
+                },
+                {
                     field_id: 'ac_capacity',
                     label: 'Capacity (Tons)',
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 1,
+                    display_order: 2,
                     options: [
                         { value: '0.75', label: '0.75 Ton' },
                         { value: '1', label: '1 Ton' },
@@ -432,7 +521,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 2,
+                    display_order: 3,
                     options: [
                         { value: 'Split', label: 'Split AC' },
                         { value: 'Window', label: 'Window AC' },
@@ -448,7 +537,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 3,
+                    display_order: 4,
                     options: [
                         { value: '1', label: '1 Star' },
                         { value: '2', label: '2 Star' },
@@ -463,7 +552,7 @@ async function seedCleanCategories() {
                     type: 'boolean',
                     is_required: true,
                     enabled: true,
-                    display_order: 4,
+                    display_order: 5,
                     default_value: true
                 },
                 {
@@ -472,7 +561,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 5,
+                    display_order: 6,
                     options: [
                         { value: 'R32', label: 'R32' },
                         { value: 'R410A', label: 'R410A' },
@@ -486,7 +575,7 @@ async function seedCleanCategories() {
                     type: 'text',
                     is_required: false,
                     enabled: true,
-                    display_order: 6
+                    display_order: 7
                 },
                 {
                     field_id: 'ac_wifi_enabled',
@@ -494,7 +583,7 @@ async function seedCleanCategories() {
                     type: 'boolean',
                     is_required: false,
                     enabled: true,
-                    display_order: 7,
+                    display_order: 8,
                     default_value: false
                 },
                 {
@@ -503,7 +592,7 @@ async function seedCleanCategories() {
                     type: 'dropdown',
                     is_required: false,
                     enabled: true,
-                    display_order: 8,
+                    display_order: 9,
                     options: [
                         { value: 'Indoor', label: 'Indoor Unit Only' },
                         { value: 'Outdoor', label: 'Outdoor Unit Only' },
@@ -521,11 +610,16 @@ async function seedCleanCategories() {
         // Summary
         console.log('\n📊 Category Seeding Summary:');
         console.log(`🏠 Root Category: Electronics (${COMMON_FIELDS.length} common fields)`);
-        console.log(`📱 Mobile: ${mobile.form_schema.length} specific fields`);
-        console.log(`📺 Smart TV: ${smartTV.form_schema.length} specific fields`);
-        console.log(`❄️  Fridge: ${fridge.form_schema.length} specific fields`);
-        console.log(`🌬️  AC: ${ac.form_schema.length} specific fields`);
+        console.log(`📱 Mobile: ${mobile.form_schema.length} specific fields (including Brand)`);
+        console.log(`📺 Smart TV: ${smartTV.form_schema.length} specific fields (including Brand)`);
+        console.log(`❄️  Fridge: ${fridge.form_schema.length} specific fields (including Brand)`);
+        console.log(`🌬️  AC: ${ac.form_schema.length} specific fields (including Brand)`);
         console.log('\n✅ Clean category hierarchy seeded successfully!');
+        console.log('\n🏷️  Brand fields now category-specific with dropdown values:');
+        console.log('   📱 Mobile: Apple, Samsung, Xiaomi, OnePlus, etc.');
+        console.log('   📺 Smart TV: Samsung, LG, Sony, TCL, etc.');
+        console.log('   ❄️  Fridge: Samsung, LG, Whirlpool, Haier, etc.');
+        console.log('   🌬️  AC: Daikin, LG, Samsung, Voltas, etc.');
         
         // Test compilation for one category
         console.log('\n🔍 Testing form schema compilation for Mobile...');
