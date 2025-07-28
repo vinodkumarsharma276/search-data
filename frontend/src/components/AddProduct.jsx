@@ -84,7 +84,9 @@ import {
     DollarOutlined,
     TagOutlined,
     UploadOutlined,
-    BarcodeOutlined
+    BarcodeOutlined,
+    PlusCircleOutlined,
+    MinusCircleOutlined
 } from '@ant-design/icons';
 import apiService from '../services/apiService';
 
@@ -108,11 +110,19 @@ const AddProduct = () => {
     const [categoryFormSchema, setCategoryFormSchema] = useState([]);
     const [commonFields, setCommonFields] = useState([]); // Common fields from Electronics category
     const [loadingCategorySchema, setLoadingCategorySchema] = useState(false);
+    const [imeiFields, setImeiFields] = useState([{ id: 1, value: '' }]); // Dynamic IMEI fields
 
     useEffect(() => {
         fetchDropdownData();
         loadCommonFields(); // Load common fields immediately
     }, []);
+
+    // Reset IMEI fields when category changes
+    useEffect(() => {
+        if (!isMobileCategory()) {
+            setImeiFields([{ id: 1, value: '' }]);
+        }
+    }, [finalCategoryId, categoryFormSchema]);
 
     // Watch for distributors loading to sync any existing form values
     useEffect(() => {
@@ -300,6 +310,31 @@ const AddProduct = () => {
         }
     };
 
+    // Dynamic IMEI field management
+    const addImeiField = () => {
+        const newId = Math.max(...imeiFields.map(f => f.id)) + 1;
+        setImeiFields([...imeiFields, { id: newId, value: '' }]);
+    };
+
+    const removeImeiField = (idToRemove) => {
+        if (imeiFields.length > 1) {
+            setImeiFields(imeiFields.filter(field => field.id !== idToRemove));
+            // Remove the field value from form
+            form.setFieldsValue({ [`mobile_imei_${idToRemove}`]: undefined });
+        }
+    };
+
+    const updateImeiValue = (id, value) => {
+        setImeiFields(imeiFields.map(field => 
+            field.id === id ? { ...field, value } : field
+        ));
+    };
+
+    // Check if current category is Mobile to show dynamic IMEI fields
+    const isMobileCategory = () => {
+        return finalCategoryId && categoryFormSchema.some(field => field.field_id === 'mobile_imei');
+    };
+
     const handleSubmit = async (values) => {
         console.log('📦 Submitting product data:', values);
         
@@ -328,7 +363,15 @@ const AddProduct = () => {
             // Extract category-specific fields
             if (categoryFormSchema.length > 0) {
                 categoryFormSchema.forEach(field => {
-                    if (values[field.field_id] !== undefined) {
+                    if (field.field_id === 'mobile_imei' && isMobileCategory()) {
+                        // Handle multiple IMEI fields
+                        const imeiValues = imeiFields
+                            .map(imeiField => values[`mobile_imei_${imeiField.id}`])
+                            .filter(value => value && value.trim() !== '');
+                        if (imeiValues.length > 0) {
+                            dynamicFields[field.field_id] = imeiValues;
+                        }
+                    } else if (values[field.field_id] !== undefined) {
                         dynamicFields[field.field_id] = values[field.field_id];
                     }
                 });
@@ -366,6 +409,7 @@ const AddProduct = () => {
                 setSelectedCategoryPath([]);
                 setFinalCategoryId(null);
                 setCategoryFormSchema([]);
+                setImeiFields([{ id: 1, value: '' }]); // Reset IMEI fields
                 // Reload top-level categories
                 await fetchTopLevelCategories();
             } else {
@@ -847,63 +891,126 @@ const AddProduct = () => {
 
                                 {/* Dynamic Category-based Fields - merged into main grid */}
                                 {finalCategoryId && categoryFormSchema.length > 0 && 
-                                    categoryFormSchema.map((field, index) => (
-                                        <Col key={field.field_id} xs={24} sm={12} md={6} lg={2} xl={2}>
-                                            <Form.Item
-                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>{field.label}</span>}
-                                                name={field.field_id}
-                                                style={{ marginBottom: '12px' }}
-                                                rules={[
-                                                    ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
-                                                    ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
-                                                ]}
-                                            >
-                                                {field.type === 'text' && (
-                                                    <Input 
-                                                        placeholder={field.label}
-                                                        size="small"
-                                                        style={{ fontSize: '10px' }}
-                                                    />
-                                                )}
-                                                {field.type === 'number' && (
-                                                    <InputNumber 
-                                                        placeholder={field.label}
-                                                        style={{ width: '100%', fontSize: '10px' }}
-                                                        min={field.validation?.min || 0}
-                                                        max={field.validation?.max}
-                                                        size="small"
-                                                    />
-                                                )}
-                                                {(field.type === 'dropdown' || field.type === 'combobox') && (
-                                                    <Select 
-                                                        placeholder={field.label}
-                                                        mode={field.type === 'combobox' ? 'tags' : undefined}
-                                                        allowClear
-                                                        size="small"
-                                                        style={{ fontSize: '10px' }}
-                                                        dropdownStyle={{ fontSize: '10px' }}
+                                    categoryFormSchema.map((field, index) => {
+                                        // Handle IMEI field specially for Mobile category
+                                        if (field.field_id === 'mobile_imei' && isMobileCategory()) {
+                                            return imeiFields.map((imeiField, imeiIndex) => (
+                                                <Col key={`${field.field_id}_${imeiField.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                                    <Form.Item
+                                                        label={
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                <span style={{ fontSize: '10px', fontWeight: 500 }}>
+                                                                    IMEI {imeiField.id}
+                                                                </span>
+                                                                <div style={{ display: 'flex', gap: '2px' }}>
+                                                                    {imeiIndex === imeiFields.length - 1 && (
+                                                                        <PlusCircleOutlined 
+                                                                            style={{ 
+                                                                                fontSize: '10px', 
+                                                                                color: '#52c41a',
+                                                                                cursor: 'pointer',
+                                                                                padding: '2px'
+                                                                            }}
+                                                                            onClick={addImeiField}
+                                                                            title="Add IMEI field"
+                                                                        />
+                                                                    )}
+                                                                    {imeiFields.length > 1 && (
+                                                                        <MinusCircleOutlined 
+                                                                            style={{ 
+                                                                                fontSize: '10px', 
+                                                                                color: '#ff4d4f',
+                                                                                cursor: 'pointer',
+                                                                                padding: '2px'
+                                                                            }}
+                                                                            onClick={() => removeImeiField(imeiField.id)}
+                                                                            title="Remove IMEI field"
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                        name={`mobile_imei_${imeiField.id}`}
+                                                        style={{ marginBottom: '12px' }}
+                                                        rules={[
+                                                            ...(field.is_required && imeiIndex === 0 ? [{ required: true, message: 'Please enter at least one IMEI number' }] : []),
+                                                            {
+                                                                pattern: /^\d{15}$/,
+                                                                message: 'IMEI must be 15 digits'
+                                                            }
+                                                        ]}
                                                     >
-                                                        {field.options && field.options.map(option => (
-                                                            <Option 
-                                                                key={typeof option === 'string' ? option : option.value} 
-                                                                value={typeof option === 'string' ? option : option.value}
-                                                            >
-                                                                {typeof option === 'string' ? option : option.label}
-                                                            </Option>
-                                                        ))}
-                                                    </Select>
-                                                )}
-                                                {field.type === 'boolean' && (
-                                                    <Switch 
-                                                        checkedChildren="Yes" 
-                                                        unCheckedChildren="No" 
-                                                        size="small"
-                                                        defaultChecked={field.default_value}
-                                                    />
-                                                )}
-                                            </Form.Item>
-                                        </Col>
-                                    ))
+                                                        <Input 
+                                                            placeholder={`IMEI ${imeiField.id} (15 digits)`}
+                                                            size="small"
+                                                            style={{ fontSize: '10px' }}
+                                                            maxLength={15}
+                                                            onChange={(e) => updateImeiValue(imeiField.id, e.target.value)}
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                            ));
+                                        }
+                                        
+                                        // Handle other fields normally
+                                        return (
+                                            <Col key={field.field_id} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                                <Form.Item
+                                                    label={<span style={{ fontSize: '10px', fontWeight: 500 }}>{field.label}</span>}
+                                                    name={field.field_id}
+                                                    style={{ marginBottom: '12px' }}
+                                                    rules={[
+                                                        ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
+                                                        ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
+                                                    ]}
+                                                >
+                                                    {field.type === 'text' && (
+                                                        <Input 
+                                                            placeholder={field.label}
+                                                            size="small"
+                                                            style={{ fontSize: '10px' }}
+                                                        />
+                                                    )}
+                                                    {field.type === 'number' && (
+                                                        <InputNumber 
+                                                            placeholder={field.label}
+                                                            style={{ width: '100%', fontSize: '10px' }}
+                                                            min={field.validation?.min || 0}
+                                                            max={field.validation?.max}
+                                                            size="small"
+                                                        />
+                                                    )}
+                                                    {(field.type === 'dropdown' || field.type === 'combobox') && (
+                                                        <Select 
+                                                            placeholder={field.label}
+                                                            mode={field.type === 'combobox' ? 'tags' : undefined}
+                                                            allowClear
+                                                            size="small"
+                                                            style={{ fontSize: '10px' }}
+                                                            dropdownStyle={{ fontSize: '10px' }}
+                                                        >
+                                                            {field.options && field.options.map(option => (
+                                                                <Option 
+                                                                    key={typeof option === 'string' ? option : option.value} 
+                                                                    value={typeof option === 'string' ? option : option.value}
+                                                                >
+                                                                    {typeof option === 'string' ? option : option.label}
+                                                                </Option>
+                                                            ))}
+                                                        </Select>
+                                                    )}
+                                                    {field.type === 'boolean' && (
+                                                        <Switch 
+                                                            checkedChildren="Yes" 
+                                                            unCheckedChildren="No" 
+                                                            size="small"
+                                                            defaultChecked={field.default_value}
+                                                        />
+                                                    )}
+                                                </Form.Item>
+                                            </Col>
+                                        );
+                                    }).flat() // Flatten array since IMEI fields return arrays
                                 }
                             </Row>
                             
@@ -935,6 +1042,7 @@ const AddProduct = () => {
                                         setSelectedCategoryPath([]);
                                         setFinalCategoryId(null);
                                         setCategoryFormSchema([]);
+                                        setImeiFields([{ id: 1, value: '' }]); // Reset IMEI fields
                                         // Reload top-level categories
                                         fetchTopLevelCategories();
                                     }}
