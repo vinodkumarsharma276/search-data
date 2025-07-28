@@ -326,44 +326,18 @@ const AddProduct = () => {
         setLoading(true);
 
         try {
-            // Separate dynamic fields (from full schema) from main product data
-            const dynamicFields = {};
-            const mainFields = {};
-            
-            // Extract all dynamic fields from full schema (includes both common and category-specific)
-            if (categoryFormSchema.length > 0) {
-                categoryFormSchema.forEach(field => {
-                    if (field.field_id === 'mobile_imei' && isMobileCategory()) {
-                        // Handle multiple IMEI fields
-                        const imeiValues = imeiFields
-                            .map(imeiField => values[`mobile_imei_${imeiField.id}`])
-                            .filter(value => value && value.trim() !== '');
-                        if (imeiValues.length > 0) {
-                            dynamicFields[field.field_id] = imeiValues;
-                        }
-                    } else if (values[field.field_id] !== undefined) {
-                        dynamicFields[field.field_id] = values[field.field_id];
-                    }
-                });
-            }
-            
-            // Main product fields
-            Object.keys(values).forEach(key => {
-                if (!dynamicFields.hasOwnProperty(key)) {
-                    mainFields[key] = values[key];
-                }
-            });
-            
-            // Map distributorId to supplierId for backend compatibility
+            // Flatten all form data into simple key-value pairs
             const productData = {
-                ...mainFields,
+                // Map the distributor field
                 supplierId: values.distributorId,
-                categoryFormData: dynamicFields // Send dynamic fields separately
+                // Include all other form fields directly
+                ...values
             };
-            delete productData.distributorId; // Remove the frontend field name
             
-            console.log('📤 Sending to backend:', productData);
-            console.log('🎯 Dynamic category fields:', dynamicFields);
+            // Remove the frontend-specific field name
+            delete productData.distributorId;
+            
+            console.log('📤 Sending to backend (loose schema):', productData);
             
             const response = await apiService.products.create(productData);
             
@@ -605,37 +579,6 @@ const AddProduct = () => {
                                             <Option value="Refurbished">Refurbished</Option>
                                             <Option value="Used">Used</Option>
                                         </Select>
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Selling Price (₹)</span>}
-                                        name="sellingPrice"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[
-                                            { required: true, message: 'Please enter selling price' },
-                                            { type: 'number', min: 0, message: 'Price must be positive' }
-                                        ]}
-                                    >
-                                        <InputNumber 
-                                            placeholder="0"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            precision={2}
-                                            min={0}
-                                            size="small"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>HSN Code</span>}
-                                        name="hsnCode"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[{ required: true, message: 'Please enter HSN code' }]}
-                                    >
-                                        <Input placeholder="8471" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
 

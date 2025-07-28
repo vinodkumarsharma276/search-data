@@ -91,47 +91,22 @@ router.get('/:id', protect, async (req, res) => {
 // @desc    Create product
 // @route   POST /api/products
 // @access  Protected (Admin/Manager only)
-router.post('/', protect, checkPermission(['create']), async (req, res) => {
+router.post('/', protect, checkPermission('create'), async (req, res) => {
     console.log('📦 POST /api/products - Creating new product');
-    console.log('📋 Request body:', req.body);
+    console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
     
     try {
-        const {
-            // Dynamic System Fields (Required)
-            category_path,
-            category_path_ids,
-            selected_category_id,
-            common_attributes,
-            specific_attributes,
-            supplierId
-        } = req.body;
-
-        console.log('🏷️ Processing dynamic product creation for:', {
-            category_path,
-            selected_category_id,
-            supplierId,
-            hasCommonAttrs: !!common_attributes,
-            hasSpecificAttrs: !!specific_attributes
-        });
-
-        // Validate required fields
-        if (!selected_category_id) {
+        // Validate required business fields
+        if (!req.body.supplierId) {
             return res.status(400).json({
                 success: false,
-                message: 'Category selection is required'
-            });
-        }
-
-        if (!supplierId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Distributor is required'
+                message: 'Distributor (supplierId) is required'
             });
         }
 
         // Validate distributor exists
         const Distributor = require('../models/Distributor');
-        const distributor = await Distributor.findById(supplierId);
+        const distributor = await Distributor.findById(req.body.supplierId);
         if (!distributor) {
             return res.status(400).json({
                 success: false,
@@ -139,86 +114,27 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
             });
         }
 
-        // Extract universal required fields from attributes
-        const brand = common_attributes?.common_brand || specific_attributes?.brand;
-        const price = common_attributes?.common_price || specific_attributes?.price;
-        const warrantyMonths = common_attributes?.common_warranty_months || specific_attributes?.warranty_months || 12;
-        const serialNumber = common_attributes?.common_serial_number || specific_attributes?.serial_number;
+        console.log('✅ Validated distributor:', distributor.name);
 
-        if (!brand) {
-            return res.status(400).json({
-                success: false,
-                message: 'Brand is required'
-            });
-        }
-
-        if (!price || price <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Valid price is required'
-            });
-        }
-
-        // Validate dynamic category
-        const category = await Category.findById(selected_category_id);
-        if (!category) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID'
-            });
-        }
+        // Create product with all received data (loose schema)
+        const product = new Product(req.body);
         
-        if (!category.is_leaf) {
-            return res.status(400).json({
-                success: false,
-                message: 'Can only create products for leaf categories'
-            });
-        }
-
-        // Create the product with simplified model
-        const product = new Product({
-            // Core required fields
-            category_path: category_path || [],
-            category_path_ids: category_path_ids || [],
-            selected_category_id,
-            supplierId,
-            
-            // Universal required fields extracted from attributes
-            brand,
-            price,
-            warrantyMonths,
-            serialNumber: serialNumber || undefined,
-            
-            // Dynamic attributes (can contain any fields)
-            common_attributes: common_attributes || {},
-            specific_attributes: specific_attributes || {},
-            
-            // System fields
-            isActive: true,
-            lastPurchaseDate: new Date()
-        });
-
-        console.log('💾 Saving product:', {
-            brand,
-            price,
-            serialNumber,
-            categoryPath: category_path
-        });
-
-        await product.save();
-        console.log('✅ Product saved successfully:', product._id);
+        console.log('💾 Saving product with loose schema...');
+        const savedProduct = await product.save();
         
+        console.log('✅ Product saved successfully:', savedProduct._id);
+
         // Populate response 
-        await product.populate('selected_category_id', 'name');
-        await product.populate('supplierId', 'name gstNumber');
+        await savedProduct.populate('supplierId', 'name gstNumber');
 
         res.status(201).json({
             success: true,
             message: 'Product created successfully',
-            data: product
+            data: savedProduct
         });
+
     } catch (error) {
-        console.error('Create product error:', error);
+        console.error('❌ Error creating product:', error);
         
         if (error.code === 11000) {
             const duplicateField = Object.keys(error.keyPattern)[0];
@@ -230,7 +146,189 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
         
         res.status(500).json({
             success: false,
-            message: error.message || 'Server error while creating product'
+            message: error.message || 'Failed to create product'
+        });
+    }
+});
+
+// @desc    Create multiple products (bulk)
+// @route   POST /api/products/bulk
+// @access  Protected (Admin/Manager only)
+router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
+    console.log('📦 POST /api/products/bulk - Creating multiple products');
+    console.log('📋 Request body contains', req.body.products?.length || 0, 'products');
+    
+    try {
+        const { products } = req.body;
+
+        if (!products || !Array.isArray(products) || products.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Products array is required and cannot be empty'
+            });
+        }
+
+        if (products.length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot create more than 100 products at once'
+            });
+        }
+
+        const createdProducts = [];
+        const errors = [];
+
+        // Process each product
+        for (let i = 0; i < products.length; i++) {
+            const productData = products[i];
+            
+            try {
+                console.log(`🔄 Processing product ${i + 1}/${products.length}`);
+                
+                // Use the same validation logic as single product creation
+                const {
+                    categoryFormData = {},
+                    supplierId,
+                    categoryId,
+                    selected_category_id,
+                    condition,
+                    sellingPrice,
+                    hsnCode
+                } = productData;
+
+                const finalCategoryId = selected_category_id || categoryId;
+
+                // Validate required fields for this product
+                if (!finalCategoryId) {
+                    throw new Error(`Product ${i + 1}: Category selection is required`);
+                }
+
+                if (!supplierId) {
+                    throw new Error(`Product ${i + 1}: Distributor is required`);
+                }
+
+                if (!sellingPrice || sellingPrice <= 0) {
+                    throw new Error(`Product ${i + 1}: Valid selling price is required`);
+                }
+
+                if (!condition) {
+                    throw new Error(`Product ${i + 1}: Product condition is required`);
+                }
+
+                // Validate distributor exists
+                const Distributor = require('../models/Distributor');
+                const distributor = await Distributor.findById(supplierId);
+                if (!distributor) {
+                    throw new Error(`Product ${i + 1}: Invalid distributor ID`);
+                }
+
+                // Validate category exists and is leaf
+                const category = await Category.findById(finalCategoryId);
+                if (!category) {
+                    throw new Error(`Product ${i + 1}: Invalid category ID`);
+                }
+                
+                if (!category.is_leaf) {
+                    throw new Error(`Product ${i + 1}: Can only create products for leaf categories`);
+                }
+
+                // Build category path
+                const pathResult = await category.getCategoryPath();
+                const categoryPath = pathResult.map(cat => cat.name);
+                const categoryPathIds = pathResult.map(cat => cat.id);
+
+                // Extract brand from dynamic fields
+                const brand = categoryFormData.mobile_brand || 
+                            categoryFormData.tv_brand || 
+                            categoryFormData.fridge_brand || 
+                            categoryFormData.ac_brand ||
+                            categoryFormData.brand;
+
+                if (!brand) {
+                    throw new Error(`Product ${i + 1}: Brand is required`);
+                }
+
+                // Extract serial number
+                const serialNumber = categoryFormData.common_serial_number || 
+                                   categoryFormData.serial_number;
+
+                // Separate common and specific attributes
+                const commonAttrs = {};
+                const specificAttrs = {};
+
+                Object.keys(categoryFormData).forEach(key => {
+                    if (key.startsWith('common_')) {
+                        commonAttrs[key] = categoryFormData[key];
+                    } else {
+                        specificAttrs[key] = categoryFormData[key];
+                    }
+                });
+
+                // Create the product
+                const newProductData = {
+                    category_path: categoryPath,
+                    category_path_ids: categoryPathIds,
+                    selected_category_id: finalCategoryId,
+                    supplierId,
+                    brand,
+                    price: sellingPrice,
+                    warrantyMonths: 12,
+                    serialNumber: serialNumber || undefined,
+                    common_attributes: commonAttrs,
+                    specific_attributes: specificAttrs,
+                    isActive: true,
+                    lastPurchaseDate: new Date()
+                };
+
+                // Add any additional fields (loose schema support)
+                Object.keys(productData).forEach(key => {
+                    if (!newProductData.hasOwnProperty(key) && 
+                        !['categoryFormData', 'categoryId', 'sellingPrice'].includes(key)) {
+                        newProductData[key] = productData[key];
+                    }
+                });
+
+                const product = new Product(newProductData);
+                await product.save();
+                
+                // Populate response data
+                await product.populate('selected_category_id', 'name');
+                await product.populate('supplierId', 'name gstNumber');
+                
+                createdProducts.push(product);
+                console.log(`✅ Product ${i + 1} saved successfully:`, product._id);
+
+            } catch (error) {
+                console.error(`❌ Error creating product ${i + 1}:`, error.message);
+                errors.push({
+                    index: i + 1,
+                    message: error.message,
+                    productData: productData.categoryFormData?.common_model_number || `Product ${i + 1}`
+                });
+            }
+        }
+
+        // Return results
+        const response = {
+            success: createdProducts.length > 0,
+            message: `Created ${createdProducts.length} of ${products.length} products`,
+            data: createdProducts,
+            errors: errors.length > 0 ? errors : undefined,
+            summary: {
+                total: products.length,
+                successful: createdProducts.length,
+                failed: errors.length
+            }
+        };
+
+        const statusCode = errors.length === 0 ? 201 : (createdProducts.length > 0 ? 207 : 400);
+        res.status(statusCode).json(response);
+
+    } catch (error) {
+        console.error('Bulk create products error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error while creating products'
         });
     }
 });
@@ -238,7 +336,7 @@ router.post('/', protect, checkPermission(['create']), async (req, res) => {
 // @desc    Update product
 // @route   PUT /api/products/:id
 // @access  Protected (Admin/Manager only)
-router.put('/:id', protect, checkPermission(['update']), async (req, res) => {
+router.put('/:id', protect, checkPermission('update'), async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
 
@@ -381,7 +479,7 @@ router.put('/:id', protect, checkPermission(['update']), async (req, res) => {
 // @desc    Delete product
 // @route   DELETE /api/products/:id
 // @access  Protected (Admin only)
-router.delete('/:id', protect, checkPermission(['delete']), async (req, res) => {
+router.delete('/:id', protect, checkPermission('delete'), async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
 
@@ -412,7 +510,7 @@ router.delete('/:id', protect, checkPermission(['delete']), async (req, res) => 
 // @desc    Update stock
 // @route   PATCH /api/products/:id/stock
 // @access  Protected
-router.patch('/:id/stock', protect, checkPermission(['update']), async (req, res) => {
+router.patch('/:id/stock', protect, checkPermission('update'), async (req, res) => {
     try {
         const { currentStock, operation } = req.body; // operation: 'set', 'add', 'subtract'
         

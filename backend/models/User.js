@@ -7,7 +7,7 @@ const users = [
         username: 'jagdishsharma',
         password: '$2a$10$gkfJ80O869WVos7hYbkGA.VfXOIIVTEQCcXFXfJupFUXn6BmitSCq', // jagdish123
         role: 'admin',
-        permissions: ['read', 'write', 'delete'],
+        permissions: ['read', 'write', 'create', 'update', 'delete'],
         isActive: true
     },
     {
@@ -15,14 +15,14 @@ const users = [
         username: 'vinodsharma',
         password: '$2a$10$mD9s43jF5RxdfiqiT6xiCOa0jtnedO/zxRyqNKEjuFiTX2p3e0cWi', // vinod123
         role: 'manager',
-        permissions: ['read', 'write'],
+        permissions: ['read', 'write', 'create', 'update'],
         isActive: true
     },    {
         id: 3,
         username: 'emp',
         password: '$2a$10$apud1FwbIe59P.lloycNSurKR70EgIZwEJ2Oqk7Oilq3cWUZW5xFi', // emp123
         role: 'employee',
-        permissions: ['read', 'write'],
+        permissions: ['read'],
         isActive: true
     }
 ];
@@ -46,9 +46,9 @@ class UserModel {
         // Set permissions based on role
         let permissions = ['read']; // Default employee permissions (read only)
         if (userData.role === 'admin') {
-            permissions = ['read', 'write', 'delete'];
+            permissions = ['read', 'write', 'create', 'update', 'delete'];
         } else if (userData.role === 'manager') {
-            permissions = ['read', 'write'];
+            permissions = ['read', 'write', 'create', 'update'];
         }
 
         const newUser = {
