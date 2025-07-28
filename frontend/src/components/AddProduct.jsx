@@ -625,37 +625,12 @@ const AddProduct = () => {
                                 
                                 <Col xs={24} sm={12} md={6} lg={2} xl={2}>
                                     <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Product Name</span>}
-                                        name="name"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[
-                                            { required: true, message: 'Please enter product name' },
-                                            { min: 2, message: 'Product name must be at least 2 characters' }
-                                        ]}
-                                    >
-                                        <Input placeholder="Name" size="small" style={{ fontSize: '10px' }} />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Model Number</span>}
                                         name="modelNumber"
                                         style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please enter model number' }]}
                                     >
                                         <Input placeholder="Model" size="small" style={{ fontSize: '10px' }} />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Serial Number</span>}
-                                        name="serialNumber"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[{ required: true, message: 'Please enter serial number' }]}
-                                    >
-                                        <Input placeholder="Serial" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
                                 
@@ -671,26 +646,6 @@ const AddProduct = () => {
                                             <Option value="Refurbished">Refurbished</Option>
                                             <Option value="Used">Used</Option>
                                         </Select>
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>MRP (₹)</span>}
-                                        name="mrp"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[
-                                            { required: true, message: 'Please enter MRP' },
-                                            { type: 'number', min: 0, message: 'MRP must be positive' }
-                                        ]}
-                                    >
-                                        <InputNumber 
-                                            placeholder="0"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            precision={2}
-                                            min={0}
-                                            size="small"
-                                        />
                                     </Form.Item>
                                 </Col>
                                 
@@ -716,137 +671,12 @@ const AddProduct = () => {
                                 
                                 <Col xs={24} sm={12} md={6} lg={2} xl={2}>
                                     <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>GST Rate (%)</span>}
-                                        name="gstRate"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[{ required: true, message: 'Please enter GST rate' }]}
-                                    >
-                                        <Select placeholder="GST %" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
-                                            <Option value={0}>0%</Option>
-                                            <Option value={5}>5%</Option>
-                                            <Option value={12}>12%</Option>
-                                            <Option value={18}>18%</Option>
-                                            <Option value={28}>28%</Option>
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>HSN Code</span>}
                                         name="hsnCode"
                                         style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please enter HSN code' }]}
                                     >
                                         <Input placeholder="8471" size="small" style={{ fontSize: '10px' }} />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Current Stock</span>}
-                                        name="currentStock"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[
-                                            { required: true, message: 'Please enter current stock' },
-                                            { type: 'number', min: 0, message: 'Stock must be non-negative' }
-                                        ]}
-                                    >
-                                        <InputNumber 
-                                            placeholder="0"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            min={0}
-                                            size="small"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Minimum Stock</span>}
-                                        name="minimumStock"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[
-                                            { required: true, message: 'Please enter minimum stock level' },
-                                            { type: 'number', min: 0, message: 'Stock level must be non-negative' }
-                                        ]}
-                                    >
-                                        <InputNumber 
-                                            placeholder="5"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            min={0}
-                                            size="small"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Maximum Stock</span>}
-                                        name="maximumStock"
-                                        style={{ marginBottom: '12px' }}
-                                    >
-                                        <InputNumber 
-                                            placeholder="100"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            min={0}
-                                            size="small"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Warranty (months)</span>}
-                                        name="warrantyPeriod"
-                                        style={{ marginBottom: '12px' }}
-                                    >
-                                        <InputNumber 
-                                            placeholder="12"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            min={0}
-                                            size="small"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Weight (grams)</span>}
-                                        name="weight"
-                                        style={{ marginBottom: '12px' }}
-                                    >
-                                        <InputNumber 
-                                            placeholder="1000"
-                                            style={{ width: '100%', fontSize: '10px' }}
-                                            min={0}
-                                            size="small"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Brand</span>}
-                                        name="brandId"
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[{ required: true, message: 'Please select brand' }]}
-                                    >
-                                        <Select placeholder="Brand" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
-                                            {brands.map(brand => (
-                                                <Option key={brand._id} value={brand._id}>{brand.name}</Option>
-                                            ))}
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Notes</span>}
-                                        name="notes"
-                                        style={{ marginBottom: '12px' }}
-                                    >
-                                        <Input placeholder="Notes" size="small" style={{ fontSize: '10px' }} />
                                     </Form.Item>
                                 </Col>
 

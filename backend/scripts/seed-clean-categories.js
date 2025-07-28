@@ -61,13 +61,13 @@ const COMMON_FIELDS = [
         default_value: 18
     },
     {
-        field_id: 'common_gst',
-        label: 'GST (%)', 
+        field_id: 'common_cgst',
+        label: 'CGST (%)', 
         type: 'number',
         is_required: true,
         enabled: true,
         display_order: 7,
-        default_value: 18
+        default_value: 9
     }
 ];
 
