@@ -435,28 +435,12 @@ const AddProduct = () => {
             </Breadcrumb>
 
             <Card
-                title={
-                    <Space>
-                        <AppstoreAddOutlined style={{ color: '#fa8c16' }} />
-                        <Title level={4} style={{ margin: 0, color: '#333333' }}>
-                            Add New Product
-                        </Title>
-                    </Space>
-                }
-                extra={
-                    <Button 
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => navigate('/dashboard')}
-                    >
-                        Back to Dashboard
-                        </Button>
-                    }
-                    style={{
-                        backgroundColor: '#ffffff',
-                        borderRadius: '8px',
-                        border: '1px solid #e1e5e9'
-                    }}
-                >
+                style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '8px',
+                    border: '1px solid #e1e5e9'
+                }}
+            >
                     <Form
                         form={form}
                         layout="vertical"

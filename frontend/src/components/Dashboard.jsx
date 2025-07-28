@@ -288,17 +288,6 @@ const Dashboard = () => {
                             {getPageTitle(selectedKey)}
                         </Title>
                     </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Text>Welcome, Admin</Text>
-                        <Button 
-                            type="text" 
-                            icon={<LogoutOutlined />} 
-                            onClick={handleLogout}
-                        >
-                            Logout
-                        </Button>
-                    </div>
                 </Header>
 
                 {/* Content */}
