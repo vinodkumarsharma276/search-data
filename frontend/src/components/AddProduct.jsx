@@ -110,6 +110,17 @@ const AddProduct = () => {
     const [categoryFormSchema, setCategoryFormSchema] = useState([]);
     const [loadingCategorySchema, setLoadingCategorySchema] = useState(false);
     const [imeiFields, setImeiFields] = useState([{ id: 1, value: '' }]); // Dynamic IMEI fields
+    
+    // Multi-product state
+    const [productCount, setProductCount] = useState(1);
+    const [products, setProducts] = useState([{
+        id: 1,
+        categoryLevels: [],
+        selectedCategoryPath: [],
+        finalCategoryId: null,
+        categoryFormSchema: [],
+        imeiFields: [{ id: 1, value: '' }]
+    }]);
 
     useEffect(() => {
         fetchDropdownData();
@@ -314,6 +325,28 @@ const AddProduct = () => {
         return finalCategoryId && categoryFormSchema.some(field => field.field_id === 'mobile_imei');
     };
 
+    // Add another product function
+    const addAnotherProduct = () => {
+        const newProductId = productCount + 1;
+        const newProduct = {
+            id: newProductId,
+            categoryLevels: [],
+            selectedCategoryPath: [],
+            finalCategoryId: null,
+            categoryFormSchema: [],
+            imeiFields: [{ id: 1, value: '' }]
+        };
+        
+        setProducts([...products, newProduct]);
+        setProductCount(newProductId);
+        
+        // Initialize categories for the new product
+        if (categoryLevels.length > 0) {
+            const newProducts = [...products, { ...newProduct, categoryLevels: [categoryLevels[0]] }];
+            setProducts(newProducts);
+        }
+    };
+
     const handleSubmit = async (values) => {
         console.log('📦 Submitting product data:', values);
         
@@ -513,13 +546,51 @@ const AddProduct = () => {
 
                         {/* Product Details Section - All Fields Combined */}
                         <Card
-                            title="Product Details"
+                            title={
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>Product Details ({products.length} product{products.length > 1 ? 's' : ''})</span>
+                                    <Button
+                                        type="primary"
+                                        size="small"
+                                        icon={<PlusCircleOutlined />}
+                                        onClick={addAnotherProduct}
+                                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                                    >
+                                        Add Another Product
+                                    </Button>
+                                </div>
+                            }
                             style={{ marginBottom: 24 }}
                             bodyStyle={{ padding: '16px' }}
                             size="small"
                         >
-                            {/* All fields in compact layout with balanced responsive sizing */}
-                            <Row gutter={12}>
+                            {/* Render each product */}
+                            {products.map((product, productIndex) => (
+                                <div key={product.id} style={{ marginBottom: productIndex < products.length - 1 ? '32px' : '0' }}>
+                                    {productIndex > 0 && (
+                                        <div style={{ 
+                                            borderTop: '2px solid #e8e8e8', 
+                                            margin: '24px 0', 
+                                            paddingTop: '16px',
+                                            position: 'relative'
+                                        }}>
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '-12px',
+                                                left: '16px',
+                                                backgroundColor: '#fff',
+                                                padding: '0 8px',
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                color: '#666'
+                                            }}>
+                                                Product {product.id}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* All fields in compact layout with balanced responsive sizing */}
+                                    <Row gutter={12}>
                                 {/* Category Selection */}
                                 {categoryLevels.length > 0 ? (
                                     categoryLevels.map((levelCategories, levelIndex) => (
@@ -570,7 +641,7 @@ const AddProduct = () => {
                                 <Col xs={24} sm={12} md={6} lg={2} xl={2}>
                                     <Form.Item
                                         label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Condition</span>}
-                                        name="condition"
+                                        name={`condition_product_${product.id}`}
                                         style={{ marginBottom: '12px' }}
                                         rules={[{ required: true, message: 'Please select condition' }]}
                                     >
@@ -588,7 +659,7 @@ const AddProduct = () => {
                                         // Handle IMEI field specially for Mobile category
                                         if (field.field_id === 'mobile_imei' && isMobileCategory()) {
                                             return imeiFields.map((imeiField, imeiIndex) => (
-                                                <Col key={`${field.field_id}_${imeiField.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                                <Col key={`${field.field_id}_${imeiField.id}_product_${product.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
                                                     <Form.Item
                                                         label={
                                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -623,7 +694,7 @@ const AddProduct = () => {
                                                                 </div>
                                                             </div>
                                                         }
-                                                        name={`mobile_imei_${imeiField.id}`}
+                                                        name={`mobile_imei_${imeiField.id}_product_${product.id}`}
                                                         style={{ marginBottom: '12px' }}
                                                         rules={[
                                                             ...(field.is_required && imeiIndex === 0 ? [{ required: true, message: 'Please enter at least one IMEI number' }] : []),
@@ -647,10 +718,10 @@ const AddProduct = () => {
                                         
                                         // Handle other fields normally
                                         return (
-                                            <Col key={field.field_id} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Col key={`${field.field_id}_product_${product.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
                                                 <Form.Item
                                                     label={<span style={{ fontSize: '10px', fontWeight: 500 }}>{field.label}</span>}
-                                                    name={field.field_id}
+                                                    name={`${field.field_id}_product_${product.id}`}
                                                     style={{ marginBottom: '12px' }}
                                                     rules={[
                                                         ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
@@ -706,11 +777,15 @@ const AddProduct = () => {
                                     }).flat() // Flatten array since IMEI fields return arrays
                                 }
                             </Row>
+                                </div>
+                            ))}
                             
-                            {/* Hidden form field for final category ID */}
-                            <Form.Item name="categoryId" style={{ display: 'none' }}>
-                                <Input />
-                            </Form.Item>
+                            {/* Hidden form field for final category ID for each product */}
+                            {products.map(product => (
+                                <Form.Item key={`categoryId_product_${product.id}`} name={`categoryId_product_${product.id}`} style={{ display: 'none' }}>
+                                    <Input />
+                                </Form.Item>
+                            ))}
 
                             {/* Loading state for category schema */}
                             {loadingCategorySchema && (
@@ -754,7 +829,7 @@ const AddProduct = () => {
                                         minWidth: '150px'
                                     }}
                                 >
-                                    Save Product
+                                    Save {products.length > 1 ? `All Products (${products.length})` : 'Product'}
                                 </Button>
                             </Space>
                         </Form.Item>
