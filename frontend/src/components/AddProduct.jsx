@@ -454,74 +454,117 @@ const AddProduct = () => {
                             bodyStyle={{ padding: '16px' }}
                             size="small"
                         >
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={{ marginBottom: 8, display: 'block', fontWeight: 500 }}>
-                                    Distributor Search <span style={{ color: '#ff4d4f' }}>*</span>
-                                </label>
-                                
-                                {/* Hidden field to store the actual distributorId for form submission */}
-                                <Form.Item
-                                    name="distributorId"
-                                    rules={[{ required: true, message: 'Please select distributor' }]}
-                                    style={{ display: 'none' }}
-                                >
-                                    <Input />
-                                </Form.Item>
-                                
-                                {/* Visual AutoComplete component (not connected to form) */}
-                                <Form.Item
-                                    validateStatus={form.getFieldError('distributorId').length ? 'error' : ''}
-                                    help={form.getFieldError('distributorId')[0]}
-                                    style={{ margin: 0 }}
-                                >
-                                    <AutoComplete
-                                        style={{ width: '100%', fontSize: '10px' }}
-                                        options={distributorOptions}
-                                        onSearch={handleDistributorSearch}
-                                        onSelect={handleDistributorSelect}
-                                        value={distributorSearchValue}
-                                        placeholder="Type 3+ chars to search name, GST, PAN, mobile, address..."
-                                        allowClear
-                                        onClear={() => {
-                                            setDistributorSearchValue('');
-                                            setDistributorOptions([]);
-                                            setSelectedDistributor(null);
-                                            form.setFieldsValue({ distributorId: undefined });
-                                        }}
-                                    />
-                                </Form.Item>
-                            </div>
+                            <Row gutter={12}>
+                                {/* Distributor Search Field */}
+                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                    {/* Hidden field to store the actual distributorId for form submission */}
+                                    <Form.Item
+                                        name="distributorId"
+                                        rules={[{ required: true, message: 'Please select distributor' }]}
+                                        style={{ display: 'none' }}
+                                    >
+                                        <Input />
+                                    </Form.Item>
+                                    
+                                    {/* Visual AutoComplete component (not connected to form) */}
+                                    <Form.Item
+                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Distributor Search <span style={{ color: '#ff4d4f' }}>*</span></span>}
+                                        validateStatus={form.getFieldError('distributorId').length ? 'error' : ''}
+                                        help={form.getFieldError('distributorId')[0]}
+                                        style={{ marginBottom: '12px' }}
+                                    >
+                                        <AutoComplete
+                                            style={{ width: '100%' }}
+                                            options={distributorOptions}
+                                            onSearch={handleDistributorSearch}
+                                            onSelect={handleDistributorSelect}
+                                            value={distributorSearchValue}
+                                            placeholder="Type 3+ chars to search..."
+                                            allowClear
+                                            size="small"
+                                            dropdownStyle={{ fontSize: '10px' }}
+                                            className="autocomplete-small-font"
+                                            onClear={() => {
+                                                setDistributorSearchValue('');
+                                                setDistributorOptions([]);
+                                                setSelectedDistributor(null);
+                                                form.setFieldsValue({ distributorId: undefined });
+                                            }}
+                                        />
+                                    </Form.Item>
+                                </Col>
 
-                            {/* Display selected distributor details in editable fields */}
-                            {selectedDistributor && (
-                                <Row gutter={16} style={{ marginTop: 16 }}>
-                                    <Col span={5}>
-                                        <Form.Item label="Name">
-                                            <Input value={selectedDistributor.name} readOnly />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={4}>
-                                        <Form.Item label="GST">
-                                            <Input value={selectedDistributor.gstNumber || 'N/A'} readOnly />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={4}>
-                                        <Form.Item label="PAN">
-                                            <Input value={selectedDistributor.panNumber || 'N/A'} readOnly />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={4}>
-                                        <Form.Item label="Mobile">
-                                            <Input value={selectedDistributor.primaryPhone || 'N/A'} readOnly />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={7}>
-                                        <Form.Item label="Address">
-                                            <Input value={selectedDistributor.address || 'N/A'} readOnly />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            )}
+                                {/* Display selected distributor details in compact grid */}
+                                {selectedDistributor && (
+                                    <>
+                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Form.Item 
+                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Name</span>}
+                                                style={{ marginBottom: '12px' }}
+                                            >
+                                                <Input 
+                                                    value={selectedDistributor.name ? selectedDistributor.name.split(' | ')[0] : 'N/A'} 
+                                                    readOnly 
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Form.Item 
+                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>GST</span>}
+                                                style={{ marginBottom: '12px' }}
+                                            >
+                                                <Input 
+                                                    value={selectedDistributor.gstNumber || 'N/A'} 
+                                                    readOnly 
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Form.Item 
+                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>PAN</span>}
+                                                style={{ marginBottom: '12px' }}
+                                            >
+                                                <Input 
+                                                    value={selectedDistributor.panNumber || 'N/A'} 
+                                                    readOnly 
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Form.Item 
+                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Mobile</span>}
+                                                style={{ marginBottom: '12px' }}
+                                            >
+                                                <Input 
+                                                    value={selectedDistributor.primaryPhone || 'N/A'} 
+                                                    readOnly 
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Form.Item 
+                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Address</span>}
+                                                style={{ marginBottom: '12px' }}
+                                            >
+                                                <Input 
+                                                    value={selectedDistributor.address || 'N/A'} 
+                                                    readOnly 
+                                                    size="small" 
+                                                    style={{ fontSize: '10px' }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </>
+                                )}
+                            </Row>
                         </Card>
 
                         {/* Product Details Section - All Fields Combined */}

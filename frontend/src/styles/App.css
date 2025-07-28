@@ -129,3 +129,9 @@ h1, h2, h3 {
   background-color: #c82333;
   transform: translateY(-1px);
 }
+
+/* AutoComplete font size fix */
+.autocomplete-small-font .ant-select-selector input,
+.autocomplete-small-font .ant-select-selection-search-input {
+  font-size: 10px !important;
+}
