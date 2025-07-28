@@ -194,7 +194,7 @@ const AddProduct = () => {
             console.log('✅ Filtered distributors:', filtered.length);
             
             const options = filtered.map(distributor => ({
-                value: distributor._id,
+                value: `${distributor.name} | ${distributor.gstNumber || 'No GST'}`,
                 label: `${distributor.name} | ${distributor.gstNumber || 'No GST'}`,
                 distributor: distributor
             }));
@@ -212,12 +212,12 @@ const AddProduct = () => {
         if (option && option.distributor) {
             const distributor = option.distributor;
             setSelectedDistributor(distributor);
-            const displayText = `${distributor.name} | ${distributor.gstNumber || 'No GST'}`;
-            setDistributorSearchValue(displayText);
-            form.setFieldsValue({ distributorId: value });
-            setDistributorOptions([]); // Clear options after selection
-            console.log('✅ Form field set to:', value);
-            console.log('✅ Display text set to:', displayText);
+            setDistributorSearchValue(value); // Set the search box text to the selected display value
+            form.setFieldsValue({ distributorId: distributor._id }); // Set the hidden form field's value to the ID
+            setDistributorOptions([]);
+            form.validateFields(['distributorId']); // Trigger validation to clear any error message
+            console.log('✅ Form field set to:', distributor._id);
+            console.log('✅ Display text set to:', value);
         }
     }, [form]);
 
@@ -438,7 +438,7 @@ const AddProduct = () => {
                 title={
                     <Space>
                         <AppstoreAddOutlined style={{ color: '#fa8c16' }} />
-                        <Title level={3} style={{ margin: 0, color: '#333333' }}>
+                        <Title level={4} style={{ margin: 0, color: '#333333' }}>
                             Add New Product
                         </Title>
                     </Space>
@@ -463,12 +463,6 @@ const AddProduct = () => {
                         onFinish={handleSubmit}
                         requiredMark={false}
                     >
-                        {/* Basic Information */}
-                        <Title level={4} style={{ marginTop: 0, color: '#333333' }}>
-                            <TagOutlined style={{ marginRight: '8px', color: '#fa8c16' }} />
-                            Basic Information
-                        </Title>
-
                         {/* Distributor Information Section */}
                         <Card
                             title="Distributor Information"
@@ -480,9 +474,20 @@ const AddProduct = () => {
                                 <label style={{ marginBottom: 8, display: 'block', fontWeight: 500 }}>
                                     Distributor Search <span style={{ color: '#ff4d4f' }}>*</span>
                                 </label>
+                                
+                                {/* Hidden field to store the actual distributorId for form submission */}
                                 <Form.Item
                                     name="distributorId"
                                     rules={[{ required: true, message: 'Please select distributor' }]}
+                                    style={{ display: 'none' }}
+                                >
+                                    <Input />
+                                </Form.Item>
+                                
+                                {/* Visual AutoComplete component (not connected to form) */}
+                                <Form.Item
+                                    validateStatus={form.getFieldError('distributorId').length ? 'error' : ''}
+                                    help={form.getFieldError('distributorId')[0]}
                                     style={{ margin: 0 }}
                                 >
                                     <AutoComplete
@@ -503,40 +508,33 @@ const AddProduct = () => {
                                 </Form.Item>
                             </div>
 
-                            {/* Display selected distributor details in 5 columns */}
+                            {/* Display selected distributor details in editable fields */}
                             {selectedDistributor && (
-                                <Row gutter={16} style={{ marginTop: 16, padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '6px' }}>
+                                <Row gutter={16} style={{ marginTop: 16 }}>
                                     <Col span={5}>
-                                        <div>
-                                            <Text strong style={{ fontSize: '12px', color: '#666' }}>Name</Text>
-                                            <div style={{ fontSize: '14px', marginTop: '2px' }}>{selectedDistributor.name}</div>
-                                        </div>
+                                        <Form.Item label="Name">
+                                            <Input value={selectedDistributor.name} readOnly />
+                                        </Form.Item>
                                     </Col>
                                     <Col span={4}>
-                                        <div>
-                                            <Text strong style={{ fontSize: '12px', color: '#666' }}>GST</Text>
-                                            <div style={{ fontSize: '14px', marginTop: '2px' }}>{selectedDistributor.gstNumber || 'N/A'}</div>
-                                        </div>
+                                        <Form.Item label="GST">
+                                            <Input value={selectedDistributor.gstNumber || 'N/A'} readOnly />
+                                        </Form.Item>
                                     </Col>
                                     <Col span={4}>
-                                        <div>
-                                            <Text strong style={{ fontSize: '12px', color: '#666' }}>PAN</Text>
-                                            <div style={{ fontSize: '14px', marginTop: '2px' }}>{selectedDistributor.panNumber || 'N/A'}</div>
-                                        </div>
+                                        <Form.Item label="PAN">
+                                            <Input value={selectedDistributor.panNumber || 'N/A'} readOnly />
+                                        </Form.Item>
                                     </Col>
                                     <Col span={4}>
-                                        <div>
-                                            <Text strong style={{ fontSize: '12px', color: '#666' }}>Mobile</Text>
-                                            <div style={{ fontSize: '14px', marginTop: '2px' }}>{selectedDistributor.primaryPhone || 'N/A'}</div>
-                                        </div>
+                                        <Form.Item label="Mobile">
+                                            <Input value={selectedDistributor.primaryPhone || 'N/A'} readOnly />
+                                        </Form.Item>
                                     </Col>
                                     <Col span={7}>
-                                        <div>
-                                            <Text strong style={{ fontSize: '12px', color: '#666' }}>Address</Text>
-                                            <div style={{ fontSize: '14px', marginTop: '2px', lineHeight: '1.3' }}>
-                                                {selectedDistributor.address || 'N/A'}
-                                            </div>
-                                        </div>
+                                        <Form.Item label="Address">
+                                            <Input value={selectedDistributor.address || 'N/A'} readOnly />
+                                        </Form.Item>
                                     </Col>
                                 </Row>
                             )}
