@@ -88,53 +88,125 @@ router.get('/:id', protect, async (req, res) => {
     }
 });
 
-// @desc    Create product
+// @desc    Create product(s)
 // @route   POST /api/products
 // @access  Protected (Admin/Manager only)
 router.post('/', protect, checkPermission('create'), async (req, res) => {
-    console.log('📦 POST /api/products - Creating new product');
+    console.log('📦 POST /api/products - Creating product(s)');
     console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
     
     try {
-        // Validate required business fields
-        if (!req.body.supplierId) {
+        // Handle both single product and array of products
+        let productsArray = [];
+        
+        if (req.body.products && Array.isArray(req.body.products)) {
+            // Multiple products sent as array
+            productsArray = req.body.products;
+            console.log(`📦 Processing ${productsArray.length} products from array`);
+        } else {
+            // Single product - convert to array for consistent processing
+            productsArray = [req.body];
+            console.log('📦 Processing single product (converted to array)');
+        }
+
+        const createdProducts = [];
+        const errors = [];
+
+        // Process each product in the array
+        for (let i = 0; i < productsArray.length; i++) {
+            const productData = productsArray[i];
+            
+            try {
+                console.log(`🔄 Processing product ${i + 1}/${productsArray.length}`);
+                
+                // Validate required business fields for this product
+                if (!productData.supplierId) {
+                    throw new Error(`Product ${i + 1}: Distributor (supplierId) is required`);
+                }
+
+                // Validate distributor exists
+                const Distributor = require('../models/Distributor');
+                const distributor = await Distributor.findById(productData.supplierId);
+                if (!distributor) {
+                    throw new Error(`Product ${i + 1}: Invalid distributor ID`);
+                }
+
+                console.log(`✅ Product ${i + 1} - Validated distributor:`, distributor.name);
+
+                // Process and clean the product data - only keep field_id based fields
+                const cleanProductData = {
+                    supplierId: productData.supplierId
+                };
+
+                // Map common fields and category-specific fields using field_id values
+                Object.keys(productData).forEach(key => {
+                    // Skip system fields that aren't in form schema
+                    if (['supplierId', 'distributorId'].includes(key)) {
+                        return;
+                    }
+                    
+                    // Only keep fields that have valid field_id patterns
+                    // field_id values should be clean names like: model_number, serial_number, brand, imei, etc.
+                    if (key.match(/^[a-z_]+$/)) {
+                        cleanProductData[key] = productData[key];
+                    }
+                });
+
+                console.log(`🧹 Cleaned product data for product ${i + 1}:`, cleanProductData);
+
+                // Create product with the clean data
+                const product = new Product(cleanProductData);
+                
+                console.log(`💾 Saving product ${i + 1} with clean schema...`);
+                const savedProduct = await product.save();
+                
+                console.log(`✅ Product ${i + 1} saved successfully:`, savedProduct._id);
+
+                // Populate response 
+                await savedProduct.populate('supplierId', 'name gstNumber');
+                createdProducts.push(savedProduct);
+
+            } catch (error) {
+                console.error(`❌ Error creating product ${i + 1}:`, error.message);
+                errors.push({
+                    index: i + 1,
+                    message: error.message,
+                    productData: productData.model_number || `Product ${i + 1}`
+                });
+            }
+        }
+
+        // Return appropriate response based on results
+        if (createdProducts.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Distributor (supplierId) is required'
+                message: 'Failed to create any products',
+                errors: errors
             });
         }
 
-        // Validate distributor exists
-        const Distributor = require('../models/Distributor');
-        const distributor = await Distributor.findById(req.body.supplierId);
-        if (!distributor) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid distributor ID'
-            });
-        }
-
-        console.log('✅ Validated distributor:', distributor.name);
-
-        // Create product with all received data (loose schema)
-        const product = new Product(req.body);
-        
-        console.log('💾 Saving product with loose schema...');
-        const savedProduct = await product.save();
-        
-        console.log('✅ Product saved successfully:', savedProduct._id);
-
-        // Populate response 
-        await savedProduct.populate('supplierId', 'name gstNumber');
-
-        res.status(201).json({
+        const response = {
             success: true,
-            message: 'Product created successfully',
-            data: savedProduct
-        });
+            message: createdProducts.length === 1 
+                ? 'Product created successfully' 
+                : `Created ${createdProducts.length} of ${productsArray.length} products`,
+            data: createdProducts.length === 1 ? createdProducts[0] : createdProducts,
+            summary: {
+                total: productsArray.length,
+                successful: createdProducts.length,
+                failed: errors.length
+            }
+        };
+
+        if (errors.length > 0) {
+            response.errors = errors;
+        }
+
+        const statusCode = errors.length === 0 ? 201 : 207; // 207 = Multi-Status
+        res.status(statusCode).json(response);
 
     } catch (error) {
-        console.error('❌ Error creating product:', error);
+        console.error('❌ Error in product creation:', error);
         
         if (error.code === 11000) {
             const duplicateField = Object.keys(error.keyPattern)[0];
@@ -146,7 +218,7 @@ router.post('/', protect, checkPermission('create'), async (req, res) => {
         
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to create product'
+            message: error.message || 'Failed to create product(s)'
         });
     }
 });
@@ -238,18 +310,18 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
                 const categoryPathIds = pathResult.map(cat => cat.id);
 
                 // Extract brand from dynamic fields
-                const brand = categoryFormData.mobile_brand || 
+                const brand = categoryFormData.brand ||
+                            categoryFormData.mobile_brand || 
                             categoryFormData.tv_brand || 
                             categoryFormData.fridge_brand || 
-                            categoryFormData.ac_brand ||
-                            categoryFormData.brand;
+                            categoryFormData.ac_brand;
 
                 if (!brand) {
                     throw new Error(`Product ${i + 1}: Brand is required`);
                 }
 
                 // Extract serial number
-                const serialNumber = categoryFormData.common_serial_number || 
+                const serialNumber = categoryFormData.serial_number || 
                                    categoryFormData.serial_number;
 
                 // Separate common and specific attributes
@@ -303,7 +375,7 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
                 errors.push({
                     index: i + 1,
                     message: error.message,
-                    productData: productData.categoryFormData?.common_model_number || `Product ${i + 1}`
+                    productData: productData.categoryFormData?.model_number || `Product ${i + 1}`
                 });
             }
         }

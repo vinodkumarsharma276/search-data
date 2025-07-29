@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Product = require('./models/Product');
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/search-data', {
+mongoose.connect('mongodb://localhost:27017/vinod-electronics', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });

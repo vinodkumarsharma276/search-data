@@ -12,7 +12,7 @@ require('dotenv').config();
 // Common fields that apply to ALL products
 const COMMON_FIELDS = [
     {
-        field_id: 'common_model_number',
+        field_id: 'model_number',
         label: 'Model Number',
         type: 'text',
         is_required: true,
@@ -20,7 +20,7 @@ const COMMON_FIELDS = [
         display_order: 1
     },
     {
-        field_id: 'common_serial_number',
+        field_id: 'serial_number',
         label: 'Serial Number',
         type: 'text',
         is_required: true,
@@ -28,7 +28,7 @@ const COMMON_FIELDS = [
         display_order: 2
     },
     {
-        field_id: 'common_dp_dealer_price',
+        field_id: 'dealer_price',
         label: 'DP (Dealer Price) (₹)',
         type: 'number',
         is_required: true,
@@ -36,7 +36,7 @@ const COMMON_FIELDS = [
         display_order: 3
     },
     {
-        field_id: 'common_mrp',
+        field_id: 'mrp',
         label: 'MRP (₹)',
         type: 'number',
         is_required: true,
@@ -44,7 +44,7 @@ const COMMON_FIELDS = [
         display_order: 4
     },
     {
-        field_id: 'common_igst',
+        field_id: 'igst',
         label: 'IGST (%)',
         type: 'number',
         is_required: true,
@@ -53,7 +53,7 @@ const COMMON_FIELDS = [
         default_value: 18
     },
     {
-        field_id: 'common_cgst',
+        field_id: 'cgst',
         label: 'CGST (%)', 
         type: 'number',
         is_required: true,
@@ -98,7 +98,7 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
-                    field_id: 'mobile_brand',
+                    field_id: 'brand',
                     label: 'Brand',
                     type: 'dropdown',
                     is_required: true,
@@ -123,7 +123,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'mobile_imei',
+                    field_id: 'imei',
                     label: 'IMEI Number',
                     type: 'text',
                     is_required: true,
@@ -131,7 +131,7 @@ async function seedCleanCategories() {
                     display_order: 2
                 },
                 {
-                    field_id: 'mobile_os',
+                    field_id: 'os',
                     label: 'Operating System',
                     type: 'dropdown',
                     is_required: true,
@@ -144,7 +144,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'mobile_storage',
+                    field_id: 'storage',
                     label: 'Storage (GB)',
                     type: 'dropdown',
                     is_required: true,
@@ -160,7 +160,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'mobile_ram',
+                    field_id: 'ram',
                     label: 'RAM (GB)',
                     type: 'dropdown',
                     is_required: true,
@@ -175,30 +175,6 @@ async function seedCleanCategories() {
                         { value: '12', label: '12 GB' },
                         { value: '16', label: '16 GB' }
                     ]
-                },
-                {
-                    field_id: 'mobile_battery',
-                    label: 'Battery (mAh)',
-                    type: 'number',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 6
-                },
-                {
-                    field_id: 'mobile_screen_size',
-                    label: 'Screen Size (inches)',
-                    type: 'text',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 7
-                },
-                {
-                    field_id: 'mobile_camera_mp',
-                    label: 'Camera (MP)',
-                    type: 'text',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 8
                 }
             ],
             isActive: true
@@ -215,7 +191,7 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
-                    field_id: 'tv_brand',
+                    field_id: 'brand',
                     label: 'Brand',
                     type: 'dropdown',
                     is_required: true,
@@ -239,7 +215,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'tv_screen_size',
+                    field_id: 'screen_size',
                     label: 'Screen Size (inches)',
                     type: 'dropdown',
                     is_required: true,
@@ -257,7 +233,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'tv_resolution',
+                    field_id: 'resolution',
                     label: 'Resolution',
                     type: 'dropdown',
                     is_required: true,
@@ -271,7 +247,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'tv_smart_os',
+                    field_id: 'smart_os',
                     label: 'Smart TV OS',
                     type: 'dropdown',
                     is_required: true,
@@ -287,7 +263,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'tv_panel_type',
+                    field_id: 'panel_type',
                     label: 'Panel Type',
                     type: 'dropdown',
                     is_required: false,
@@ -302,7 +278,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'tv_refresh_rate',
+                    field_id: 'refresh_rate',
                     label: 'Refresh Rate (Hz)',
                     type: 'dropdown',
                     is_required: false,
@@ -316,7 +292,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'tv_hdmi_ports',
+                    field_id: 'hdmi_ports',
                     label: 'HDMI Ports',
                     type: 'number',
                     is_required: false,
@@ -324,7 +300,7 @@ async function seedCleanCategories() {
                     display_order: 7
                 },
                 {
-                    field_id: 'tv_wifi',
+                    field_id: 'wifi',
                     label: 'WiFi Support',
                     type: 'boolean',
                     is_required: false,
@@ -347,7 +323,7 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
-                    field_id: 'fridge_brand',
+                    field_id: 'brand',
                     label: 'Brand',
                     type: 'dropdown',
                     is_required: true,
@@ -370,7 +346,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'fridge_capacity',
+                    field_id: 'capacity',
                     label: 'Capacity (Liters)',
                     type: 'number',
                     is_required: true,
@@ -378,7 +354,7 @@ async function seedCleanCategories() {
                     display_order: 2
                 },
                 {
-                    field_id: 'fridge_type',
+                    field_id: 'type',
                     label: 'Fridge Type',
                     type: 'dropdown',
                     is_required: true,
@@ -394,7 +370,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'fridge_star_rating',
+                    field_id: 'star_rating',
                     label: 'Energy Star Rating',
                     type: 'dropdown',
                     is_required: true,
@@ -409,7 +385,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'fridge_defrost_type',
+                    field_id: 'defrost_type',
                     label: 'Defrost Type',
                     type: 'dropdown',
                     is_required: false,
@@ -422,7 +398,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'fridge_compressor_type',
+                    field_id: 'compressor_type',
                     label: 'Compressor Type',
                     type: 'dropdown',
                     is_required: false,
@@ -436,7 +412,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'fridge_door_finish',
+                    field_id: 'door_finish',
                     label: 'Door Finish',
                     type: 'dropdown',
                     is_required: false,
@@ -450,7 +426,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'fridge_ice_maker',
+                    field_id: 'ice_maker',
                     label: 'Ice Maker',
                     type: 'boolean',
                     is_required: false,
@@ -473,7 +449,7 @@ async function seedCleanCategories() {
             is_leaf: true,
             form_schema: [
                 {
-                    field_id: 'ac_brand',
+                    field_id: 'brand',
                     label: 'Brand',
                     type: 'dropdown',
                     is_required: true,
@@ -498,7 +474,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'ac_capacity',
+                    field_id: 'capacity',
                     label: 'Capacity (Tons)',
                     type: 'dropdown',
                     is_required: true,
@@ -516,7 +492,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'ac_type',
+                    field_id: 'type',
                     label: 'AC Type',
                     type: 'dropdown',
                     is_required: true,
@@ -532,7 +508,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'ac_star_rating',
+                    field_id: 'star_rating',
                     label: 'Energy Star Rating',
                     type: 'dropdown',
                     is_required: true,
@@ -547,7 +523,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'ac_inverter',
+                    field_id: 'inverter',
                     label: 'Inverter Technology',
                     type: 'boolean',
                     is_required: true,
@@ -556,7 +532,7 @@ async function seedCleanCategories() {
                     default_value: true
                 },
                 {
-                    field_id: 'ac_refrigerant',
+                    field_id: 'refrigerant',
                     label: 'Refrigerant Type',
                     type: 'dropdown',
                     is_required: false,
@@ -570,7 +546,7 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'ac_filter_type',
+                    field_id: 'filter_type',
                     label: 'Filter Type',
                     type: 'text',
                     is_required: false,
@@ -578,7 +554,7 @@ async function seedCleanCategories() {
                     display_order: 7
                 },
                 {
-                    field_id: 'ac_wifi_enabled',
+                    field_id: 'wifi_enabled',
                     label: 'WiFi Enabled',
                     type: 'boolean',
                     is_required: false,
@@ -587,7 +563,7 @@ async function seedCleanCategories() {
                     default_value: false
                 },
                 {
-                    field_id: 'ac_installation_type',
+                    field_id: 'installation_type',
                     label: 'Installation Type',
                     type: 'dropdown',
                     is_required: false,

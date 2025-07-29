@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 const Product = require('./models/Product');
+require('dotenv').config();
 
-// Database configuration
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/searchdb';
-
+// Use the same URI as other scripts
 async function clearProducts() {
     try {
-        // Connect to MongoDB
-        await mongoose.connect(MONGODB_URI);
+        // Connect to MongoDB using .env config
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('🔗 Connected to MongoDB');
+        console.log('🗄️ Database name:', mongoose.connection.db.databaseName);
         
         // Count current products
         const currentCount = await Product.countDocuments();

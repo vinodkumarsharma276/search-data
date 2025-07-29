@@ -304,29 +304,13 @@ async function seedCategoryHierarchy() {
                     display_order: 7
                 },
                 {
-                    field_id: 'specific_screen_size',
-                    label: 'Screen Size (inches)',
-                    type: 'text',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 8
-                },
-                {
-                    field_id: 'specific_battery_mah',
-                    label: 'Battery (mAh)',
-                    type: 'number',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 9
-                },
-                {
                     field_id: 'specific_dual_sim',
                     label: 'Dual SIM',
                     type: 'boolean',
                     is_required: false,
                     enabled: true,
                     default_value: true,
-                    display_order: 10
+                    display_order: 8
                 },
                 {
                     field_id: 'specific_serial_number',
@@ -334,7 +318,7 @@ async function seedCategoryHierarchy() {
                     type: 'text',
                     is_required: false,
                     enabled: true,
-                    display_order: 11
+                    display_order: 9
                 }
             ]
         });
@@ -390,20 +374,12 @@ async function seedCategoryHierarchy() {
                     display_order: 8
                 },
                 {
-                    field_id: 'specific_camera_mp',
-                    label: 'Main Camera (MP)',
-                    type: 'number',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 9
-                },
-                {
                     field_id: 'specific_serial_number',
                     label: 'Serial Number',
                     type: 'text',
                     is_required: false,
                     enabled: true,
-                    display_order: 10
+                    display_order: 9
                 }
             ]
         });

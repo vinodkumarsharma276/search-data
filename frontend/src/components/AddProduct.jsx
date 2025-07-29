@@ -104,12 +104,7 @@ const AddProduct = () => {
     const [distributorOptions, setDistributorOptions] = useState([]);
     const [distributorSearchValue, setDistributorSearchValue] = useState('');
     const [selectedDistributor, setSelectedDistributor] = useState(null);
-    const [categoryLevels, setCategoryLevels] = useState([]); // Array of category levels for hierarchical selection
-    const [selectedCategoryPath, setSelectedCategoryPath] = useState([]); // Track selected category path
-    const [finalCategoryId, setFinalCategoryId] = useState(null); // Final leaf category ID
-    const [categoryFormSchema, setCategoryFormSchema] = useState([]);
     const [loadingCategorySchema, setLoadingCategorySchema] = useState(false);
-    const [imeiFields, setImeiFields] = useState([{ id: 1, value: '' }]); // Dynamic IMEI fields
     
     // Multi-product state
     const [productCount, setProductCount] = useState(1);
@@ -121,17 +116,26 @@ const AddProduct = () => {
         categoryFormSchema: [],
         imeiFields: [{ id: 1, value: '' }]
     }]);
+    
+    // Get product-specific state
+    const getProductState = (productId) => {
+        return products.find(p => p.id === productId) || products[0];
+    };
+    
+    // Update product-specific state
+    const updateProductState = (productId, updates) => {
+        setProducts(prevProducts => 
+            prevProducts.map(product => 
+                product.id === productId 
+                    ? { ...product, ...updates }
+                    : product
+            )
+        );
+    };
 
     useEffect(() => {
         fetchDropdownData();
     }, []);
-
-    // Reset IMEI fields when category changes
-    useEffect(() => {
-        if (!isMobileCategory()) {
-            setImeiFields([{ id: 1, value: '' }]);
-        }
-    }, [finalCategoryId, categoryFormSchema]);
 
     // Watch for distributors loading to sync any existing form values
     useEffect(() => {
@@ -174,7 +178,8 @@ const AddProduct = () => {
         try {
             const response = await apiService.categories.getTopLevel();
             if (response.data.success) {
-                setCategoryLevels([response.data.data]);
+                // Update the first product's category levels
+                updateProductState(1, { categoryLevels: [response.data.data] });
                 console.log('✅ Loaded top-level categories:', response.data.data?.length);
             }
         } catch (error) {
@@ -231,17 +236,17 @@ const AddProduct = () => {
     }, [form]);
 
     // Handle hierarchical category selection
-    const handleCategorySelection = async (categoryId, levelIndex) => {
-        console.log('🎯 Category selected at level', levelIndex, ':', categoryId);
+    const handleCategorySelection = async (categoryId, levelIndex, productId = 1) => {
+        console.log('🎯 Category selected at level', levelIndex, ':', categoryId, 'for product', productId);
         
-        // Update selected category path up to current level
-        const newPath = selectedCategoryPath.slice(0, levelIndex);
+        const currentProduct = getProductState(productId);
+        
+        // Update selected category path up to current level for this product
+        const newPath = currentProduct.selectedCategoryPath.slice(0, levelIndex);
         newPath[levelIndex] = categoryId;
-        setSelectedCategoryPath(newPath);
         
-        // Clear category levels after current level
-        const newLevels = categoryLevels.slice(0, levelIndex + 1);
-        setCategoryLevels(newLevels);
+        // Clear category levels after current level for this product
+        const newLevels = currentProduct.categoryLevels.slice(0, levelIndex + 1);
         
         try {
             // Get the selected category details
@@ -251,104 +256,137 @@ const AddProduct = () => {
                 
                 if (category.is_leaf) {
                     // This is a leaf category - load form schema
-                    console.log('� Leaf category selected, loading form schema...');
-                    setFinalCategoryId(categoryId);
-                    await loadCategoryFormSchema(categoryId);
+                    console.log('🍃 Leaf category selected, loading form schema for product', productId);
                     
-                    // Update form field
-                    form.setFieldsValue({ categoryId: categoryId });
+                    const schemaResponse = await apiService.categories.getFormSchema(categoryId);
+                    const schema = schemaResponse.data.success ? schemaResponse.data.data || [] : [];
+                    
+                    // Update this product's state
+                    updateProductState(productId, {
+                        selectedCategoryPath: newPath,
+                        categoryLevels: newLevels,
+                        finalCategoryId: categoryId,
+                        categoryFormSchema: schema
+                    });
+                    
+                    // Update form field for this product
+                    form.setFieldsValue({ [`categoryId_product_${productId}`]: categoryId });
                 } else {
                     // Not a leaf - fetch children for next level
-                    console.log('🌿 Non-leaf category, fetching children...');
-                    setFinalCategoryId(null);
-                    setCategoryFormSchema([]);
+                    console.log('🌿 Non-leaf category, fetching children for product', productId);
                     
                     const childrenResponse = await apiService.categories.getChildren(categoryId);
                     if (childrenResponse.data.success && childrenResponse.data.data.length > 0) {
-                        setCategoryLevels([...newLevels, childrenResponse.data.data]);
-                        console.log('✅ Loaded children for next level:', childrenResponse.data.data.length);
+                        // Update this product's state
+                        updateProductState(productId, {
+                            selectedCategoryPath: newPath,
+                            categoryLevels: [...newLevels, childrenResponse.data.data],
+                            finalCategoryId: null,
+                            categoryFormSchema: []
+                        });
+                        
+                        console.log('✅ Loaded children for next level:', childrenResponse.data.data.length, 'for product', productId);
                     }
                     
                     // Clear form field as selection is not complete
-                    form.setFieldsValue({ categoryId: undefined });
+                    form.setFieldsValue({ [`categoryId_product_${productId}`]: undefined });
                 }
             }
         } catch (error) {
-            console.error('❌ Error handling category selection:', error);
+            console.error('❌ Error handling category selection for product', productId, ':', error);
         }
     };
 
-    // Load category form schema
-    const loadCategoryFormSchema = async (categoryId) => {
-        setLoadingCategorySchema(true);
-        try {
-            const response = await apiService.categories.getFormSchema(categoryId);
-            console.log('📋 Category form schema response:', response.data);
-            
-            if (response.data.success) {
-                setCategoryFormSchema(response.data.data || []);
-                console.log('✅ Category form schema loaded:', response.data.data?.length, 'fields');
-            } else {
-                console.warn('⚠️ Failed to load category form schema:', response.data.message);
-                setCategoryFormSchema([]);
-            }
-        } catch (error) {
-            console.error('❌ Error fetching category form schema:', error);
-            setCategoryFormSchema([]);
-        } finally {
-            setLoadingCategorySchema(false);
-        }
-    };
-
-    // Dynamic IMEI field management
-    const addImeiField = () => {
-        const newId = Math.max(...imeiFields.map(f => f.id)) + 1;
-        setImeiFields([...imeiFields, { id: newId, value: '' }]);
-    };
-
-    const removeImeiField = (idToRemove) => {
-        if (imeiFields.length > 1) {
-            setImeiFields(imeiFields.filter(field => field.id !== idToRemove));
-            // Remove the field value from form
-            form.setFieldsValue({ [`mobile_imei_${idToRemove}`]: undefined });
-        }
-    };
-
-    const updateImeiValue = (id, value) => {
-        setImeiFields(imeiFields.map(field => 
-            field.id === id ? { ...field, value } : field
-        ));
-    };
 
     // Check if current category is Mobile to show dynamic IMEI fields
-    const isMobileCategory = () => {
-        return finalCategoryId && categoryFormSchema.some(field => field.field_id === 'mobile_imei');
+    const isMobileCategory = (productId = 1) => {
+        const currentProduct = getProductState(productId);
+        return currentProduct.finalCategoryId && currentProduct.categoryFormSchema.some(field => field.field_id === 'mobile_imei');
+    };
+
+    // Dynamic IMEI field management for specific product
+    const addImeiField = (productId = 1) => {
+        const currentProduct = getProductState(productId);
+        const newId = Math.max(...currentProduct.imeiFields.map(f => f.id)) + 1;
+        const newImeiFields = [...currentProduct.imeiFields, { id: newId, value: '' }];
+        updateProductState(productId, { imeiFields: newImeiFields });
+    };
+
+    const removeImeiField = (idToRemove, productId = 1) => {
+        const currentProduct = getProductState(productId);
+        if (currentProduct.imeiFields.length > 1) {
+            const newImeiFields = currentProduct.imeiFields.filter(field => field.id !== idToRemove);
+            updateProductState(productId, { imeiFields: newImeiFields });
+            // Remove the field value from form
+            form.setFieldsValue({ [`mobile_imei_${idToRemove}_product_${productId}`]: undefined });
+        }
+    };
+
+    const updateImeiValue = (id, value, productId = 1) => {
+        const currentProduct = getProductState(productId);
+        const newImeiFields = currentProduct.imeiFields.map(field => 
+            field.id === id ? { ...field, value } : field
+        );
+        updateProductState(productId, { imeiFields: newImeiFields });
     };
 
     // Add another product function
     const addAnotherProduct = () => {
         const newProductId = productCount + 1;
+        const firstProduct = getProductState(1);
+        
         const newProduct = {
             id: newProductId,
-            categoryLevels: [],
-            selectedCategoryPath: [],
-            finalCategoryId: null,
-            categoryFormSchema: [],
-            imeiFields: [{ id: 1, value: '' }]
+            categoryLevels: [...firstProduct.categoryLevels], // Copy from first product
+            selectedCategoryPath: [...firstProduct.selectedCategoryPath], // Copy from first product
+            finalCategoryId: firstProduct.finalCategoryId, // Copy from first product
+            categoryFormSchema: [...firstProduct.categoryFormSchema], // Copy from first product
+            imeiFields: [...firstProduct.imeiFields] // Copy from first product
         };
         
         setProducts([...products, newProduct]);
         setProductCount(newProductId);
         
-        // Initialize categories for the new product
-        if (categoryLevels.length > 0) {
-            const newProducts = [...products, { ...newProduct, categoryLevels: [categoryLevels[0]] }];
-            setProducts(newProducts);
+        // Get current form values to copy to new product
+        const currentValues = form.getFieldsValue();
+        const newFieldValues = {};
+        
+        // Copy condition field from first product
+        if (currentValues[`condition_product_1`]) {
+            newFieldValues[`condition_product_${newProductId}`] = currentValues[`condition_product_1`];
         }
+        
+        // Copy category ID
+        if (currentValues[`categoryId_product_1`]) {
+            newFieldValues[`categoryId_product_${newProductId}`] = currentValues[`categoryId_product_1`];
+        }
+        
+        // Copy all dynamic fields from the first product to new product
+        Object.keys(currentValues).forEach(key => {
+            if (key.endsWith('_product_1') && !key.startsWith('condition_') && !key.startsWith('categoryId_')) {
+                const baseFieldName = key.replace('_product_1', '');
+                const newFieldName = `${baseFieldName}_product_${newProductId}`;
+                newFieldValues[newFieldName] = currentValues[key];
+            }
+            
+            // Copy IMEI fields
+            if (key.startsWith('mobile_imei_') && key.endsWith('_product_1')) {
+                const imeiPart = key.replace('_product_1', '');
+                const newImeiField = `${imeiPart}_product_${newProductId}`;
+                newFieldValues[newImeiField] = currentValues[key];
+            }
+        });
+        
+        // Set the copied values to form
+        form.setFieldsValue(newFieldValues);
+        
+        console.log('✅ Added new product with copied values:', newFieldValues);
     };
 
     const handleSubmit = async (values) => {
         console.log('📦 Submitting product data:', values);
+        console.log('🔍 Form values keys:', Object.keys(values));
+        console.log('🔍 Product count:', productCount);
         
         // Validate distributor selection
         if (!values.distributorId) {
@@ -359,42 +397,92 @@ const AddProduct = () => {
         setLoading(true);
 
         try {
-            // Flatten all form data into simple key-value pairs
-            const productData = {
-                // Map the distributor field
-                supplierId: values.distributorId,
-                // Include all other form fields directly
-                ...values
+            // Convert form values to array of clean product objects
+            const productsArray = [];
+            
+            // Extract and organize data by product
+            for (let i = 1; i <= productCount; i++) {
+                const productData = {
+                    supplierId: values.distributorId
+                };
+                
+                // Extract all fields for this product
+                Object.keys(values).forEach(key => {
+                    if (key.endsWith(`_product_${i}`)) {
+                        // Remove the _product_X suffix to get clean field name
+                        const cleanFieldName = key.replace(`_product_${i}`, '');
+                        productData[cleanFieldName] = values[key];
+                    }
+                });
+                
+                // Also handle IMEI fields (mobile_imei_1_product_1 -> mobile_imei)
+                Object.keys(values).forEach(key => {
+                    if (key.includes(`_product_${i}`) && key.includes('_imei_')) {
+                        // Clean IMEI field name: mobile_imei_1_product_1 -> mobile_imei
+                        const cleanFieldName = key.replace(/_\d+_product_\d+$/, '');
+                        productData[cleanFieldName] = values[key];
+                    }
+                });
+                
+                console.log(`🔍 Product ${i} extracted data:`, productData);
+                console.log(`🔍 Product ${i} categoryId check:`, productData.categoryId);
+                
+                // Only add product if it has meaningful data (has a category)
+                // Check for various possible category field names
+                const hasCategoryData = productData.categoryId || 
+                                      productData.category || 
+                                      productData.selected_category_id ||
+                                      Object.keys(productData).some(key => key.includes('category'));
+                
+                if (hasCategoryData) {
+                    productsArray.push(productData);
+                    console.log(`✅ Product ${i} added to array:`, productData);
+                } else {
+                    console.log(`⚠️ Product ${i} skipped - no category data found`);
+                }
+            }
+            
+            if (productsArray.length === 0) {
+                message.error('Please select a category for at least one product');
+                return;
+            }
+            
+            console.log(`📤 Sending ${productsArray.length} products to backend:`, productsArray);
+            
+            // Send as array in the products field
+            const requestData = {
+                products: productsArray
             };
             
-            // Remove the frontend-specific field name
-            delete productData.distributorId;
-            
-            console.log('📤 Sending to backend (loose schema):', productData);
-            
-            const response = await apiService.products.create(productData);
+            const response = await apiService.products.create(requestData);
             
             if (response.data.success) {
-                message.success('Product added successfully!');
-                console.log('✅ Product saved:', response.data);
+                const count = Array.isArray(response.data.data) ? response.data.data.length : 1;
+                message.success(`${count} product(s) added successfully!`);
+                console.log('✅ Products saved:', response.data);
                 form.resetFields();
                 // Clear all states
                 setDistributorSearchValue('');
                 setDistributorOptions([]);
                 setSelectedDistributor(null);
-                setCategoryLevels([]);
-                setSelectedCategoryPath([]);
-                setFinalCategoryId(null);
-                setCategoryFormSchema([]);
-                setImeiFields([{ id: 1, value: '' }]); // Reset IMEI fields
+                // Reset products to single product
+                setProducts([{
+                    id: 1,
+                    categoryLevels: [],
+                    selectedCategoryPath: [],
+                    finalCategoryId: null,
+                    categoryFormSchema: [],
+                    imeiFields: [{ id: 1, value: '' }]
+                }]);
+                setProductCount(1);
                 // Reload top-level categories
                 await fetchTopLevelCategories();
             } else {
-                message.error(response.data.message || 'Failed to add product');
-                console.error('❌ Error saving product:', response.data);
+                message.error(response.data.message || 'Failed to add product(s)');
+                console.error('❌ Error saving products:', response.data);
             }
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to add product. Please try again.';
+            const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to add product(s). Please try again.';
             message.error(errorMessage);
             console.error('❌ API error:', error);
         } finally {
@@ -592,8 +680,8 @@ const AddProduct = () => {
                                     {/* All fields in compact layout with balanced responsive sizing */}
                                     <Row gutter={12}>
                                 {/* Category Selection */}
-                                {categoryLevels.length > 0 ? (
-                                    categoryLevels.map((levelCategories, levelIndex) => (
+                                {product.categoryLevels.length > 0 ? (
+                                    product.categoryLevels.map((levelCategories, levelIndex) => (
                                         <Col key={levelIndex} xs={24} sm={12} md={6} lg={2} xl={2}>
                                             <Form.Item
                                                 label={
@@ -605,9 +693,9 @@ const AddProduct = () => {
                                             >
                                                 <Select
                                                     placeholder={levelIndex === 0 ? 'Main' : 'Sub'}
-                                                    value={selectedCategoryPath[levelIndex]}
-                                                    onChange={(value) => handleCategorySelection(value, levelIndex)}
-                                                    loading={loadingCategorySchema && levelIndex === categoryLevels.length - 1}
+                                                    value={product.selectedCategoryPath[levelIndex]}
+                                                    onChange={(value) => handleCategorySelection(value, levelIndex, product.id)}
+                                                    loading={loadingCategorySchema && levelIndex === product.categoryLevels.length - 1}
                                                     size="small"
                                                     style={{ fontSize: '10px' }}
                                                     dropdownStyle={{ fontSize: '10px' }}
@@ -637,28 +725,13 @@ const AddProduct = () => {
                                         </Form.Item>
                                     </Col>
                                 )}
-                                
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
-                                    <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Condition</span>}
-                                        name={`condition_product_${product.id}`}
-                                        style={{ marginBottom: '12px' }}
-                                        rules={[{ required: true, message: 'Please select condition' }]}
-                                    >
-                                        <Select placeholder="Condition" size="small" style={{ fontSize: '10px' }} dropdownStyle={{ fontSize: '10px' }}>
-                                            <Option value="New">New</Option>
-                                            <Option value="Refurbished">Refurbished</Option>
-                                            <Option value="Used">Used</Option>
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
 
                                 {/* Dynamic Fields - All fields from full schema (common + category-specific) */}
-                                {finalCategoryId && categoryFormSchema.length > 0 && 
-                                    categoryFormSchema.map((field, index) => {
+                                {product.finalCategoryId && product.categoryFormSchema.length > 0 && 
+                                    product.categoryFormSchema.map((field, index) => {
                                         // Handle IMEI field specially for Mobile category
-                                        if (field.field_id === 'mobile_imei' && isMobileCategory()) {
-                                            return imeiFields.map((imeiField, imeiIndex) => (
+                                        if (field.field_id === 'mobile_imei' && isMobileCategory(product.id)) {
+                                            return product.imeiFields.map((imeiField, imeiIndex) => (
                                                 <Col key={`${field.field_id}_${imeiField.id}_product_${product.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
                                                     <Form.Item
                                                         label={
@@ -667,7 +740,7 @@ const AddProduct = () => {
                                                                     IMEI {imeiField.id}
                                                                 </span>
                                                                 <div style={{ display: 'flex', gap: '2px' }}>
-                                                                    {imeiIndex === imeiFields.length - 1 && (
+                                                                    {imeiIndex === product.imeiFields.length - 1 && (
                                                                         <PlusCircleOutlined 
                                                                             style={{ 
                                                                                 fontSize: '10px', 
@@ -675,11 +748,11 @@ const AddProduct = () => {
                                                                                 cursor: 'pointer',
                                                                                 padding: '2px'
                                                                             }}
-                                                                            onClick={addImeiField}
+                                                                            onClick={() => addImeiField(product.id)}
                                                                             title="Add IMEI field"
                                                                         />
                                                                     )}
-                                                                    {imeiFields.length > 1 && (
+                                                                    {product.imeiFields.length > 1 && (
                                                                         <MinusCircleOutlined 
                                                                             style={{ 
                                                                                 fontSize: '10px', 
@@ -687,7 +760,7 @@ const AddProduct = () => {
                                                                                 cursor: 'pointer',
                                                                                 padding: '2px'
                                                                             }}
-                                                                            onClick={() => removeImeiField(imeiField.id)}
+                                                                            onClick={() => removeImeiField(imeiField.id, product.id)}
                                                                             title="Remove IMEI field"
                                                                         />
                                                                     )}
@@ -709,7 +782,7 @@ const AddProduct = () => {
                                                             size="small"
                                                             style={{ fontSize: '10px' }}
                                                             maxLength={15}
-                                                            onChange={(e) => updateImeiValue(imeiField.id, e.target.value)}
+                                                            onChange={(e) => updateImeiValue(imeiField.id, e.target.value, product.id)}
                                                         />
                                                     </Form.Item>
                                                 </Col>
@@ -806,11 +879,16 @@ const AddProduct = () => {
                                         setDistributorSearchValue('');
                                         setDistributorOptions([]);
                                         setSelectedDistributor(null);
-                                        setCategoryLevels([]);
-                                        setSelectedCategoryPath([]);
-                                        setFinalCategoryId(null);
-                                        setCategoryFormSchema([]);
-                                        setImeiFields([{ id: 1, value: '' }]); // Reset IMEI fields
+                                        // Reset products to single product
+                                        setProducts([{
+                                            id: 1,
+                                            categoryLevels: [],
+                                            selectedCategoryPath: [],
+                                            finalCategoryId: null,
+                                            categoryFormSchema: [],
+                                            imeiFields: [{ id: 1, value: '' }]
+                                        }]);
+                                        setProductCount(1);
                                         // Reload top-level categories
                                         fetchTopLevelCategories();
                                     }}

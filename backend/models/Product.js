@@ -17,10 +17,10 @@ productSchema.methods.getDisplayName = function() {
     // Try to get name from any field that might contain a product name
     return this.name || 
            this.product_name ||
-           this.common_model_number ||
+           this.model_number ||
+           this.brand ||
            this.mobile_brand ||
            this.tv_brand ||
-           this.brand ||
            this.model ||
            'Unknown Product';
 };
