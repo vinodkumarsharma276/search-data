@@ -601,6 +601,7 @@ const AddProductDynamic = () => {
                                 disabled={!enabled}
                                 style={{ flex: 1, ...disabledStyle }}
                                 className={!enabled ? 'ant-input-disabled' : ''}
+                                size="large"
                             />
                             {serialNumbers.length > 1 && (
                                 <Button 
@@ -659,6 +660,7 @@ const AddProductDynamic = () => {
                         placeholder={`Enter ${label.toLowerCase()}`}
                         style={{ width: '100%', ...disabledStyle }}
                         className={disabledClassName}
+                        size="large"
                     />
                 );
 
@@ -671,6 +673,7 @@ const AddProductDynamic = () => {
                         className={disabledClassName}
                         min={0}
                         precision={field_id.includes('price') ? 2 : 0}
+                        size="large"
                     />
                 );
 
@@ -696,6 +699,7 @@ const AddProductDynamic = () => {
                         allowClear
                         style={{ width: '100%', ...disabledStyle }}
                         className={disabledClassName}
+                        size="large"
                         onChange={(value) => handleInputChange(field_id, value, type, field.categoryId)}
                     >
                         {options?.map(option => (
@@ -799,7 +803,7 @@ const AddProductDynamic = () => {
                             size="small"
                             bodyStyle={{ padding: '16px' }}
                         >
-                            <Row gutter={12}>
+                            <Row gutter={16}>
                                 <Col span={24} md={4} lg={4} xl={4}>
                                     <Form.Item
                                         name="distributorId"
@@ -821,6 +825,7 @@ const AddProductDynamic = () => {
                                             value={distributorSearchValue}
                                             placeholder="Type at least 3 characters to search distributors..."
                                             allowClear
+                                            size="large"
                                             onClear={() => {
                                                 setDistributorSearchValue('');
                                                 setDistributorOptions([]);
@@ -843,6 +848,7 @@ const AddProductDynamic = () => {
                                                     value={selectedDistributor.name}
                                                     readOnly
                                                     disabled
+                                                    size="large"
                                                     style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', cursor: 'not-allowed' }}
                                                 />
                                             </Form.Item>
@@ -856,6 +862,7 @@ const AddProductDynamic = () => {
                                                     value={selectedDistributor.gst || 'N/A'}
                                                     readOnly
                                                     disabled
+                                                    size="large"
                                                     style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', cursor: 'not-allowed' }}
                                                 />
                                             </Form.Item>
@@ -869,6 +876,7 @@ const AddProductDynamic = () => {
                                                     value={selectedDistributor.pan || 'N/A'}
                                                     readOnly
                                                     disabled
+                                                    size="large"
                                                     style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', cursor: 'not-allowed' }}
                                                 />
                                             </Form.Item>
@@ -882,11 +890,12 @@ const AddProductDynamic = () => {
                                                     value={selectedDistributor.phone || 'N/A'}
                                                     readOnly
                                                     disabled
+                                                    size="large"
                                                     style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', cursor: 'not-allowed' }}
                                                 />
                                             </Form.Item>
                                         </Col>
-                                        <Col span={24} md={8} lg={8} xl={8}>
+                                        <Col span={24} md={4} lg={4} xl={4}>
                                             <Form.Item
                                                 label="Address"
                                                 className="mb-3"
@@ -896,6 +905,7 @@ const AddProductDynamic = () => {
                                                     readOnly
                                                     disabled
                                                     rows={2}
+                                                    size="large"
                                                     style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', cursor: 'not-allowed' }}
                                                 />
                                             </Form.Item>
@@ -984,7 +994,7 @@ const AddProductDynamic = () => {
                                     <TagOutlined className="text-orange-500 mr-1" />
                                     Select Product Category
                                 </div>
-                                <Row gutter={12}>
+                                <Row gutter={16}>
                                     {/* Top Level Category Dropdown */}
                                     <Col span={24} md={4} lg={4} xl={4}>
                                         <Form.Item
@@ -996,6 +1006,7 @@ const AddProductDynamic = () => {
                                                 placeholder="Select category"
                                                 className="w-full"
                                                 loading={isLoading}
+                                                size="large"
                                                 value={selectedCategoryPath[0]?.id}
                                                 onChange={(value) => {
                                                     const category = topLevelCategories.find(cat => cat._id === value);
@@ -1025,6 +1036,7 @@ const AddProductDynamic = () => {
                                                     placeholder="Select subcategory"
                                                     className="w-full"
                                                     loading={isLoading}
+                                                    size="large"
                                                     onChange={(value) => {
                                                         const category = currentCategoryChildren.find(cat => cat._id === value);
                                                         if (category) {
@@ -1047,7 +1059,7 @@ const AddProductDynamic = () => {
                             {/* Dynamic Product Form Fields */}
                             {fullFormSchema.length > 0 && (
                                 <Spin spinning={isLoading}>
-                                    <Row gutter={12}>
+                                    <Row gutter={16}>
                                         {fullFormSchema
                                             .filter((field, index, array) => {
                                                 // Remove duplicate serial number fields - keep only the first one found

@@ -68,7 +68,7 @@ async function seedCleanCategories() {
         console.log('🧹 Starting clean category hierarchy seeding...');
         
         // Connect to MongoDB
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect('mongodb://localhost:27017/vinod-electronics');
         console.log('✅ Connected to MongoDB');
 
         // Clear existing categories
@@ -213,100 +213,6 @@ async function seedCleanCategories() {
                         { value: 'Toshiba', label: 'Toshiba' },
                         { value: 'Other', label: 'Other' }
                     ]
-                },
-                {
-                    field_id: 'screen_size',
-                    label: 'Screen Size (inches)',
-                    type: 'dropdown',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 2,
-                    options: [
-                        { value: '32', label: '32"' },
-                        { value: '40', label: '40"' },
-                        { value: '43', label: '43"' },
-                        { value: '50', label: '50"' },
-                        { value: '55', label: '55"' },
-                        { value: '65', label: '65"' },
-                        { value: '75', label: '75"' },
-                        { value: '85', label: '85"' }
-                    ]
-                },
-                {
-                    field_id: 'resolution',
-                    label: 'Resolution',
-                    type: 'dropdown',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 3,
-                    options: [
-                        { value: 'HD', label: 'HD (720p)' },
-                        { value: 'FHD', label: 'Full HD (1080p)' },
-                        { value: '4K', label: '4K UHD (2160p)' },
-                        { value: '8K', label: '8K UHD (4320p)' }
-                    ]
-                },
-                {
-                    field_id: 'smart_os',
-                    label: 'Smart TV OS',
-                    type: 'dropdown',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 4,
-                    options: [
-                        { value: 'Android TV', label: 'Android TV' },
-                        { value: 'webOS', label: 'LG webOS' },
-                        { value: 'Tizen', label: 'Samsung Tizen' },
-                        { value: 'Fire TV', label: 'Amazon Fire TV' },
-                        { value: 'Roku TV', label: 'Roku TV' },
-                        { value: 'Other', label: 'Other' }
-                    ]
-                },
-                {
-                    field_id: 'panel_type',
-                    label: 'Panel Type',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 5,
-                    options: [
-                        { value: 'LED', label: 'LED' },
-                        { value: 'OLED', label: 'OLED' },
-                        { value: 'QLED', label: 'QLED' },
-                        { value: 'LCD', label: 'LCD' },
-                        { value: 'Plasma', label: 'Plasma' }
-                    ]
-                },
-                {
-                    field_id: 'refresh_rate',
-                    label: 'Refresh Rate (Hz)',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 6,
-                    options: [
-                        { value: '60', label: '60 Hz' },
-                        { value: '120', label: '120 Hz' },
-                        { value: '144', label: '144 Hz' },
-                        { value: '240', label: '240 Hz' }
-                    ]
-                },
-                {
-                    field_id: 'hdmi_ports',
-                    label: 'HDMI Ports',
-                    type: 'number',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 7
-                },
-                {
-                    field_id: 'wifi',
-                    label: 'WiFi Support',
-                    type: 'boolean',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 8,
-                    default_value: true
                 }
             ],
             isActive: true
@@ -346,36 +252,12 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'capacity',
-                    label: 'Capacity (Liters)',
-                    type: 'number',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 2
-                },
-                {
-                    field_id: 'type',
-                    label: 'Fridge Type',
-                    type: 'dropdown',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 3,
-                    options: [
-                        { value: 'Single Door', label: 'Single Door' },
-                        { value: 'Double Door', label: 'Double Door' },
-                        { value: 'Triple Door', label: 'Triple Door' },
-                        { value: 'Side by Side', label: 'Side by Side' },
-                        { value: 'French Door', label: 'French Door' },
-                        { value: 'Mini Fridge', label: 'Mini Fridge' }
-                    ]
-                },
-                {
                     field_id: 'star_rating',
                     label: 'Energy Star Rating',
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 4,
+                    display_order: 2,
                     options: [
                         { value: '1', label: '1 Star' },
                         { value: '2', label: '2 Star' },
@@ -383,56 +265,6 @@ async function seedCleanCategories() {
                         { value: '4', label: '4 Star' },
                         { value: '5', label: '5 Star' }
                     ]
-                },
-                {
-                    field_id: 'defrost_type',
-                    label: 'Defrost Type',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 5,
-                    options: [
-                        { value: 'Manual', label: 'Manual Defrost' },
-                        { value: 'Auto', label: 'Auto Defrost' },
-                        { value: 'Frost Free', label: 'Frost Free' }
-                    ]
-                },
-                {
-                    field_id: 'compressor_type',
-                    label: 'Compressor Type',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 6,
-                    options: [
-                        { value: 'Reciprocating', label: 'Reciprocating' },
-                        { value: 'Linear', label: 'Linear' },
-                        { value: 'Digital Inverter', label: 'Digital Inverter' },
-                        { value: 'Smart Inverter', label: 'Smart Inverter' }
-                    ]
-                },
-                {
-                    field_id: 'door_finish',
-                    label: 'Door Finish',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 7,
-                    options: [
-                        { value: 'Steel', label: 'Stainless Steel' },
-                        { value: 'Glass', label: 'Glass' },
-                        { value: 'Plastic', label: 'Plastic' },
-                        { value: 'Colored', label: 'Colored Finish' }
-                    ]
-                },
-                {
-                    field_id: 'ice_maker',
-                    label: 'Ice Maker',
-                    type: 'boolean',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 8,
-                    default_value: false
                 }
             ],
             isActive: true
@@ -474,105 +306,18 @@ async function seedCleanCategories() {
                     ]
                 },
                 {
-                    field_id: 'capacity',
-                    label: 'Capacity (Tons)',
-                    type: 'dropdown',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 2,
-                    options: [
-                        { value: '0.75', label: '0.75 Ton' },
-                        { value: '1', label: '1 Ton' },
-                        { value: '1.5', label: '1.5 Ton' },
-                        { value: '2', label: '2 Ton' },
-                        { value: '2.5', label: '2.5 Ton' },
-                        { value: '3', label: '3 Ton' },
-                        { value: '4', label: '4 Ton' },
-                        { value: '5', label: '5 Ton' }
-                    ]
-                },
-                {
-                    field_id: 'type',
-                    label: 'AC Type',
-                    type: 'dropdown',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 3,
-                    options: [
-                        { value: 'Split', label: 'Split AC' },
-                        { value: 'Window', label: 'Window AC' },
-                        { value: 'Cassette', label: 'Cassette AC' },
-                        { value: 'Floor Standing', label: 'Floor Standing' },
-                        { value: 'Portable', label: 'Portable AC' },
-                        { value: 'Central', label: 'Central AC' }
-                    ]
-                },
-                {
                     field_id: 'star_rating',
                     label: 'Energy Star Rating',
                     type: 'dropdown',
                     is_required: true,
                     enabled: true,
-                    display_order: 4,
+                    display_order: 2,
                     options: [
                         { value: '1', label: '1 Star' },
                         { value: '2', label: '2 Star' },
                         { value: '3', label: '3 Star' },
                         { value: '4', label: '4 Star' },
                         { value: '5', label: '5 Star' }
-                    ]
-                },
-                {
-                    field_id: 'inverter',
-                    label: 'Inverter Technology',
-                    type: 'boolean',
-                    is_required: true,
-                    enabled: true,
-                    display_order: 5,
-                    default_value: true
-                },
-                {
-                    field_id: 'refrigerant',
-                    label: 'Refrigerant Type',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 6,
-                    options: [
-                        { value: 'R32', label: 'R32' },
-                        { value: 'R410A', label: 'R410A' },
-                        { value: 'R22', label: 'R22' },
-                        { value: 'R290', label: 'R290' }
-                    ]
-                },
-                {
-                    field_id: 'filter_type',
-                    label: 'Filter Type',
-                    type: 'text',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 7
-                },
-                {
-                    field_id: 'wifi_enabled',
-                    label: 'WiFi Enabled',
-                    type: 'boolean',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 8,
-                    default_value: false
-                },
-                {
-                    field_id: 'installation_type',
-                    label: 'Installation Type',
-                    type: 'dropdown',
-                    is_required: false,
-                    enabled: true,
-                    display_order: 9,
-                    options: [
-                        { value: 'Indoor', label: 'Indoor Unit Only' },
-                        { value: 'Outdoor', label: 'Outdoor Unit Only' },
-                        { value: 'Complete', label: 'Complete Set' }
                     ]
                 }
             ],

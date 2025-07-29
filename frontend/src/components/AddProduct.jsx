@@ -517,11 +517,11 @@ const AddProduct = () => {
                             title="Distributor Information"
                             style={{ marginBottom: 24 }}
                             bodyStyle={{ padding: '16px' }}
-                            size="small"
+                            size="default"
                         >
-                            <Row gutter={12}>
+                            <Row gutter={16}>
                                 {/* Distributor Search Field */}
-                                <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                     {/* Hidden field to store the actual distributorId for form submission */}
                                     <Form.Item
                                         name="distributorId"
@@ -533,10 +533,10 @@ const AddProduct = () => {
                                     
                                     {/* Visual AutoComplete component (not connected to form) */}
                                     <Form.Item
-                                        label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Distributor Search <span style={{ color: '#ff4d4f' }}>*</span></span>}
+                                        label={<span style={{ fontSize: '12px', fontWeight: 500 }}>Distributor Search <span style={{ color: '#ff4d4f' }}>*</span></span>}
                                         validateStatus={form.getFieldError('distributorId').length ? 'error' : ''}
                                         help={form.getFieldError('distributorId')[0]}
-                                        style={{ marginBottom: '12px' }}
+                                        style={{ marginBottom: '16px' }}
                                     >
                                         <AutoComplete
                                             style={{ width: '100%' }}
@@ -546,8 +546,8 @@ const AddProduct = () => {
                                             value={distributorSearchValue}
                                             placeholder="Type 3+ chars to search..."
                                             allowClear
-                                            size="small"
-                                            dropdownStyle={{ fontSize: '10px' }}
+                                            size="large"
+                                            dropdownStyle={{ fontSize: '14px' }}
                                             className="autocomplete-small-font"
                                             onClear={() => {
                                                 setDistributorSearchValue('');
@@ -562,68 +562,68 @@ const AddProduct = () => {
                                 {/* Display selected distributor details in compact grid */}
                                 {selectedDistributor && (
                                     <>
-                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                             <Form.Item 
-                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Name</span>}
-                                                style={{ marginBottom: '12px' }}
+                                                label={<span style={{ fontSize: '12px', fontWeight: 500 }}>Name</span>}
+                                                style={{ marginBottom: '16px' }}
                                             >
                                                 <Input 
                                                     value={selectedDistributor.name ? selectedDistributor.name.split(' | ')[0] : 'N/A'} 
                                                     readOnly 
-                                                    size="small" 
-                                                    style={{ fontSize: '10px' }}
+                                                    size="large" 
+                                                    style={{ fontSize: '14px' }}
                                                 />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                             <Form.Item 
-                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>GST</span>}
-                                                style={{ marginBottom: '12px' }}
+                                                label={<span style={{ fontSize: '12px', fontWeight: 500 }}>GST</span>}
+                                                style={{ marginBottom: '16px' }}
                                             >
                                                 <Input 
                                                     value={selectedDistributor.gstNumber || 'N/A'} 
                                                     readOnly 
-                                                    size="small" 
-                                                    style={{ fontSize: '10px' }}
+                                                    size="large" 
+                                                    style={{ fontSize: '14px' }}
                                                 />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                             <Form.Item 
-                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>PAN</span>}
-                                                style={{ marginBottom: '12px' }}
+                                                label={<span style={{ fontSize: '12px', fontWeight: 500 }}>PAN</span>}
+                                                style={{ marginBottom: '16px' }}
                                             >
                                                 <Input 
                                                     value={selectedDistributor.panNumber || 'N/A'} 
                                                     readOnly 
-                                                    size="small" 
-                                                    style={{ fontSize: '10px' }}
+                                                    size="large" 
+                                                    style={{ fontSize: '14px' }}
                                                 />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                             <Form.Item 
-                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Mobile</span>}
-                                                style={{ marginBottom: '12px' }}
+                                                label={<span style={{ fontSize: '12px', fontWeight: 500 }}>Mobile</span>}
+                                                style={{ marginBottom: '16px' }}
                                             >
                                                 <Input 
                                                     value={selectedDistributor.primaryPhone || 'N/A'} 
                                                     readOnly 
-                                                    size="small" 
-                                                    style={{ fontSize: '10px' }}
+                                                    size="large" 
+                                                    style={{ fontSize: '14px' }}
                                                 />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                             <Form.Item 
-                                                label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Address</span>}
-                                                style={{ marginBottom: '12px' }}
+                                                label={<span style={{ fontSize: '12px', fontWeight: 500 }}>Address</span>}
+                                                style={{ marginBottom: '16px' }}
                                             >
                                                 <Input 
                                                     value={selectedDistributor.address || 'N/A'} 
                                                     readOnly 
-                                                    size="small" 
-                                                    style={{ fontSize: '10px' }}
+                                                    size="large" 
+                                                    style={{ fontSize: '14px' }}
                                                 />
                                             </Form.Item>
                                         </Col>
@@ -639,7 +639,7 @@ const AddProduct = () => {
                                     <span>Product Details ({products.length} product{products.length > 1 ? 's' : ''})</span>
                                     <Button
                                         type="primary"
-                                        size="small"
+                                        size="default"
                                         icon={<PlusCircleOutlined />}
                                         onClick={addAnotherProduct}
                                         style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
@@ -650,7 +650,7 @@ const AddProduct = () => {
                             }
                             style={{ marginBottom: 24 }}
                             bodyStyle={{ padding: '16px' }}
-                            size="small"
+                            size="default"
                         >
                             {/* Render each product */}
                             {products.map((product, productIndex) => (
@@ -678,27 +678,27 @@ const AddProduct = () => {
                                     )}
                                     
                                     {/* All fields in compact layout with balanced responsive sizing */}
-                                    <Row gutter={12}>
+                                    <Row gutter={16}>
                                 {/* Category Selection */}
                                 {product.categoryLevels.length > 0 ? (
                                     product.categoryLevels.map((levelCategories, levelIndex) => (
-                                        <Col key={levelIndex} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                        <Col key={levelIndex} xs={24} sm={12} md={8} lg={6} xl={6}>
                                             <Form.Item
                                                 label={
-                                                    <span style={{ fontSize: '10px', fontWeight: 500 }}>
+                                                    <span style={{ fontSize: '12px', fontWeight: 500 }}>
                                                         {levelIndex === 0 ? 'Main Category' : levelIndex === 1 ? 'Sub Category' : `Category ${levelIndex + 1}`}
                                                     </span>
                                                 }
-                                                style={{ marginBottom: '12px' }}
+                                                style={{ marginBottom: '16px' }}
                                             >
                                                 <Select
                                                     placeholder={levelIndex === 0 ? 'Main' : 'Sub'}
                                                     value={product.selectedCategoryPath[levelIndex]}
                                                     onChange={(value) => handleCategorySelection(value, levelIndex, product.id)}
                                                     loading={loadingCategorySchema && levelIndex === product.categoryLevels.length - 1}
-                                                    size="small"
-                                                    style={{ fontSize: '10px' }}
-                                                    dropdownStyle={{ fontSize: '10px' }}
+                                                    size="large"
+                                                    style={{ fontSize: '14px' }}
+                                                    dropdownStyle={{ fontSize: '14px' }}
                                                 >
                                                     {levelCategories.map(category => (
                                                         <Option key={category._id} value={category._id}>
@@ -710,17 +710,17 @@ const AddProduct = () => {
                                         </Col>
                                     ))
                                 ) : (
-                                    <Col xs={24} sm={12} md={6} lg={2} xl={2}>
+                                    <Col xs={24} sm={12} md={8} lg={6} xl={6}>
                                         <Form.Item
-                                            label={<span style={{ fontSize: '10px', fontWeight: 500 }}>Main Category</span>}
-                                            style={{ marginBottom: '12px' }}
+                                            label={<span style={{ fontSize: '12px', fontWeight: 500 }}>Main Category</span>}
+                                            style={{ marginBottom: '16px' }}
                                         >
                                             <Select
                                                 placeholder="Loading..."
                                                 disabled
-                                                size="small"
-                                                style={{ fontSize: '10px' }}
-                                                dropdownStyle={{ fontSize: '10px' }}
+                                                size="large"
+                                                style={{ fontSize: '14px' }}
+                                                dropdownStyle={{ fontSize: '14px' }}
                                             />
                                         </Form.Item>
                                     </Col>
@@ -732,18 +732,18 @@ const AddProduct = () => {
                                         // Handle IMEI field specially for Mobile category
                                         if (field.field_id === 'mobile_imei' && isMobileCategory(product.id)) {
                                             return product.imeiFields.map((imeiField, imeiIndex) => (
-                                                <Col key={`${field.field_id}_${imeiField.id}_product_${product.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                                <Col key={`${field.field_id}_${imeiField.id}_product_${product.id}`} xs={24} sm={12} md={8} lg={6} xl={6}>
                                                     <Form.Item
                                                         label={
                                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                <span style={{ fontSize: '10px', fontWeight: 500 }}>
+                                                                <span style={{ fontSize: '12px', fontWeight: 500 }}>
                                                                     IMEI {imeiField.id}
                                                                 </span>
                                                                 <div style={{ display: 'flex', gap: '2px' }}>
                                                                     {imeiIndex === product.imeiFields.length - 1 && (
                                                                         <PlusCircleOutlined 
                                                                             style={{ 
-                                                                                fontSize: '10px', 
+                                                                                fontSize: '12px', 
                                                                                 color: '#52c41a',
                                                                                 cursor: 'pointer',
                                                                                 padding: '2px'
@@ -755,7 +755,7 @@ const AddProduct = () => {
                                                                     {product.imeiFields.length > 1 && (
                                                                         <MinusCircleOutlined 
                                                                             style={{ 
-                                                                                fontSize: '10px', 
+                                                                                fontSize: '12px', 
                                                                                 color: '#ff4d4f',
                                                                                 cursor: 'pointer',
                                                                                 padding: '2px'
@@ -768,7 +768,7 @@ const AddProduct = () => {
                                                             </div>
                                                         }
                                                         name={`mobile_imei_${imeiField.id}_product_${product.id}`}
-                                                        style={{ marginBottom: '12px' }}
+                                                        style={{ marginBottom: '16px' }}
                                                         rules={[
                                                             ...(field.is_required && imeiIndex === 0 ? [{ required: true, message: 'Please enter at least one IMEI number' }] : []),
                                                             {
@@ -779,8 +779,8 @@ const AddProduct = () => {
                                                     >
                                                         <Input 
                                                             placeholder={`IMEI ${imeiField.id} (15 digits)`}
-                                                            size="small"
-                                                            style={{ fontSize: '10px' }}
+                                                            size="large"
+                                                            style={{ fontSize: '14px' }}
                                                             maxLength={15}
                                                             onChange={(e) => updateImeiValue(imeiField.id, e.target.value, product.id)}
                                                         />
@@ -791,11 +791,11 @@ const AddProduct = () => {
                                         
                                         // Handle other fields normally
                                         return (
-                                            <Col key={`${field.field_id}_product_${product.id}`} xs={24} sm={12} md={6} lg={2} xl={2}>
+                                            <Col key={`${field.field_id}_product_${product.id}`} xs={24} sm={12} md={8} lg={6} xl={6}>
                                                 <Form.Item
-                                                    label={<span style={{ fontSize: '10px', fontWeight: 500 }}>{field.label}</span>}
+                                                    label={<span style={{ fontSize: '12px', fontWeight: 500 }}>{field.label}</span>}
                                                     name={`${field.field_id}_product_${product.id}`}
-                                                    style={{ marginBottom: '12px' }}
+                                                    style={{ marginBottom: '16px' }}
                                                     rules={[
                                                         ...(field.validation?.required || field.is_required ? [{ required: true, message: `Please enter ${field.label.toLowerCase()}` }] : []),
                                                         ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
@@ -804,17 +804,17 @@ const AddProduct = () => {
                                                     {field.type === 'text' && (
                                                         <Input 
                                                             placeholder={field.label}
-                                                            size="small"
-                                                            style={{ fontSize: '10px' }}
+                                                            size="large"
+                                                            style={{ fontSize: '14px' }}
                                                         />
                                                     )}
                                                     {field.type === 'number' && (
                                                         <InputNumber 
                                                             placeholder={field.label}
-                                                            style={{ width: '100%', fontSize: '10px' }}
+                                                            style={{ width: '100%', fontSize: '14px' }}
                                                             min={field.validation?.min || 0}
                                                             max={field.validation?.max}
-                                                            size="small"
+                                                            size="large"
                                                         />
                                                     )}
                                                     {(field.type === 'dropdown' || field.type === 'combobox') && (
@@ -822,9 +822,9 @@ const AddProduct = () => {
                                                             placeholder={field.label}
                                                             mode={field.type === 'combobox' ? 'tags' : undefined}
                                                             allowClear
-                                                            size="small"
-                                                            style={{ fontSize: '10px' }}
-                                                            dropdownStyle={{ fontSize: '10px' }}
+                                                            size="large"
+                                                            style={{ fontSize: '14px' }}
+                                                            dropdownStyle={{ fontSize: '14px' }}
                                                         >
                                                             {field.options && field.options.map(option => (
                                                                 <Option 
@@ -840,7 +840,7 @@ const AddProduct = () => {
                                                         <Switch 
                                                             checkedChildren="Yes" 
                                                             unCheckedChildren="No" 
-                                                            size="small"
+                                                            size="default"
                                                             defaultChecked={field.default_value}
                                                         />
                                                     )}
