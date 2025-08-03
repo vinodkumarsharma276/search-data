@@ -64,7 +64,8 @@ const apiService = {
         update: (id, data) => apiClient.put(`/products/${id}`, data),
         delete: (id) => apiClient.delete(`/products/${id}`),
         updateStock: (id, data) => apiClient.patch(`/products/${id}/stock`, data),
-        getLowStock: () => apiClient.get('/products/reports/low-stock')
+        getLowStock: () => apiClient.get('/products/reports/low-stock'),
+        search: (params) => apiClient.get('/products/search', { params })
     },
 
     // Employee API methods

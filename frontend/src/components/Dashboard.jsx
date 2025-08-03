@@ -31,6 +31,7 @@ import AddDistributor from './AddDistributor';
 import SearchDistributor from './SearchDistributor';
 import SearchPage from './SearchPage';
 import AddProduct from './AddProduct';
+import SearchProduct from './SearchProduct';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -181,9 +182,10 @@ const Dashboard = () => {
                 return <AddDistributor />;
             case 'search-distributor':
                 return <SearchDistributor />;
+            case 'search-product':
+                return <SearchProduct />;
             case 'search-customer':
             case 'search-sale':
-            case 'search-product':
             case 'search-employee':
                 return <SearchPage searchType={selectedKey} />;
             case 'add-product':

@@ -23,11 +23,7 @@ async function checkProducts() {
                 console.log('Brand:', product.brand);
                 console.log('Model Number:', product.model_number);
                 console.log('Serial Number:', product.serial_number);
-                console.log('Category Path:', product.category_path);
                 console.log('Supplier ID:', product.supplierId);
-                console.log('Price:', product.price);
-                console.log('Condition:', product.condition);
-                console.log('HSN Code:', product.hsnCode);
                 
                 // Show dynamic fields (categoryFormData)
                 if (product.categoryFormData) {
