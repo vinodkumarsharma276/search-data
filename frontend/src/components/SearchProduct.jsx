@@ -225,7 +225,7 @@ const SearchProduct = () => {
             key: 'brand',
             width: 100,
             render: (brand) => (
-                <Text strong style={{ fontSize: '12px' }}>
+                <Text strong style={{ fontSize: '15px' }}>
                     {brand || 'N/A'}
                 </Text>
             ),
@@ -236,7 +236,7 @@ const SearchProduct = () => {
             key: 'model_number',
             width: 120,
             render: (text) => (
-                <Text style={{ fontSize: '11px' }}>{text || 'N/A'}</Text>
+                <Text style={{ fontSize: '14px' }}>{text || 'N/A'}</Text>
             ),
         },
         {
@@ -245,7 +245,7 @@ const SearchProduct = () => {
             key: 'serial_number',
             width: 130,
             render: (text) => (
-                <Text style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                <Text style={{ fontSize: '14px', fontFamily: 'monospace' }}>
                     {text || 'N/A'}
                 </Text>
             ),
@@ -256,7 +256,7 @@ const SearchProduct = () => {
             key: 'mrp',
             width: 100,
             render: (mrp) => (
-                <Text style={{ fontSize: '11px', color: '#52c41a' }}>
+                <Text style={{ fontSize: '14px', color: '#52c41a' }}>
                     {mrp ? `₹${Number(mrp).toLocaleString('en-IN')}` : 'N/A'}
                 </Text>
             ),
@@ -267,20 +267,9 @@ const SearchProduct = () => {
             key: 'dealer_price',
             width: 110,
             render: (dealerPrice) => (
-                <Text strong style={{ fontSize: '11px', color: '#fa8c16' }}>
+                <Text strong style={{ fontSize: '14px', color: '#fa8c16' }}>
                     {dealerPrice ? `₹${Number(dealerPrice).toLocaleString('en-IN')}` : 'N/A'}
                 </Text>
-            ),
-        },
-        {
-            title: 'Stock',
-            dataIndex: 'currentStock',
-            key: 'currentStock',
-            width: 80,
-            render: (stock) => (
-                <Tag color={stock > 10 ? 'green' : stock > 0 ? 'orange' : 'red'}>
-                    {stock || 0}
-                </Tag>
             ),
         }
     ];
