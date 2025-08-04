@@ -17,15 +17,7 @@ const COMMON_FIELDS = [
         type: 'text',
         is_required: true,
         enabled: true,
-        display_order: 1
-    },
-    {
-        field_id: 'serial_number',
-        label: 'Serial Number',
-        type: 'text',
-        is_required: true,
-        enabled: true,
-        display_order: 2
+        display_order: 20
     },
     {
         field_id: 'dealer_price',
@@ -33,7 +25,7 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 3
+        display_order: 21
     },
     {
         field_id: 'mrp',
@@ -41,25 +33,55 @@ const COMMON_FIELDS = [
         type: 'number',
         is_required: true,
         enabled: true,
-        display_order: 4
+        display_order: 22
     },
     {
         field_id: 'igst',
         label: 'IGST (%)',
-        type: 'number',
+        type: 'dropdown',
         is_required: true,
         enabled: true,
-        display_order: 5,
-        default_value: 18
+        display_order: 23,
+        default_value: 18,
+        options: [
+            { value: 0, label: '0%' },
+            { value: 0.25, label: '0.25%' },
+            { value: 3, label: '3%' },
+            { value: 5, label: '5%' },
+            { value: 12, label: '12%' },
+            { value: 18, label: '18%' },
+            { value: 28, label: '28%' }
+        ]
     },
     {
         field_id: 'cgst',
-        label: 'CGST (%)', 
-        type: 'number',
+        label: 'CGST (%)',
+        type: 'dropdown',
         is_required: true,
         enabled: true,
-        display_order: 6,
-        default_value: 9
+        display_order: 24,
+        default_value: 9,
+        options: [
+            { value: 0, label: '0%' },
+            { value: 0.125, label: '0.125%' },
+            { value: 1.5, label: '1.5%' },
+            { value: 2.5, label: '2.5%' },
+            { value: 6, label: '6%' },
+            { value: 9, label: '9%' },
+            { value: 14, label: '14%' }
+        ]
+    }
+];
+
+// Fields specific to Electronics
+const ELECTRONICS_ONLY_FIELDS = [
+    {
+        field_id: 'serial_number',
+        label: 'Serial Number',
+        type: 'text',
+        is_required: true,
+        enabled: true,
+        display_order: 11
     }
 ];
 
@@ -83,20 +105,22 @@ async function seedCleanCategories() {
             name: 'Electronics',
             parent_id: null,
             is_leaf: false,
-            form_schema: COMMON_FIELDS,
+            form_schema: [], // Common fields are now on leaf nodes
             isActive: true
         });
         
         await electronics.save();
         createdCategories['Electronics'] = electronics._id;
-        console.log(`✅ Created ROOT category: Electronics (${COMMON_FIELDS.length} common fields)`);
+        console.log(`✅ Created ROOT category: Electronics`);
 
-        // 2. Create MOBILE category (leaf with mobile-specific fields)
+        // 2. Create MOBILE category (leaf with mobile-specific fields + common)
         const mobile = new Category({
             name: 'Mobile',
             parent_id: createdCategories['Electronics'],
             is_leaf: true,
             form_schema: [
+                ...COMMON_FIELDS,
+                ...ELECTRONICS_ONLY_FIELDS,
                 {
                     field_id: 'brand',
                     label: 'Brand',
@@ -182,14 +206,16 @@ async function seedCleanCategories() {
         
         await mobile.save();
         createdCategories['Mobile'] = mobile._id;
-        console.log(`✅ Created Mobile category (${mobile.form_schema.length} specific fields)`);
+        console.log(`✅ Created Mobile category (${mobile.form_schema.length} total fields)`);
 
-        // 3. Create SMART TV category (leaf with TV-specific fields)
+        // 3. Create SMART TV category (leaf with TV-specific fields + common)
         const smartTV = new Category({
             name: 'Smart TV',
             parent_id: createdCategories['Electronics'],
             is_leaf: true,
             form_schema: [
+                ...COMMON_FIELDS,
+                ...ELECTRONICS_ONLY_FIELDS,
                 {
                     field_id: 'brand',
                     label: 'Brand',
@@ -220,14 +246,16 @@ async function seedCleanCategories() {
         
         await smartTV.save();
         createdCategories['Smart TV'] = smartTV._id;
-        console.log(`✅ Created Smart TV category (${smartTV.form_schema.length} specific fields)`);
+        console.log(`✅ Created Smart TV category (${smartTV.form_schema.length} total fields)`);
 
-        // 4. Create FRIDGE category (leaf with fridge-specific fields)
+        // 4. Create FRIDGE category (leaf with fridge-specific fields + common)
         const fridge = new Category({
             name: 'Fridge',
             parent_id: createdCategories['Electronics'],
             is_leaf: true,
             form_schema: [
+                ...COMMON_FIELDS,
+                ...ELECTRONICS_ONLY_FIELDS,
                 {
                     field_id: 'brand',
                     label: 'Brand',
@@ -272,14 +300,16 @@ async function seedCleanCategories() {
         
         await fridge.save();
         createdCategories['Fridge'] = fridge._id;
-        console.log(`✅ Created Fridge category (${fridge.form_schema.length} specific fields)`);
+        console.log(`✅ Created Fridge category (${fridge.form_schema.length} total fields)`);
 
-        // 5. Create AC category (leaf with AC-specific fields)
+        // 5. Create AC category (leaf with AC-specific fields + common)
         const ac = new Category({
             name: 'AC',
             parent_id: createdCategories['Electronics'],
             is_leaf: true,
             form_schema: [
+                ...COMMON_FIELDS,
+                ...ELECTRONICS_ONLY_FIELDS,
                 {
                     field_id: 'brand',
                     label: 'Brand',
@@ -326,28 +356,169 @@ async function seedCleanCategories() {
         
         await ac.save();
         createdCategories['AC'] = ac._id;
-        console.log(`✅ Created AC category (${ac.form_schema.length} specific fields)`);
+        console.log(`✅ Created AC category (${ac.form_schema.length} total fields)`);
+
+        // 6. Create ROOT: Furniture (with common fields only)
+        const furniture = new Category({
+            name: 'Furniture',
+            parent_id: null,
+            is_leaf: false,
+            form_schema: [], // No common fields at the root, they are added to leaf nodes
+            isActive: true
+        });
+
+        await furniture.save();
+        createdCategories['Furniture'] = furniture._id;
+        console.log(`✅ Created ROOT category: Furniture`);
+
+        // 7. Create subcategories for Furniture
+        const sofa = new Category({
+            name: 'Sofa',
+            parent_id: createdCategories['Furniture'],
+            is_leaf: true,
+            form_schema: [
+                ...COMMON_FIELDS,
+                {
+                    field_id: 'seating_capacity',
+                    label: 'Seating Capacity',
+                    type: 'dropdown',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 7,
+                    options: Array.from({ length: 20 }, (_, i) => ({ value: i + 1, label: `${i + 1}` }))
+                }
+            ],
+            isActive: true
+        });
+        await sofa.save();
+        createdCategories['Sofa'] = sofa._id;
+        console.log('✅ Created Sofa category');
+
+        const dressingTable = new Category({
+            name: 'Dressing Table',
+            parent_id: createdCategories['Furniture'],
+            is_leaf: true,
+            form_schema: COMMON_FIELDS, // Dressing Tables get common fields
+            isActive: true
+        });
+        await dressingTable.save();
+        createdCategories['Dressing Table'] = dressingTable._id;
+        console.log('✅ Created Dressing Table category');
+
+        // 8. Create Bed as a non-leaf category
+        const bed = new Category({
+            name: 'Bed',
+            parent_id: createdCategories['Furniture'],
+            is_leaf: false,
+            form_schema: [], // This is a container, no fields here
+            isActive: true
+        });
+        await bed.save();
+        createdCategories['Bed'] = bed._id;
+        console.log('✅ Created Bed (non-leaf) category');
+
+        // 9. Define bed-specific fields with conditional visibility
+        const bedSpecificFields = [
+            {
+                field_id: 'material',
+                label: 'Material',
+                type: 'dropdown',
+                is_required: true,
+                enabled: true,
+                display_order: 10,
+                options: [
+                    { value: 'Shesham', label: 'Shesham' },
+                    { value: 'Board', label: 'Board' },
+                    { value: 'Teak', label: 'Teak' }
+                ]
+            },
+            {
+                field_id: 'polish',
+                label: 'Polish',
+                type: 'dropdown',
+                is_required: true,
+                enabled: true,
+                display_order: 11,
+                options: [
+                    { value: 'PU', label: 'PU' },
+                    { value: 'Melamine', label: 'Melamine' }
+                ],
+                visibility_rules: [{
+                    field: 'material',
+                    operator: 'equals',
+                    value: 'Shesham'
+                }, {
+                    field: 'material',
+                    operator: 'equals',
+                    value: 'Teak'
+                }]
+            },
+            {
+                field_id: 'board_finish',
+                label: 'Finish',
+                type: 'dropdown',
+                is_required: true,
+                enabled: true,
+                display_order: 12,
+                options: [
+                    { value: 'Laminate', label: 'Laminate' },
+                    { value: 'Acrylic', label: 'Acrylic' }
+                ],
+                visibility_rules: [{
+                    field: 'material',
+                    operator: 'equals',
+                    value: 'Board'
+                }]
+            }
+        ];
+
+        // 10. Create leaf categories for Bed
+        const bedTypes = [
+            'Double Bed Headrest',
+            'Single Bed Headrest',
+            'Double Bed w/o Headrest',
+            'Single Bed w/o Headrest'
+        ];
+
+        for (const bedTypeName of bedTypes) {
+            const bedTypeCategory = new Category({
+                name: bedTypeName,
+                parent_id: createdCategories['Bed'],
+                is_leaf: true,
+                // Combine common fields with bed-specific fields
+                form_schema: [...COMMON_FIELDS, ...bedSpecificFields],
+                isActive: true
+            });
+            await bedTypeCategory.save();
+            createdCategories[bedTypeName] = bedTypeCategory._id;
+            console.log(`✅ Created ${bedTypeName} category`);
+        }
 
         // Summary
         console.log('\n📊 Category Seeding Summary:');
-        console.log(`🏠 Root Category: Electronics (${COMMON_FIELDS.length} common fields)`);
-        console.log(`📱 Mobile: ${mobile.form_schema.length} specific fields (including Brand)`);
-        console.log(`📺 Smart TV: ${smartTV.form_schema.length} specific fields (including Brand)`);
-        console.log(`❄️  Fridge: ${fridge.form_schema.length} specific fields (including Brand)`);
-        console.log(`🌬️  AC: ${ac.form_schema.length} specific fields (including Brand)`);
+        console.log(`� Root Categories: Electronics, Furniture`);
+        console.log(`\nELECTRONICS:`);
+        console.log(`  - Mobile: ${mobile.form_schema.length} specific fields`);
+        console.log(`  - Smart TV: ${smartTV.form_schema.length} specific fields`);
+        console.log(`  - Fridge: ${fridge.form_schema.length} specific fields`);
+        console.log(`  - AC: ${ac.form_schema.length} specific fields`);
+        console.log(`\nFURNITURE:`);
+        console.log(`  - Sofa (Leaf)`);
+        console.log(`  - Dressing Table (Leaf)`);
+        console.log(`  - Bed (Container) -> 4 Leaf sub-categories with specific fields`);
+
         console.log('\n✅ Clean category hierarchy seeded successfully!');
-        console.log('\n🏷️  Brand fields now category-specific with dropdown values:');
-        console.log('   📱 Mobile: Apple, Samsung, Xiaomi, OnePlus, etc.');
-        console.log('   📺 Smart TV: Samsung, LG, Sony, TCL, etc.');
-        console.log('   ❄️  Fridge: Samsung, LG, Whirlpool, Haier, etc.');
-        console.log('   🌬️  AC: Daikin, LG, Samsung, Voltas, etc.');
         
-        // Test compilation for one category
+        // Test compilation for one category from each tree
         console.log('\n🔍 Testing form schema compilation for Mobile...');
-        const compiledSchema = await Category.compileFullFormSchema(mobile._id);
-        console.log(`📋 Compiled Mobile form schema: ${compiledSchema.length} total fields`);
-        compiledSchema.forEach((field, index) => {
-            console.log(`   ${index + 1}. ${field.label} (${field.field_id}) - From: ${field.categoryName}`);
+        const compiledMobileSchema = await Category.compileFullFormSchema(mobile._id);
+        console.log(`📋 Compiled Mobile form schema: ${compiledMobileSchema.length} total fields`);
+        
+        console.log('\n🔍 Testing form schema compilation for Double Bed Headrest...');
+        const compiledBedSchema = await Category.compileFullFormSchema(createdCategories['Double Bed Headrest']);
+        console.log(`📋 Compiled Bed form schema: ${compiledBedSchema.length} total fields`);
+        compiledBedSchema.forEach((field, index) => {
+            console.log(`   ${index + 1}. ${field.label} (${field.field_id})`);
         });
 
     } catch (error) {

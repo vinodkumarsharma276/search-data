@@ -111,13 +111,13 @@ categorySchema.methods.getCategoryPath = async function() {
 categorySchema.statics.compileFullFormSchema = async function(leafCategoryId) {
     const category = await this.findById(leafCategoryId);
     if (!category || !category.is_leaf) {
-        throw new Error('Invalid leaf category');
+        throw new Error('Invalid leaf category: ' + leafCategoryId);
     }
     
     const schemas = [];
     let current = category;
     
-    // Collect all form schemas from leaf to root
+    // 1. Collect all form schemas from the current category's tree (leaf to root)
     while (current) {
         if (current.form_schema && current.form_schema.length > 0) {
             schemas.push({
@@ -133,11 +133,11 @@ categorySchema.statics.compileFullFormSchema = async function(leafCategoryId) {
             current = null;
         }
     }
-    
-    // Merge schemas (child overrides parent)
+
+    // 3. Merge schemas (child/specific overrides parent/common)
     const fieldMap = new Map();
     
-    // Process from parent to child (reverse order)
+    // Process from parent to child (reverse order of collection)
     schemas.reverse().forEach(schema => {
         schema.fields.forEach(field => {
             fieldMap.set(field.field_id, {
