@@ -23,6 +23,8 @@ import {
     PlusOutlined,
     SearchOutlined,
     LogoutOutlined,
+    DoubleLeftOutlined,
+    DoubleRightOutlined,
 } from '@ant-design/icons';
 
 // Import all the components
@@ -39,7 +41,7 @@ const { Title, Text } = Typography;
 const Dashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const siderWidth = 240;
     const collapsedSiderWidth = 80;
     const {
@@ -264,6 +266,23 @@ const Dashboard = () => {
                     }}
                     items={menuItems}
                     onClick={handleMenuClick}
+                />
+                
+                {/* Custom Collapse Trigger */}
+                <Button
+                    type="text"
+                    icon={collapsed ? <DoubleRightOutlined /> : <DoubleLeftOutlined />}
+                    onClick={() => setCollapsed(!collapsed)}
+                    style={{
+                        position: 'absolute',
+                        bottom: 16,
+                        right: collapsed ? '50%' : 16,
+                        transform: collapsed ? 'translateX(50%)' : 'none',
+                        fontSize: '16px',
+                        width: 32,
+                        height: 32,
+                        color: '#8c8c8c',
+                    }}
                 />
             </Sider>
 
