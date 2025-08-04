@@ -108,16 +108,20 @@ router.get('/search-test', async (req, res) => {
                         ])
                     ]
                 },
-                // Search in model_number, serial_number, brand, or name fields
+                // Search in dynamic_fields and name fields
                 {
                     $or: [
+                        { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
+                        { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
+                        { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
+                        { name: { $regex: searchQuery, $options: 'i' } },
+                        { product_name: { $regex: searchQuery, $options: 'i' } },
+                        // Legacy fields (in case some products still have them at root level)
                         { model_number: { $regex: searchQuery, $options: 'i' } },
                         { modelNumber: { $regex: searchQuery, $options: 'i' } },
                         { serial_number: { $regex: searchQuery, $options: 'i' } },
                         { serialNumber: { $regex: searchQuery, $options: 'i' } },
-                        { brand: { $regex: searchQuery, $options: 'i' } },
-                        { name: { $regex: searchQuery, $options: 'i' } },
-                        { product_name: { $regex: searchQuery, $options: 'i' } }
+                        { brand: { $regex: searchQuery, $options: 'i' } }
                     ]
                 }
             ]
