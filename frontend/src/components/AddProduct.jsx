@@ -368,7 +368,7 @@ const AddProduct = () => {
     };
 
     return (
-        <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+        <>
             <Breadcrumb style={{ marginBottom: '24px' }}>
                 <Breadcrumb.Item><Link to="/dashboard">Dashboard</Link></Breadcrumb.Item>
                 <Breadcrumb.Item>Add Product</Breadcrumb.Item>
@@ -473,7 +473,7 @@ const AddProduct = () => {
                     </Form.Item>
                 </Form>
             </Card>
-        </div>
+        </>
     );
 };
 

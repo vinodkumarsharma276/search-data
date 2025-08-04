@@ -597,890 +597,888 @@ const AddSale = () => {
     };
 
     return (
-        <div style={{ padding: '16px', background: '#f0f2f5' }}>
-            <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-                    {/* Header */}
-                    <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                        <Col>
-                            <Breadcrumb style={{ marginBottom: 6 }}>
-                                <Breadcrumb.Item>
-                                    <Link to="/search">Dashboard</Link>
-                                </Breadcrumb.Item>
-                                <Breadcrumb.Item>Sales</Breadcrumb.Item>
-                                <Breadcrumb.Item>New Sale</Breadcrumb.Item>
-                            </Breadcrumb>
-                            <Title level={3} style={{ margin: 0 }}>
-                                <ShoppingCartOutlined /> Create New Sale
-                            </Title>
-                        </Col>
-                        <Col>
-                            <Button 
-                                icon={<ArrowLeftOutlined />} 
-                                onClick={() => navigate('/search')}
+        <>
+            {/* Header */}
+            <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+                <Col>
+                    <Breadcrumb style={{ marginBottom: 6 }}>
+                        <Breadcrumb.Item>
+                            <Link to="/search">Dashboard</Link>
+                        </Breadcrumb.Item>
+                        <Breadcrumb.Item>Sales</Breadcrumb.Item>
+                        <Breadcrumb.Item>New Sale</Breadcrumb.Item>
+                    </Breadcrumb>
+                    <Title level={3} style={{ margin: 0 }}>
+                        <ShoppingCartOutlined /> Create New Sale
+                    </Title>
+                </Col>
+                <Col>
+                    <Button 
+                        icon={<ArrowLeftOutlined />} 
+                        onClick={() => navigate('/search')}
+                        size="small"
+                    >
+                        Back to Dashboard
+                    </Button>
+                </Col>
+            </Row>
+
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                requiredMark={false}
+            >
+                <Row gutter={16}>
+                    {/* Main Content */}
+                    <Col xs={24} lg={16}>
+                        {/* Customer Selection */}
+                        <Card 
+                            title={<><UserOutlined /> Customer Information</>}
+                            style={{ marginBottom: 16 }}
+                            bodyStyle={{ padding: '16px' }}
+                            size="small"
+                        >
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ marginBottom: 8, display: 'block', fontWeight: 500 }}>
+                                    Customer Search
+                                </label>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <AutoComplete
+                                        style={{ flex: 1 }}
+                                        options={customerSearchResults}
+                                        onSearch={handleCustomerSearch}
+                                        onSelect={handleCustomerSelect}
+                                        placeholder="Type customer name or mobile (min 3 chars)"
+                                        allowClear
+                                    />
+                                    <Button 
+                                        type="primary" 
+                                        onClick={handleAddCustomer}
+                                        icon={<PlusOutlined />}
+                                    >
+                                        Add Customer
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ marginBottom: 8, display: 'block', fontWeight: 500 }}>
+                                    Guarantor Search (Optional)
+                                </label>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <AutoComplete
+                                        style={{ flex: 1 }}
+                                        options={guarantorSearchResults}
+                                        onSearch={handleGuarantorSearch}
+                                        onSelect={handleGuarantorSelect}
+                                        placeholder="Type guarantor name or mobile (min 3 chars)"
+                                        allowClear
+                                    />
+                                    <Button 
+                                        type="default" 
+                                        onClick={handleAddGuarantor}
+                                        icon={<PlusOutlined />}
+                                    >
+                                        Add Guarantor
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Inline Customer Form */}
+                        {showAddCustomerForm && (
+                            <Card 
+                                title={`${selectedCustomer ? 'Edit Customer' : 'Add New Customer'}`}
+                                style={{ marginBottom: 16 }}
+                                bodyStyle={{ padding: '16px' }}
                                 size="small"
                             >
-                                Back to Dashboard
-                            </Button>
-                        </Col>
-                    </Row>
-
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        onFinish={handleSubmit}
-                        requiredMark={false}
-                    >
-                        <Row gutter={16}>
-                            {/* Main Content */}
-                            <Col xs={24} lg={16}>
-                                {/* Customer Selection */}
-                                <Card 
-                                    title={<><UserOutlined /> Customer Information</>}
-                                    style={{ marginBottom: 16 }}
-                                    bodyStyle={{ padding: '16px' }}
-                                    size="small"
-                                >
-                                    <div style={{ marginBottom: 16 }}>
-                                        <label style={{ marginBottom: 8, display: 'block', fontWeight: 500 }}>
-                                            Customer Search
-                                        </label>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <AutoComplete
-                                                style={{ flex: 1 }}
-                                                options={customerSearchResults}
-                                                onSearch={handleCustomerSearch}
-                                                onSelect={handleCustomerSelect}
-                                                placeholder="Type customer name or mobile (min 3 chars)"
-                                                allowClear
-                                            />
-                                            <Button 
-                                                type="primary" 
-                                                onClick={handleAddCustomer}
-                                                icon={<PlusOutlined />}
-                                            >
-                                                Add Customer
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ marginBottom: 16 }}>
-                                        <label style={{ marginBottom: 8, display: 'block', fontWeight: 500 }}>
-                                            Guarantor Search (Optional)
-                                        </label>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <AutoComplete
-                                                style={{ flex: 1 }}
-                                                options={guarantorSearchResults}
-                                                onSearch={handleGuarantorSearch}
-                                                onSelect={handleGuarantorSelect}
-                                                placeholder="Type guarantor name or mobile (min 3 chars)"
-                                                allowClear
-                                            />
-                                            <Button 
-                                                type="default" 
-                                                onClick={handleAddGuarantor}
-                                                icon={<PlusOutlined />}
-                                            >
-                                                Add Guarantor
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                {/* Inline Customer Form */}
-                                {showAddCustomerForm && (
-                                    <Card 
-                                        title={`${selectedCustomer ? 'Edit Customer' : 'Add New Customer'}`}
-                                        style={{ marginBottom: 16 }}
-                                        bodyStyle={{ padding: '16px' }}
-                                        size="small"
-                                    >
-                                        <Form
-                                            form={customerForm}
-                                            layout="vertical"
-                                            onFinish={(values) => {
-                                                console.log('Customer form values:', values);
-                                                // Handle customer form submission
-                                                setShowAddCustomerForm(false);
-                                                message.success('Customer details saved!');
-                                            }}
-                                        >
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Customer Name"
-                                                        name="name"
-                                                        rules={[{ required: true, message: 'Please enter customer name' }]}
-                                                    >
-                                                        <Input placeholder="Enter full name" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Zone"
-                                                        name="zone"
-                                                        rules={[{ required: true, message: 'Please select zone' }]}
-                                                    >
-                                                        <Select placeholder="Select zone">
-                                                            <Option value="North">North</Option>
-                                                            <Option value="South">South</Option>
-                                                            <Option value="East">East</Option>
-                                                            <Option value="West">West</Option>
-                                                        </Select>
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <Form.Item
-                                                label="Address"
-                                                name="address"
-                                                rules={[{ required: true, message: 'Please enter address' }]}
-                                            >
-                                                <Input.TextArea placeholder="Enter complete address" rows={2} />
-                                            </Form.Item>
-                                            <Form.List name="mobile">
-                                                {(fields, { add, remove }) => (
-                                                    <>
-                                                        {fields.map(({ key, name, ...restField }) => (
-                                                            <Row key={key} gutter={16} align="middle">
-                                                                <Col span={20}>
-                                                                    <Form.Item
-                                                                        {...restField}
-                                                                        name={[name]}
-                                                                        label={key === 0 ? "Mobile Numbers" : ""}
-                                                                        rules={[{ required: true, message: 'Please enter mobile number' }]}
-                                                                    >
-                                                                        <Input placeholder="9876543210" maxLength={10} />
-                                                                    </Form.Item>
-                                                                </Col>
-                                                                <Col span={4}>
-                                                                    {fields.length > 1 && (
-                                                                        <Button
-                                                                            type="text"
-                                                                            icon={<DeleteOutlined />}
-                                                                            onClick={() => remove(name)}
-                                                                            danger
-                                                                        />
-                                                                    )}
-                                                                </Col>
-                                                            </Row>
-                                                        ))}
-                                                        <Form.Item>
-                                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                                                                Add Mobile Number
-                                                            </Button>
-                                                        </Form.Item>
-                                                    </>
-                                                )}
-                                            </Form.List>
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item label="Email (Optional)" name="email">
-                                                        <Input placeholder="email@example.com" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item label="Phone (Optional)" name="phone">
-                                                        <Input placeholder="011-12345678" />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item label="Aadhaar Number (Optional)" name="aadharNumber">
-                                                        <Input placeholder="123456789012" maxLength={12} />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item label="PAN Number (Optional)" name="panNumber">
-                                                        <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <div style={{ textAlign: 'right', marginTop: 16 }}>
-                                                <Button onClick={() => setShowAddCustomerForm(false)} style={{ marginRight: 8 }}>
-                                                    Cancel
-                                                </Button>
-                                                <Button type="primary" htmlType="submit">
-                                                    {selectedCustomer ? 'Update Customer' : 'Add Customer'}
-                                                </Button>
-                                            </div>
-                                        </Form>
-                                    </Card>
-                                )}
-
-                                {/* Inline Guarantor Form */}
-                                {showAddGuarantorForm && (
-                                    <Card 
-                                        title={`${selectedGuarantor ? 'Edit Guarantor' : 'Add New Guarantor'}`}
-                                        style={{ marginBottom: 16 }}
-                                        bodyStyle={{ padding: '16px' }}
-                                        size="small"
-                                    >
-                                        <Form
-                                            form={guarantorForm}
-                                            layout="vertical"
-                                            onFinish={(values) => {
-                                                console.log('Guarantor form values:', values);
-                                                // Handle guarantor form submission
-                                                setShowAddGuarantorForm(false);
-                                                message.success('Guarantor details saved!');
-                                            }}
-                                        >
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Guarantor Name"
-                                                        name="name"
-                                                        rules={[{ required: true, message: 'Please enter guarantor name' }]}
-                                                    >
-                                                        <Input placeholder="Enter full name" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Zone"
-                                                        name="zone"
-                                                        rules={[{ required: true, message: 'Please select zone' }]}
-                                                    >
-                                                        <Select placeholder="Select zone">
-                                                            <Option value="North">North</Option>
-                                                            <Option value="South">South</Option>
-                                                            <Option value="East">East</Option>
-                                                            <Option value="West">West</Option>
-                                                        </Select>
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <Form.Item
-                                                label="Address"
-                                                name="address"
-                                                rules={[{ required: true, message: 'Please enter address' }]}
-                                            >
-                                                <Input.TextArea placeholder="Enter complete address" rows={2} />
-                                            </Form.Item>
-                                            <Form.List name="mobile">
-                                                {(fields, { add, remove }) => (
-                                                    <>
-                                                        {fields.map(({ key, name, ...restField }) => (
-                                                            <Row key={key} gutter={16} align="middle">
-                                                                <Col span={20}>
-                                                                    <Form.Item
-                                                                        {...restField}
-                                                                        name={[name]}
-                                                                        label={key === 0 ? "Mobile Numbers" : ""}
-                                                                        rules={[{ required: true, message: 'Please enter mobile number' }]}
-                                                                    >
-                                                                        <Input placeholder="9876543210" maxLength={10} />
-                                                                    </Form.Item>
-                                                                </Col>
-                                                                <Col span={4}>
-                                                                    {fields.length > 1 && (
-                                                                        <Button
-                                                                            type="text"
-                                                                            icon={<DeleteOutlined />}
-                                                                            onClick={() => remove(name)}
-                                                                            danger
-                                                                        />
-                                                                    )}
-                                                                </Col>
-                                                            </Row>
-                                                        ))}
-                                                        <Form.Item>
-                                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                                                                Add Mobile Number
-                                                            </Button>
-                                                        </Form.Item>
-                                                    </>
-                                                )}
-                                            </Form.List>
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item label="Email (Optional)" name="email">
-                                                        <Input placeholder="email@example.com" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item label="Phone (Optional)" name="phone">
-                                                        <Input placeholder="011-12345678" />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item label="Aadhaar Number (Optional)" name="aadharNumber">
-                                                        <Input placeholder="123456789012" maxLength={12} />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item label="PAN Number (Optional)" name="panNumber">
-                                                        <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <div style={{ textAlign: 'right', marginTop: 16 }}>
-                                                <Button onClick={() => setShowAddGuarantorForm(false)} style={{ marginRight: 8 }}>
-                                                    Cancel
-                                                </Button>
-                                                <Button type="primary" htmlType="submit">
-                                                    {selectedGuarantor ? 'Update Guarantor' : 'Add Guarantor'}
-                                                </Button>
-                                            </div>
-                                        </Form>
-                                    </Card>
-                                )}
-
-                                {/* Products Section */}
-                                <Card 
-                                    title={<><ShoppingCartOutlined /> Sale Items</>}
-                                    style={{ marginBottom: 16 }}
-                                    bodyStyle={{ padding: '12px' }}
-                                    size="small"
-                                    extra={
-                                        <Button 
-                                            type="primary" 
-                                            icon={<PlusOutlined />} 
-                                            onClick={handleAddItem}
-                                            size="small"
-                                        >
-                                            Add Item
-                                        </Button>
-                                    }
-                                >
-                                    {saleItems.map((item, index) => (
-                                        <Card 
-                                            key={item.key}
-                                            type="inner"
-                                            title={`Item ${index + 1}`}
-                                            style={{ 
-                                                marginBottom: index === saleItems.length - 1 ? 0 : 12,
-                                                border: '1px solid #e8e8e8'
-                                            }}
-                                            bodyStyle={{ padding: '12px' }}
-                                            headStyle={{ padding: '8px 12px', minHeight: '40px' }}
-                                            size="small"
-                                            extra={
-                                                saleItems.length > 1 && (
-                                                    <Popconfirm
-                                                        title="Remove this item?"
-                                                        onConfirm={() => handleRemoveItem(index)}
-                                                    >
-                                                        <Button 
-                                                            icon={<DeleteOutlined />} 
-                                                            size="small" 
-                                                            danger
-                                                            type="text"
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    </Popconfirm>
-                                                )
-                                            }
-                                        >
-                                            {/* Row 1: Category, Brand, Product */}
-                                            <Row gutter={12} style={{ marginBottom: 12 }}>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Category
-                                                    </label>
-                                                    <Select
-                                                        placeholder="Select category"
-                                                        value={item.categoryId}
-                                                        onChange={(value) => handleItemChange(index, 'categoryId', value)}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                    >
-                                                        {categories.map(cat => (
-                                                            <Option key={cat._id} value={cat._id}>{cat.name}</Option>
-                                                        ))}
-                                                    </Select>
-                                                </Col>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Brand
-                                                    </label>
-                                                    <Select
-                                                        placeholder="Select brand"
-                                                        value={item.brandId}
-                                                        onChange={(value) => handleItemChange(index, 'brandId', value)}
-                                                        disabled={!item.categoryId}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                    >
-                                                        {(itemBrands[index] || []).map(brand => (
-                                                            <Option key={brand._id} value={brand._id}>{brand.name}</Option>
-                                                        ))}
-                                                    </Select>
-                                                </Col>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Product
-                                                    </label>
-                                                    <Select
-                                                        placeholder="Select product"
-                                                        value={item.productId}
-                                                        onChange={(value) => handleItemChange(index, 'productId', value)}
-                                                        disabled={!item.brandId}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                    >
-                                                        {(itemProducts[index] || []).map(product => (
-                                                            <Option key={product._id} value={product._id}>{product.name}</Option>
-                                                        ))}
-                                                    </Select>
-                                                </Col>
-                                            </Row>
-
-                                            {/* Row 2: Serial Number, MRP, Selling Price */}
-                                            <Row gutter={12} style={{ marginBottom: 12 }}>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Serial Number
-                                                    </label>
-                                                    <Select
-                                                        placeholder="Select serial number"
-                                                        value={item.serialNumber}
-                                                        onChange={(value) => handleItemChange(index, 'serialNumber', value)}
-                                                        disabled={!item.productId}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                    >
-                                                        {(itemSerialNumbers[index] || []).map(serialItem => (
-                                                            <Option key={serialItem._id} value={serialItem.serialNumber}>
-                                                                {serialItem.serialNumber} ({serialItem.condition})
-                                                            </Option>
-                                                        ))}
-                                                    </Select>
-                                                </Col>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        MRP (₹)
-                                                    </label>
-                                                    <InputNumber
-                                                        value={item.mrp}
-                                                        onChange={(value) => handleItemChange(index, 'mrp', value)}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                        placeholder="0"
-                                                    />
-                                                </Col>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Selling Price (₹)
-                                                    </label>
-                                                    <InputNumber
-                                                        value={item.sellingPrice}
-                                                        onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                        placeholder="0"
-                                                    />
-                                                </Col>
-                                            </Row>
-
-                                            {/* Row 3: Discount, GST Rate, Total */}
-                                            <Row gutter={12}>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Discount (₹)
-                                                    </label>
-                                                    <InputNumber
-                                                        value={item.discount}
-                                                        onChange={(value) => handleItemChange(index, 'discount', value)}
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                        placeholder="0"
-                                                    />
-                                                    {item.discountPercentage > 0 && (
-                                                        <Text type="secondary" style={{ fontSize: '11px' }}>
-                                                            {item.discountPercentage}% off
-                                                        </Text>
-                                                    )}
-                                                </Col>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        GST Rate
-                                                    </label>
-                                                    <Input
-                                                        value={`${item.gstRate}%`}
-                                                        disabled
-                                                        style={{ width: '100%' }}
-                                                        size="small"
-                                                    />
-                                                </Col>
-                                                <Col xs={24} sm={8}>
-                                                    <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                        Item Total
-                                                    </label>
-                                                    <Input
-                                                        value={`₹ ${((parseFloat(item.sellingPrice) || 0) - (parseFloat(item.discount) || 0) + (((parseFloat(item.sellingPrice) || 0) - (parseFloat(item.discount) || 0)) * (parseFloat(item.gstRate) || 0)) / 100).toFixed(2)}`}
-                                                        disabled
-                                                        style={{ width: '100%', fontWeight: 'bold' }}
-                                                        size="small"
-                                                    />
-                                                </Col>
-                                            </Row>
-
-                                            {/* Product Name Display */}
-                                            {item.productName && (
-                                                <div style={{ marginTop: 8, padding: '6px 8px', backgroundColor: '#f8f9fa', borderRadius: 4, fontSize: '12px' }}>
-                                                    <Text strong>Product: </Text>
-                                                    <Text>{item.productName}</Text>
-                                                    {item.modelNumber && (
-                                                        <>
-                                                            <Text strong> | Model: </Text>
-                                                            <Text>{item.modelNumber}</Text>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </Card>
-                                    ))}
-                                </Card>
-
-                                {/* Payment Section */}
-                                <Card 
-                                    title={<><DollarOutlined /> Payment Details</>}
-                                    style={{ marginBottom: 16 }}
-                                    bodyStyle={{ padding: '16px' }}
-                                    size="small"
+                                <Form
+                                    form={customerForm}
+                                    layout="vertical"
+                                    onFinish={(values) => {
+                                        console.log('Customer form values:', values);
+                                        // Handle customer form submission
+                                        setShowAddCustomerForm(false);
+                                        message.success('Customer details saved!');
+                                    }}
                                 >
                                     <Row gutter={16}>
                                         <Col span={12}>
                                             <Form.Item
-                                                label="Payment Type"
-                                                name="paymentType"
-                                                initialValue="Cash"
-                                                style={{ marginBottom: 12 }}
+                                                label="Customer Name"
+                                                name="name"
+                                                rules={[{ required: true, message: 'Please enter customer name' }]}
                                             >
-                                                <Radio.Group size="small" onChange={handlePaymentTypeChange} value={paymentType}>
-                                                    <Radio value="Cash">Cash</Radio>
-                                                    <Radio value="Card">Card</Radio>
-                                                    <Radio value="UPI">UPI</Radio>
-                                                    <Radio value="Installment">EMI</Radio>
-                                                </Radio.Group>
+                                                <Input placeholder="Enter full name" />
                                             </Form.Item>
                                         </Col>
                                         <Col span={12}>
                                             <Form.Item
-                                                label="Sales Person"
-                                                name="salesPerson"
-                                                initialValue="Vinod Sharma"
+                                                label="Zone"
+                                                name="zone"
+                                                rules={[{ required: true, message: 'Please select zone' }]}
+                                            >
+                                                <Select placeholder="Select zone">
+                                                    <Option value="North">North</Option>
+                                                    <Option value="South">South</Option>
+                                                    <Option value="East">East</Option>
+                                                    <Option value="West">West</Option>
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                    <Form.Item
+                                        label="Address"
+                                        name="address"
+                                        rules={[{ required: true, message: 'Please enter address' }]}
+                                    >
+                                        <Input.TextArea placeholder="Enter complete address" rows={2} />
+                                    </Form.Item>
+                                    <Form.List name="mobile">
+                                        {(fields, { add, remove }) => (
+                                            <>
+                                                {fields.map(({ key, name, ...restField }) => (
+                                                    <Row key={key} gutter={16} align="middle">
+                                                        <Col span={20}>
+                                                            <Form.Item
+                                                                {...restField}
+                                                                name={[name]}
+                                                                label={key === 0 ? "Mobile Numbers" : ""}
+                                                                rules={[{ required: true, message: 'Please enter mobile number' }]}
+                                                            >
+                                                                <Input placeholder="9876543210" maxLength={10} />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={4}>
+                                                            {fields.length > 1 && (
+                                                                <Button
+                                                                    type="text"
+                                                                    icon={<DeleteOutlined />}
+                                                                    onClick={() => remove(name)}
+                                                                    danger
+                                                                />
+                                                            )}
+                                                        </Col>
+                                                    </Row>
+                                                ))}
+                                                <Form.Item>
+                                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                        Add Mobile Number
+                                                    </Button>
+                                                </Form.Item>
+                                            </>
+                                        )}
+                                    </Form.List>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item label="Email (Optional)" name="email">
+                                                <Input placeholder="email@example.com" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item label="Phone (Optional)" name="phone">
+                                                <Input placeholder="011-12345678" />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item label="Aadhaar Number (Optional)" name="aadharNumber">
+                                                <Input placeholder="123456789012" maxLength={12} />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item label="PAN Number (Optional)" name="panNumber">
+                                                <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                    <div style={{ textAlign: 'right', marginTop: 16 }}>
+                                        <Button onClick={() => setShowAddCustomerForm(false)} style={{ marginRight: 8 }}>
+                                            Cancel
+                                        </Button>
+                                        <Button type="primary" htmlType="submit">
+                                            {selectedCustomer ? 'Update Customer' : 'Add Customer'}
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Card>
+                        )}
+
+                        {/* Inline Guarantor Form */}
+                        {showAddGuarantorForm && (
+                            <Card 
+                                title={`${selectedGuarantor ? 'Edit Guarantor' : 'Add New Guarantor'}`}
+                                style={{ marginBottom: 16 }}
+                                bodyStyle={{ padding: '16px' }}
+                                size="small"
+                            >
+                                <Form
+                                    form={guarantorForm}
+                                    layout="vertical"
+                                    onFinish={(values) => {
+                                        console.log('Guarantor form values:', values);
+                                        // Handle guarantor form submission
+                                        setShowAddGuarantorForm(false);
+                                        message.success('Guarantor details saved!');
+                                    }}
+                                >
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Guarantor Name"
+                                                name="name"
+                                                rules={[{ required: true, message: 'Please enter guarantor name' }]}
+                                            >
+                                                <Input placeholder="Enter full name" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Zone"
+                                                name="zone"
+                                                rules={[{ required: true, message: 'Please select zone' }]}
+                                            >
+                                                <Select placeholder="Select zone">
+                                                    <Option value="North">North</Option>
+                                                    <Option value="South">South</Option>
+                                                    <Option value="East">East</Option>
+                                                    <Option value="West">West</Option>
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                    <Form.Item
+                                        label="Address"
+                                        name="address"
+                                        rules={[{ required: true, message: 'Please enter address' }]}
+                                    >
+                                        <Input.TextArea placeholder="Enter complete address" rows={2} />
+                                    </Form.Item>
+                                    <Form.List name="mobile">
+                                        {(fields, { add, remove }) => (
+                                            <>
+                                                {fields.map(({ key, name, ...restField }) => (
+                                                    <Row key={key} gutter={16} align="middle">
+                                                        <Col span={20}>
+                                                            <Form.Item
+                                                                {...restField}
+                                                                name={[name]}
+                                                                label={key === 0 ? "Mobile Numbers" : ""}
+                                                                rules={[{ required: true, message: 'Please enter mobile number' }]}
+                                                            >
+                                                                <Input placeholder="9876543210" maxLength={10} />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={4}>
+                                                            {fields.length > 1 && (
+                                                                <Button
+                                                                    type="text"
+                                                                    icon={<DeleteOutlined />}
+                                                                    onClick={() => remove(name)}
+                                                                    danger
+                                                                />
+                                                            )}
+                                                        </Col>
+                                                    </Row>
+                                                ))}
+                                                <Form.Item>
+                                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                        Add Mobile Number
+                                                    </Button>
+                                                </Form.Item>
+                                            </>
+                                        )}
+                                    </Form.List>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item label="Email (Optional)" name="email">
+                                                <Input placeholder="email@example.com" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item label="Phone (Optional)" name="phone">
+                                                <Input placeholder="011-12345678" />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item label="Aadhaar Number (Optional)" name="aadharNumber">
+                                                <Input placeholder="123456789012" maxLength={12} />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item label="PAN Number (Optional)" name="panNumber">
+                                                <Input placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                    <div style={{ textAlign: 'right', marginTop: 16 }}>
+                                        <Button onClick={() => setShowAddGuarantorForm(false)} style={{ marginRight: 8 }}>
+                                            Cancel
+                                        </Button>
+                                        <Button type="primary" htmlType="submit">
+                                            {selectedGuarantor ? 'Update Guarantor' : 'Add Guarantor'}
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Card>
+                        )}
+
+                        {/* Products Section */}
+                        <Card 
+                            title={<><ShoppingCartOutlined /> Sale Items</>}
+                            style={{ marginBottom: 16 }}
+                            bodyStyle={{ padding: '12px' }}
+                            size="small"
+                            extra={
+                                <Button 
+                                    type="primary" 
+                                    icon={<PlusOutlined />} 
+                                    onClick={handleAddItem}
+                                    size="small"
+                                >
+                                    Add Item
+                                </Button>
+                            }
+                        >
+                            {saleItems.map((item, index) => (
+                                <Card 
+                                    key={item.key}
+                                    type="inner"
+                                    title={`Item ${index + 1}`}
+                                    style={{ 
+                                        marginBottom: index === saleItems.length - 1 ? 0 : 12,
+                                        border: '1px solid #e8e8e8'
+                                    }}
+                                    bodyStyle={{ padding: '12px' }}
+                                    headStyle={{ padding: '8px 12px', minHeight: '40px' }}
+                                    size="small"
+                                    extra={
+                                        saleItems.length > 1 && (
+                                            <Popconfirm
+                                                title="Remove this item?"
+                                                onConfirm={() => handleRemoveItem(index)}
+                                            >
+                                                <Button 
+                                                    icon={<DeleteOutlined />} 
+                                                    size="small" 
+                                                    danger
+                                                    type="text"
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </Popconfirm>
+                                        )
+                                    }
+                                >
+                                    {/* Row 1: Category, Brand, Product */}
+                                    <Row gutter={12} style={{ marginBottom: 12 }}>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Category
+                                            </label>
+                                            <Select
+                                                placeholder="Select category"
+                                                value={item.categoryId}
+                                                onChange={(value) => handleItemChange(index, 'categoryId', value)}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                            >
+                                                {categories.map(cat => (
+                                                    <Option key={cat._id} value={cat._id}>{cat.name}</Option>
+                                                ))}
+                                            </Select>
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Brand
+                                            </label>
+                                            <Select
+                                                placeholder="Select brand"
+                                                value={item.brandId}
+                                                onChange={(value) => handleItemChange(index, 'brandId', value)}
+                                                disabled={!item.categoryId}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                            >
+                                                {(itemBrands[index] || []).map(brand => (
+                                                    <Option key={brand._id} value={brand._id}>{brand.name}</Option>
+                                                ))}
+                                            </Select>
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Product
+                                            </label>
+                                            <Select
+                                                placeholder="Select product"
+                                                value={item.productId}
+                                                onChange={(value) => handleItemChange(index, 'productId', value)}
+                                                disabled={!item.brandId}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                            >
+                                                {(itemProducts[index] || []).map(product => (
+                                                    <Option key={product._id} value={product._id}>{product.name}</Option>
+                                                ))}
+                                            </Select>
+                                        </Col>
+                                    </Row>
+
+                                    {/* Row 2: Serial Number, MRP, Selling Price */}
+                                    <Row gutter={12} style={{ marginBottom: 12 }}>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Serial Number
+                                            </label>
+                                            <Select
+                                                placeholder="Select serial number"
+                                                value={item.serialNumber}
+                                                onChange={(value) => handleItemChange(index, 'serialNumber', value)}
+                                                disabled={!item.productId}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                            >
+                                                {(itemSerialNumbers[index] || []).map(serialItem => (
+                                                    <Option key={serialItem._id} value={serialItem.serialNumber}>
+                                                        {serialItem.serialNumber} ({serialItem.condition})
+                                                    </Option>
+                                                ))}
+                                            </Select>
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                MRP (₹)
+                                            </label>
+                                            <InputNumber
+                                                value={item.mrp}
+                                                onChange={(value) => handleItemChange(index, 'mrp', value)}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                placeholder="0"
+                                            />
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Selling Price (₹)
+                                            </label>
+                                            <InputNumber
+                                                value={item.sellingPrice}
+                                                onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                placeholder="0"
+                                            />
+                                        </Col>
+                                    </Row>
+
+                                    {/* Row 3: Discount, GST Rate, Total */}
+                                    <Row gutter={12}>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Discount (₹)
+                                            </label>
+                                            <InputNumber
+                                                value={item.discount}
+                                                onChange={(value) => handleItemChange(index, 'discount', value)}
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                placeholder="0"
+                                            />
+                                            {item.discountPercentage > 0 && (
+                                                <Text type="secondary" style={{ fontSize: '11px' }}>
+                                                    {item.discountPercentage}% off
+                                                </Text>
+                                            )}
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                GST Rate
+                                            </label>
+                                            <Input
+                                                value={`${item.gstRate}%`}
+                                                disabled
+                                                style={{ width: '100%' }}
+                                                size="small"
+                                            />
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
+                                                Item Total
+                                            </label>
+                                            <Input
+                                                value={`₹ ${((parseFloat(item.sellingPrice) || 0) - (parseFloat(item.discount) || 0) + (((parseFloat(item.sellingPrice) || 0) - (parseFloat(item.discount) || 0)) * (parseFloat(item.gstRate) || 0)) / 100).toFixed(2)}`}
+                                                disabled
+                                                style={{ width: '100%', fontWeight: 'bold' }}
+                                                size="small"
+                                            />
+                                        </Col>
+                                    </Row>
+
+                                    {/* Product Name Display */}
+                                    {item.productName && (
+                                        <div style={{ marginTop: 8, padding: '6px 8px', backgroundColor: '#f8f9fa', borderRadius: 4, fontSize: '12px' }}>
+                                            <Text strong>Product: </Text>
+                                            <Text>{item.productName}</Text>
+                                            {item.modelNumber && (
+                                                <>
+                                                    <Text strong> | Model: </Text>
+                                                    <Text>{item.modelNumber}</Text>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </Card>
+                            ))}
+                        </Card>
+
+                        {/* Payment Section */}
+                        <Card 
+                            title={<><DollarOutlined /> Payment Details</>}
+                            style={{ marginBottom: 16 }}
+                            bodyStyle={{ padding: '16px' }}
+                            size="small"
+                        >
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item
+                                        label="Payment Type"
+                                        name="paymentType"
+                                        initialValue="Cash"
+                                        style={{ marginBottom: 12 }}
+                                    >
+                                        <Radio.Group size="small" onChange={handlePaymentTypeChange} value={paymentType}>
+                                            <Radio value="Cash">Cash</Radio>
+                                            <Radio value="Card">Card</Radio>
+                                            <Radio value="UPI">UPI</Radio>
+                                            <Radio value="Installment">EMI</Radio>
+                                        </Radio.Group>
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item
+                                        label="Sales Person"
+                                        name="salesPerson"
+                                        initialValue="Vinod Sharma"
+                                        style={{ marginBottom: 12 }}
+                                    >
+                                        <Input size="small" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
+                            {/* EMI Fields - Show only when Installment is selected */}
+                            {paymentType === 'Installment' && (
+                                <div className="emi-configuration" style={{ marginTop: 16, padding: '12px', borderRadius: '8px' }}>
+                                    <Title level={5} style={{ margin: '0 0 16px 0' }}>
+                                        EMI Configuration
+                                    </Title>
+                                    
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="File Charges (₹)"
                                                 style={{ marginBottom: 12 }}
                                             >
-                                                <Input size="small" />
+                                                <InputNumber
+                                                    size="small"
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                    value={emiDetails.fileCharges}
+                                                    onChange={(value) => handleEMIFieldChange('fileCharges', value || 0)}
+                                                    placeholder="Enter file charges"
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Interest Rate (%)"
+                                                style={{ marginBottom: 12 }}
+                                            >
+                                                <InputNumber
+                                                    size="small"
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                    max={50}
+                                                    step={0.1}
+                                                    value={emiDetails.interestRate}
+                                                    onChange={(value) => handleEMIFieldChange('interestRate', value || 0)}
+                                                    placeholder="Enter interest rate"
+                                                />
                                             </Form.Item>
                                         </Col>
                                     </Row>
 
-                                    {/* EMI Fields - Show only when Installment is selected */}
-                                    {paymentType === 'Installment' && (
-                                        <div className="emi-configuration" style={{ marginTop: 16, padding: '12px', borderRadius: '8px' }}>
-                                            <Title level={5} style={{ margin: '0 0 16px 0' }}>
-                                                EMI Configuration
-                                            </Title>
-                                            
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="File Charges (₹)"
-                                                        style={{ marginBottom: 12 }}
-                                                    >
-                                                        <InputNumber
-                                                            size="small"
-                                                            style={{ width: '100%' }}
-                                                            min={0}
-                                                            value={emiDetails.fileCharges}
-                                                            onChange={(value) => handleEMIFieldChange('fileCharges', value || 0)}
-                                                            placeholder="Enter file charges"
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Interest Rate (%)"
-                                                        style={{ marginBottom: 12 }}
-                                                    >
-                                                        <InputNumber
-                                                            size="small"
-                                                            style={{ width: '100%' }}
-                                                            min={0}
-                                                            max={50}
-                                                            step={0.1}
-                                                            value={emiDetails.interestRate}
-                                                            onChange={(value) => handleEMIFieldChange('interestRate', value || 0)}
-                                                            placeholder="Enter interest rate"
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Down Payment (₹)"
+                                                style={{ marginBottom: 12 }}
+                                            >
+                                                <InputNumber
+                                                    size="small"
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                    max={parseFloat(totals.totalAmount || 0)}
+                                                    value={emiDetails.downPayment}
+                                                    onChange={(value) => handleEMIFieldChange('downPayment', value || 0)}
+                                                    placeholder="Enter down payment"
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Number of Installments"
+                                                style={{ marginBottom: 12 }}
+                                            >
+                                                <Select
+                                                    size="small"
+                                                    value={emiDetails.numberOfInstallments}
+                                                    onChange={(value) => handleEMIFieldChange('numberOfInstallments', value)}
+                                                    style={{ width: '100%' }}
+                                                >
+                                                    <Option value={3}>3 Months</Option>
+                                                    <Option value={6}>6 Months</Option>
+                                                    <Option value={9}>9 Months</Option>
+                                                    <Option value={12}>12 Months</Option>
+                                                    <Option value={18}>18 Months</Option>
+                                                    <Option value={24}>24 Months</Option>
+                                                    <Option value={36}>36 Months</Option>
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
 
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Down Payment (₹)"
-                                                        style={{ marginBottom: 12 }}
-                                                    >
-                                                        <InputNumber
-                                                            size="small"
-                                                            style={{ width: '100%' }}
-                                                            min={0}
-                                                            max={parseFloat(totals.totalAmount || 0)}
-                                                            value={emiDetails.downPayment}
-                                                            onChange={(value) => handleEMIFieldChange('downPayment', value || 0)}
-                                                            placeholder="Enter down payment"
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        label="Number of Installments"
-                                                        style={{ marginBottom: 12 }}
-                                                    >
-                                                        <Select
-                                                            size="small"
-                                                            value={emiDetails.numberOfInstallments}
-                                                            onChange={(value) => handleEMIFieldChange('numberOfInstallments', value)}
-                                                            style={{ width: '100%' }}
-                                                        >
-                                                            <Option value={3}>3 Months</Option>
-                                                            <Option value={6}>6 Months</Option>
-                                                            <Option value={9}>9 Months</Option>
-                                                            <Option value={12}>12 Months</Option>
-                                                            <Option value={18}>18 Months</Option>
-                                                            <Option value={24}>24 Months</Option>
-                                                            <Option value={36}>36 Months</Option>
-                                                        </Select>
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
+                                    {/* EMI Summary */}
+                                    <div className="payment-summary" style={{ marginTop: 16, padding: '12px', borderRadius: '6px' }}>
+                                        <Title level={5} style={{ margin: '0 0 12px 0' }}>Payment Summary</Title>
+                                        <Row gutter={16}>
+                                            <Col span={6}>
+                                                <Text strong>Original Amount:</Text><br />
+                                                <Text style={{ fontSize: '16px', color: 'var(--success-color)' }}>₹{totals.totalAmount}</Text>
+                                            </Col>
+                                            <Col span={6}>
+                                                <Text strong>Final Amount:</Text><br />
+                                                <Text style={{ fontSize: '16px', color: 'var(--primary-color)' }}>₹{totals.finalAmount}</Text>
+                                            </Col>
+                                            <Col span={6}>
+                                                <Text strong>Extra Cost:</Text><br />
+                                                <Text style={{ fontSize: '16px', color: '#fa8c16' }}>₹{(totals.finalAmount - totals.totalAmount).toFixed(2)}</Text>
+                                            </Col>
+                                            <Col span={6}>
+                                                <Text strong>Pending Amount:</Text><br />
+                                                <Text style={{ fontSize: '16px', color: 'var(--warning-color)' }}>₹{totals.pendingAmount}</Text>
+                                            </Col>
+                                        </Row>
+                                    </div>
 
-                                            {/* EMI Summary */}
-                                            <div className="payment-summary" style={{ marginTop: 16, padding: '12px', borderRadius: '6px' }}>
-                                                <Title level={5} style={{ margin: '0 0 12px 0' }}>Payment Summary</Title>
-                                                <Row gutter={16}>
-                                                    <Col span={6}>
-                                                        <Text strong>Original Amount:</Text><br />
-                                                        <Text style={{ fontSize: '16px', color: 'var(--success-color)' }}>₹{totals.totalAmount}</Text>
-                                                    </Col>
-                                                    <Col span={6}>
-                                                        <Text strong>Final Amount:</Text><br />
-                                                        <Text style={{ fontSize: '16px', color: 'var(--primary-color)' }}>₹{totals.finalAmount}</Text>
-                                                    </Col>
-                                                    <Col span={6}>
-                                                        <Text strong>Extra Cost:</Text><br />
-                                                        <Text style={{ fontSize: '16px', color: '#fa8c16' }}>₹{(totals.finalAmount - totals.totalAmount).toFixed(2)}</Text>
-                                                    </Col>
-                                                    <Col span={6}>
-                                                        <Text strong>Pending Amount:</Text><br />
-                                                        <Text style={{ fontSize: '16px', color: 'var(--warning-color)' }}>₹{totals.pendingAmount}</Text>
-                                                    </Col>
-                                                </Row>
-                                            </div>
-
-                                            {/* Installment Schedule Table */}
-                                            {emiDetails.installments.length > 0 && (
-                                                <div style={{ marginTop: 16 }}>
-                                                    <Title level={5} style={{ margin: '0 0 12px 0' }}>Installment Schedule</Title>
-                                                    <Table
-                                                        size="small"
-                                                        dataSource={emiDetails.installments}
-                                                        pagination={false}
-                                                        scroll={{ y: 200 }}
-                                                        columns={[
-                                                            {
-                                                                title: 'Installment #',
-                                                                dataIndex: 'installmentNumber',
-                                                                key: 'installmentNumber',
-                                                                width: 100,
-                                                                align: 'center'
-                                                            },
-                                                            {
-                                                                title: 'Amount (₹)',
-                                                                dataIndex: 'amount',
-                                                                key: 'amount',
-                                                                width: 100,
-                                                                align: 'right',
-                                                                render: (amount) => <Text strong>{amount}</Text>
-                                                            },
-                                                            {
-                                                                title: 'Due Date',
-                                                                dataIndex: 'dueDate',
-                                                                key: 'dueDate',
-                                                                width: 120
-                                                            },
-                                                            {
-                                                                title: 'Status',
-                                                                dataIndex: 'status',
-                                                                key: 'status',
-                                                                width: 80,
-                                                                align: 'center',
-                                                                render: (status) => (
-                                                                    <Text style={{ 
-                                                                        color: status === 'Pending' ? 'var(--warning-color)' : 'var(--success-color)',
-                                                                        fontWeight: 500 
-                                                                    }}>
-                                                                        {status}
-                                                                    </Text>
-                                                                )
-                                                            }
-                                                        ]}
-                                                    />
-                                                </div>
-                                            )}
+                                    {/* Installment Schedule Table */}
+                                    {emiDetails.installments.length > 0 && (
+                                        <div style={{ marginTop: 16 }}>
+                                            <Title level={5} style={{ margin: '0 0 12px 0' }}>Installment Schedule</Title>
+                                            <Table
+                                                size="small"
+                                                dataSource={emiDetails.installments}
+                                                pagination={false}
+                                                scroll={{ y: 200 }}
+                                                columns={[
+                                                    {
+                                                        title: 'Installment #',
+                                                        dataIndex: 'installmentNumber',
+                                                        key: 'installmentNumber',
+                                                        width: 100,
+                                                        align: 'center'
+                                                    },
+                                                    {
+                                                        title: 'Amount (₹)',
+                                                        dataIndex: 'amount',
+                                                        key: 'amount',
+                                                        width: 100,
+                                                        align: 'right',
+                                                        render: (amount) => <Text strong>{amount}</Text>
+                                                    },
+                                                    {
+                                                        title: 'Due Date',
+                                                        dataIndex: 'dueDate',
+                                                        key: 'dueDate',
+                                                        width: 120
+                                                    },
+                                                    {
+                                                        title: 'Status',
+                                                        dataIndex: 'status',
+                                                        key: 'status',
+                                                        width: 80,
+                                                        align: 'center',
+                                                        render: (status) => (
+                                                            <Text style={{ 
+                                                                color: status === 'Pending' ? 'var(--warning-color)' : 'var(--success-color)',
+                                                                fontWeight: 500 
+                                                            }}>
+                                                                {status}
+                                                            </Text>
+                                                        )
+                                                    }
+                                                ]}
+                                            />
                                         </div>
                                     )}
+                                </div>
+                            )}
 
-                                    <Form.Item
-                                        label="Notes (Optional)"
-                                        name="notes"
-                                        style={{ marginBottom: 0, marginTop: paymentType === 'Installment' ? 16 : 0 }}
-                                    >
-                                        <TextArea rows={2} placeholder="Any additional notes about this sale..." size="small" />
-                                    </Form.Item>
-                                </Card>
+                            <Form.Item
+                                label="Notes (Optional)"
+                                name="notes"
+                                style={{ marginBottom: 0, marginTop: paymentType === 'Installment' ? 16 : 0 }}
+                            >
+                                <TextArea rows={2} placeholder="Any additional notes about this sale..." size="small" />
+                            </Form.Item>
+                        </Card>
 
-                                {/* Submit Section */}
-                                <Card bodyStyle={{ padding: '16px', textAlign: 'center' }} size="small">
-                                    <Button 
-                                        type="primary"
-                                        icon={<SaveOutlined />}
-                                        htmlType="submit"
-                                        loading={loading}
-                                        style={{ minWidth: 180 }}
-                                    >
-                                        {loading ? 'Creating Sale...' : 'Create Sale'}
-                                    </Button>
-                                </Card>
-                            </Col>
+                        {/* Submit Section */}
+                        <Card bodyStyle={{ padding: '16px', textAlign: 'center' }} size="small">
+                            <Button 
+                                type="primary"
+                                icon={<SaveOutlined />}
+                                htmlType="submit"
+                                loading={loading}
+                                style={{ minWidth: 180 }}
+                            >
+                                {loading ? 'Creating Sale...' : 'Create Sale'}
+                            </Button>
+                        </Card>
+                    </Col>
 
-                            {/* Summary Sidebar */}
-                            <Col xs={24} lg={8}>
-                                <Card 
-                                    title="Order Summary" 
-                                    style={{ position: 'sticky', top: 16 }}
-                                    bodyStyle={{ padding: '16px' }}
-                                    size="small"
-                                >
+                    {/* Summary Sidebar */}
+                    <Col xs={24} lg={8}>
+                        <Card 
+                            title="Order Summary" 
+                            style={{ position: 'sticky', top: 16 }}
+                            bodyStyle={{ padding: '16px' }}
+                            size="small"
+                        >
+                            <div style={{ marginBottom: 12 }}>
+                                <Row justify="space-between">
+                                    <Text>Subtotal:</Text>
+                                    <Text strong>₹{totals.subtotal}</Text>
+                                </Row>
+                            </div>
+                            <div style={{ marginBottom: 12 }}>
+                                <Row justify="space-between">
+                                    <Text>GST:</Text>
+                                    <Text strong>₹{totals.totalGst}</Text>
+                                </Row>
+                            </div>
+                            <Divider style={{ margin: '12px 0' }} />
+                            
+                            {/* Show EMI details if Installment payment */}
+                            {paymentType === 'Installment' ? (
+                                <>
                                     <div style={{ marginBottom: 12 }}>
                                         <Row justify="space-between">
-                                            <Text>Subtotal:</Text>
-                                            <Text strong>₹{totals.subtotal}</Text>
+                                            <Text>Original Amount:</Text>
+                                            <Text strong>₹{totals.totalAmount}</Text>
                                         </Row>
                                     </div>
-                                    <div style={{ marginBottom: 12 }}>
+                                    {emiDetails.fileCharges > 0 && (
+                                        <div style={{ marginBottom: 12 }}>
+                                            <Row justify="space-between">
+                                                <Text>File Charges:</Text>
+                                                <Text strong>₹{emiDetails.fileCharges}</Text>
+                                            </Row>
+                                        </div>
+                                    )}
+                                    {emiDetails.interestRate > 0 && (
+                                        <div style={{ marginBottom: 12 }}>
+                                            <Row justify="space-between">
+                                                <Text>Interest ({emiDetails.interestRate}%):</Text>
+                                                <Text strong>₹{((parseFloat(totals.totalAmount || 0) * emiDetails.interestRate) / 100).toFixed(2)}</Text>
+                                            </Row>
+                                        </div>
+                                    )}
+                                    <div style={{ marginBottom: 16 }}>
                                         <Row justify="space-between">
-                                            <Text>GST:</Text>
-                                            <Text strong>₹{totals.totalGst}</Text>
+                                            <Title level={5} style={{ margin: 0 }}>Final Amount:</Title>
+                                            <Title level={5} style={{ margin: 0, color: '#1890ff' }}>
+                                                ₹{totals.finalAmount}
+                                            </Title>
                                         </Row>
                                     </div>
-                                    <Divider style={{ margin: '12px 0' }} />
-                                    
-                                    {/* Show EMI details if Installment payment */}
-                                    {paymentType === 'Installment' ? (
+                                    {emiDetails.downPayment > 0 && (
                                         <>
                                             <div style={{ marginBottom: 12 }}>
                                                 <Row justify="space-between">
-                                                    <Text>Original Amount:</Text>
-                                                    <Text strong>₹{totals.totalAmount}</Text>
+                                                    <Text>Down Payment:</Text>
+                                                    <Text strong style={{ color: 'var(--success-color)' }}>₹{emiDetails.downPayment}</Text>
                                                 </Row>
                                             </div>
-                                            {emiDetails.fileCharges > 0 && (
-                                                <div style={{ marginBottom: 12 }}>
-                                                    <Row justify="space-between">
-                                                        <Text>File Charges:</Text>
-                                                        <Text strong>₹{emiDetails.fileCharges}</Text>
-                                                    </Row>
-                                                </div>
-                                            )}
-                                            {emiDetails.interestRate > 0 && (
-                                                <div style={{ marginBottom: 12 }}>
-                                                    <Row justify="space-between">
-                                                        <Text>Interest ({emiDetails.interestRate}%):</Text>
-                                                        <Text strong>₹{((parseFloat(totals.totalAmount || 0) * emiDetails.interestRate) / 100).toFixed(2)}</Text>
-                                                    </Row>
-                                                </div>
-                                            )}
                                             <div style={{ marginBottom: 16 }}>
                                                 <Row justify="space-between">
-                                                    <Title level={5} style={{ margin: 0 }}>Final Amount:</Title>
-                                                    <Title level={5} style={{ margin: 0, color: '#1890ff' }}>
-                                                        ₹{totals.finalAmount}
+                                                    <Title level={5} style={{ margin: 0, color: 'var(--warning-color)' }}>Pending Amount:</Title>
+                                                    <Title level={5} style={{ margin: 0, color: 'var(--warning-color)' }}>
+                                                        ₹{totals.pendingAmount}
                                                     </Title>
                                                 </Row>
                                             </div>
-                                            {emiDetails.downPayment > 0 && (
-                                                <>
-                                                    <div style={{ marginBottom: 12 }}>
-                                                        <Row justify="space-between">
-                                                            <Text>Down Payment:</Text>
-                                                            <Text strong style={{ color: 'var(--success-color)' }}>₹{emiDetails.downPayment}</Text>
-                                                        </Row>
-                                                    </div>
-                                                    <div style={{ marginBottom: 16 }}>
-                                                        <Row justify="space-between">
-                                                            <Title level={5} style={{ margin: 0, color: 'var(--warning-color)' }}>Pending Amount:</Title>
-                                                            <Title level={5} style={{ margin: 0, color: 'var(--warning-color)' }}>
-                                                                ₹{totals.pendingAmount}
-                                                            </Title>
-                                                        </Row>
-                                                    </div>
-                                                </>
-                                            )}
-                                            {emiDetails.installments.length > 0 && (
-                                                <div style={{ 
-                                                    padding: '8px', 
-                                                    backgroundColor: 'var(--bg-tertiary)', 
-                                                    borderRadius: '4px', 
-                                                    marginBottom: 16 
-                                                }}>
-                                                    <Text strong>EMI Details:</Text><br />
-                                                    <Text style={{ fontSize: '12px' }}>
-                                                        {emiDetails.numberOfInstallments} installments of ₹{emiDetails.installments[0]?.amount || 0} each
-                                                    </Text>
-                                                </div>
-                                            )}
                                         </>
-                                    ) : (
-                                        <div style={{ marginBottom: 16 }}>
-                                            <Row justify="space-between">
-                                                <Title level={5} style={{ margin: 0 }}>Total:</Title>
-                                                <Title level={5} style={{ margin: 0, color: 'var(--primary-color)' }}>
-                                                    ₹{totals.totalAmount}
-                                                </Title>
-                                            </Row>
+                                    )}
+                                    {emiDetails.installments.length > 0 && (
+                                        <div style={{ 
+                                            padding: '8px', 
+                                            backgroundColor: 'var(--bg-tertiary)', 
+                                            borderRadius: '4px', 
+                                            marginBottom: 16 
+                                        }}>
+                                            <Text strong>EMI Details:</Text><br />
+                                            <Text style={{ fontSize: '12px' }}>
+                                                {emiDetails.numberOfInstallments} installments of ₹{emiDetails.installments[0]?.amount || 0} each
+                                            </Text>
                                         </div>
                                     )}
+                                </>
+                            ) : (
+                                <div style={{ marginBottom: 16 }}>
+                                    <Row justify="space-between">
+                                        <Title level={5} style={{ margin: 0 }}>Total:</Title>
+                                        <Title level={5} style={{ margin: 0, color: 'var(--primary-color)' }}>
+                                            ₹{totals.totalAmount}
+                                        </Title>
+                                    </Row>
+                                </div>
+                            )}
 
-                                    {/* Items Summary */}
-                                    <Divider style={{ margin: '12px 0' }} />
-                                    <Title level={5} style={{ marginBottom: 8 }}>Items ({saleItems.length})</Title>
-                                    {saleItems.map((item, index) => (
-                                        <div key={item.key} style={{ marginBottom: 6 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <Text ellipsis style={{ flex: 1, fontSize: '13px' }}>
-                                                    {item.productName || `Item ${index + 1}`}
-                                                </Text>
-                                                <Text strong style={{ fontSize: '13px' }}>₹{item.sellingPrice || 0}</Text>
-                                            </div>
-                                            {item.serialNumber && (
-                                                <Text type="secondary" style={{ fontSize: '11px' }}>
-                                                    SN: {item.serialNumber}
-                                                </Text>
-                                            )}
-                                        </div>
-                                    ))}
-                                </Card>
-                            </Col>
-                        </Row>
-                    </Form>
-                </div>
-        </div>
+                            {/* Items Summary */}
+                            <Divider style={{ margin: '12px 0' }} />
+                            <Title level={5} style={{ marginBottom: 8 }}>Items ({saleItems.length})</Title>
+                            {saleItems.map((item, index) => (
+                                <div key={item.key} style={{ marginBottom: 6 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <Text ellipsis style={{ flex: 1, fontSize: '13px' }}>
+                                            {item.productName || `Item ${index + 1}`}
+                                        </Text>
+                                        <Text strong style={{ fontSize: '13px' }}>₹{item.sellingPrice || 0}</Text>
+                                    </div>
+                                    {item.serialNumber && (
+                                        <Text type="secondary" style={{ fontSize: '11px' }}>
+                                            SN: {item.serialNumber}
+                                        </Text>
+                                    )}
+                                </div>
+                            ))}
+                        </Card>
+                    </Col>
+                </Row>
+            </Form>
+        </>
     );
 };
 

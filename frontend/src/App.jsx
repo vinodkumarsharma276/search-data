@@ -4,14 +4,15 @@ import { Layout } from 'antd';
 import Login from './components/Login.jsx';
 import Header from './components/Header.jsx';
 import Dashboard from './components/Dashboard.jsx';
-import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import authService from './services/authService';
 import './styles/App.css';
-import './styles/theme.css';
+import './styles/themes.css';
+import { useTheme } from './contexts/ThemeContext.jsx';
 
 let appRenderCount = 0;
 
 function App() {
+    const { theme } = useTheme();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
     const hasInitialized = useRef(false);
@@ -90,11 +91,10 @@ function App() {
     }
 
     return (
-        <ThemeProvider>
-            <Router>
-                <Layout style={{ minHeight: '100vh' }}>
-                    <Header />
-                    <Routes>
+        <Router>
+            <Layout style={{ minHeight: '100vh' }} className={`theme-${theme}`}>
+                <Header />
+                <Routes>
                         <Route 
                             path="/login" 
                             element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
@@ -152,9 +152,8 @@ function App() {
                             element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
                         />
                     </Routes>
-                </Layout>
-            </Router>
-        </ThemeProvider>
+            </Layout>
+        </Router>
     );
 }
 

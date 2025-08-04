@@ -40,6 +40,8 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [collapsed, setCollapsed] = useState(false);
+    const siderWidth = 240;
+    const collapsedSiderWidth = 80;
     const {
         token: { colorBgContainer, borderRadiusLG },
     } = theme.useToken();
@@ -219,22 +221,27 @@ const Dashboard = () => {
     return (
         <Layout style={{ minHeight: '100vh' }}>
             {/* Sidebar */}
-            <Sider 
-                trigger={null} 
-                collapsible 
+            <Sider
+                trigger={null}
+                collapsible
                 collapsed={collapsed}
                 style={{
                     background: colorBgContainer,
                     boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    zIndex: 11,
                 }}
-                width={280}
-                collapsedWidth={80}
+                width={siderWidth}
+                collapsedWidth={collapsedSiderWidth}
             >
                 {/* Logo/Brand */}
-                <div style={{ 
-                    height: 64, 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <div style={{
+                    height: 64,
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: collapsed ? 'center' : 'flex-start',
                     padding: collapsed ? '0' : '0 16px',
                     borderBottom: '1px solid #f0f0f0'
@@ -247,12 +254,11 @@ const Dashboard = () => {
                         </Title>
                     )}
                 </div>
-
                 {/* Menu */}
                 <Menu
                     mode="inline"
                     selectedKeys={[selectedKey]}
-                    style={{ 
+                    style={{
                         border: 'none',
                         marginTop: 8
                     }}
@@ -262,17 +268,23 @@ const Dashboard = () => {
             </Sider>
 
             {/* Main Layout */}
-            <Layout>
+            <Layout style={{ marginLeft: collapsed ? collapsedSiderWidth : siderWidth, transition: 'margin-left 0.2s' }}>
                 {/* Header */}
                 <Header
                     style={{
-                        padding: '0 16px',
+                        padding: '0 24px',
                         background: colorBgContainer,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         boxShadow: '0 2px 8px 0 rgba(29,35,41,.05)',
-                        zIndex: 1
+                        position: 'fixed',
+                        top: 0,
+                        left: collapsed ? collapsedSiderWidth : siderWidth,
+                        right: 0,
+                        zIndex: 10,
+                        transition: 'left 0.2s',
+                        height: 64,
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -282,23 +294,29 @@ const Dashboard = () => {
                             onClick={() => setCollapsed(!collapsed)}
                             style={{
                                 fontSize: '16px',
-                                width: 64,
-                                height: 64,
+                                width: 48,
+                                height: 48,
                             }}
                         />
                         <Title level={4} style={{ margin: 0, marginLeft: 16 }}>
                             {getPageTitle(selectedKey)}
                         </Title>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout}>
+                            Logout
+                        </Button>
+                    </div>
                 </Header>
 
                 {/* Content */}
                 <Content
                     style={{
-                        margin: 0,
-                        padding: 0,
-                        background: '#f5f5f5',
-                        minHeight: 'calc(100vh - 64px)',
+                        margin: '80px 16px 16px',
+                        padding: 24,
+                        background: colorBgContainer,
+                        borderRadius: borderRadiusLG,
+                        minHeight: 'calc(100vh - 96px)',
                         overflow: 'auto'
                     }}
                 >
@@ -314,122 +332,120 @@ const DashboardHome = () => {
     const navigate = useNavigate();
     
     return (
-        <div style={{ padding: '24px' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-                <Title level={2} style={{ marginBottom: 8 }}>
-                    Welcome to Your Business Dashboard
-                </Title>
-                <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: 32 }}>
-                    Use the sidebar navigation to manage your business operations
-                </Text>
+        <>
+            <Title level={2} style={{ marginBottom: 8 }}>
+                Welcome to Your Business Dashboard
+            </Title>
+            <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: 32 }}>
+                Use the sidebar navigation to manage your business operations
+            </Text>
 
-                {/* Quick Stats */}
-                <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-                    <Col xs={24} sm={12} md={6}>
-                        <Card>
-                            <Statistic
-                                title="Total Sales"
-                                value={0}
-                                prefix={<ShoppingCartOutlined style={{ color: '#52c41a' }} />}
-                            />
+            {/* Quick Stats */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+                <Col xs={24} sm={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Total Sales"
+                            value={0}
+                            prefix={<ShoppingCartOutlined style={{ color: '#52c41a' }} />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Products"
+                            value={0}
+                            prefix={<BoxPlotOutlined style={{ color: '#1890ff' }} />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Distributors"
+                            value={35}
+                            prefix={<ShopOutlined style={{ color: '#722ed1' }} />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Customers"
+                            value={0}
+                            prefix={<UserOutlined style={{ color: '#fa8c16' }} />}
+                        />
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* Quick Actions */}
+            <Card title="Quick Actions" style={{ marginBottom: 24 }}>
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={12} md={8}>
+                        <Card 
+                            hoverable
+                            onClick={() => navigate('/add-sale')}
+                            style={{ textAlign: 'center', cursor: 'pointer' }}
+                        >
+                            <PlusOutlined style={{ fontSize: 24, color: '#52c41a', marginBottom: 8 }} />
+                            <div>Add New Sale</div>
                         </Card>
                     </Col>
-                    <Col xs={24} sm={12} md={6}>
-                        <Card>
-                            <Statistic
-                                title="Products"
-                                value={0}
-                                prefix={<BoxPlotOutlined style={{ color: '#1890ff' }} />}
-                            />
+                    <Col xs={24} sm={12} md={8}>
+                        <Card 
+                            hoverable
+                            onClick={() => navigate('/add-distributor')}
+                            style={{ textAlign: 'center', cursor: 'pointer' }}
+                        >
+                            <PlusOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
+                            <div>Add Distributor</div>
                         </Card>
                     </Col>
-                    <Col xs={24} sm={12} md={6}>
-                        <Card>
-                            <Statistic
-                                title="Distributors"
-                                value={35}
-                                prefix={<ShopOutlined style={{ color: '#722ed1' }} />}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                        <Card>
-                            <Statistic
-                                title="Customers"
-                                value={0}
-                                prefix={<UserOutlined style={{ color: '#fa8c16' }} />}
-                            />
+                    <Col xs={24} sm={12} md={8}>
+                        <Card 
+                            hoverable
+                            onClick={() => navigate('/search-distributor')}
+                            style={{ textAlign: 'center', cursor: 'pointer' }}
+                        >
+                            <SearchOutlined style={{ fontSize: 24, color: '#1890ff', marginBottom: 8 }} />
+                            <div>Search Distributors</div>
                         </Card>
                     </Col>
                 </Row>
+            </Card>
 
-                {/* Quick Actions */}
-                <Card title="Quick Actions" style={{ marginBottom: 24 }}>
-                    <Row gutter={[16, 16]}>
-                        <Col xs={24} sm={12} md={8}>
-                            <Card 
-                                hoverable
-                                onClick={() => navigate('/add-sale')}
-                                style={{ textAlign: 'center', cursor: 'pointer' }}
-                            >
-                                <PlusOutlined style={{ fontSize: 24, color: '#52c41a', marginBottom: 8 }} />
-                                <div>Add New Sale</div>
-                            </Card>
-                        </Col>
-                        <Col xs={24} sm={12} md={8}>
-                            <Card 
-                                hoverable
-                                onClick={() => navigate('/add-distributor')}
-                                style={{ textAlign: 'center', cursor: 'pointer' }}
-                            >
-                                <PlusOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
-                                <div>Add Distributor</div>
-                            </Card>
-                        </Col>
-                        <Col xs={24} sm={12} md={8}>
-                            <Card 
-                                hoverable
-                                onClick={() => navigate('/search-distributor')}
-                                style={{ textAlign: 'center', cursor: 'pointer' }}
-                            >
-                                <SearchOutlined style={{ fontSize: 24, color: '#1890ff', marginBottom: 8 }} />
-                                <div>Search Distributors</div>
-                            </Card>
-                        </Col>
-                    </Row>
-                </Card>
-
-                {/* Getting Started Guide */}
-                <Card title="Getting Started" style={{ marginBottom: 24 }}>
-                    <Row gutter={[16, 16]}>
-                        <Col xs={24} md={12}>
-                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                                <Title level={4}>📊 Manage Sales</Title>
-                                <Text>Add new sales transactions and track your revenue. Use the sales section to record and monitor all business transactions.</Text>
-                            </div>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                                <Title level={4}>🏪 Distributor Network</Title>
-                                <Text>Manage your distributors and supplier relationships. Currently 35 distributors are registered in your system.</Text>
-                            </div>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                                <Title level={4}>📦 Product Inventory</Title>
-                                <Text>Keep track of your products and inventory levels. Add products and monitor stock availability.</Text>
-                            </div>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                                <Title level={4}>👥 Customer Base</Title>
-                                <Text>Maintain customer information and purchase history to build stronger relationships.</Text>
-                            </div>
-                        </Col>
-                    </Row>
-                </Card>
-            </div>
-        </div>
+            {/* Getting Started Guide */}
+            <Card title="Getting Started" style={{ marginBottom: 24 }}>
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} md={12}>
+                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                            <Title level={4}>📊 Manage Sales</Title>
+                            <Text>Add new sales transactions and track your revenue. Use the sales section to record and monitor all business transactions.</Text>
+                        </div>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                            <Title level={4}>🏪 Distributor Network</Title>
+                            <Text>Manage your distributors and supplier relationships. Currently 35 distributors are registered in your system.</Text>
+                        </div>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                            <Title level={4}>📦 Product Inventory</Title>
+                            <Text>Keep track of your products and inventory levels. Add products and monitor stock availability.</Text>
+                        </div>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <div style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                            <Title level={4}>👥 Customer Base</Title>
+                            <Text>Maintain customer information and purchase history to build stronger relationships.</Text>
+                        </div>
+                    </Col>
+                </Row>
+            </Card>
+        </>
     );
 };
 

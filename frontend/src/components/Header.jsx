@@ -8,6 +8,8 @@ import {
     ShopOutlined
 } from '@ant-design/icons';
 import authService from '../services/authService';
+import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { Header: AntHeader } = Layout;
 const { Title } = Typography;
@@ -16,6 +18,7 @@ const Header = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const currentUser = authService.getCurrentUser();
+    const { theme } = useTheme();
 
     const handleLogout = () => {
         authService.logout();
@@ -56,7 +59,9 @@ const Header = () => {
     return (
         <AntHeader 
             style={{
-                background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
+                background: theme === 'dark' 
+                    ? 'linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%)'
+                    : 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
                 padding: '0 24px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 position: 'sticky',
@@ -111,6 +116,7 @@ const Header = () => {
 
             {/* Right side - User info and logout */}
             <Space align="center">
+                <ThemeToggle />
                 <Dropdown
                     menu={{ items: userMenuItems }}
                     placement="bottomRight"
