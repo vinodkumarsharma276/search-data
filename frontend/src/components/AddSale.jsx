@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Form,
@@ -19,7 +19,11 @@ import {
     message,
     Breadcrumb,
     Steps,
-    AutoComplete
+    AutoComplete,
+    Pagination,
+    Tag,
+    Empty,
+    Spin
 } from 'antd';
 import {
     PlusOutlined,
@@ -30,9 +34,18 @@ import {
     UserOutlined,
     DollarOutlined,
     FileTextOutlined,
-    MinusCircleOutlined
+    MinusCircleOutlined,
+    SearchOutlined,
+    FilterOutlined,
+    ShopOutlined,
+    BarcodeOutlined,
+    MobileOutlined,
+    DesktopOutlined,
+    HomeOutlined
 } from '@ant-design/icons';
 import authService from '../services/authService';
+import apiService from '../services/apiService';
+import './AddSale.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -64,6 +77,12 @@ const AddSale = () => {
         pendingAmount: 0
     });
 
+    // Product search related states (global search functionality)
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+    const [productSearchResults, setProductSearchResults] = useState([]);
+    const [currentProductPage, setCurrentProductPage] = useState(1);
+
     // Customer search related states
     const [customerSearchValue, setCustomerSearchValue] = useState('');
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
@@ -82,8 +101,8 @@ const AddSale = () => {
     useEffect(() => {
         fetchCustomers();
         fetchCategories();
-        // Initialize with one empty item
-        setSaleItems([createEmptyItem()]);
+        // Initialize with empty sale items array - will be populated via global search
+        setSaleItems([]);
     }, []);
 
     // Calculate totals when items change
@@ -198,6 +217,99 @@ const AddSale = () => {
             console.error('Error fetching product details:', error);
         }
         return null;
+    };
+
+    // Global product search function
+    const handleGlobalProductSearch = async (query) => {
+        setGlobalSearchQuery(query);
+        setCurrentProductPage(1);
+        
+        if (query.length >= 3) {
+            try {
+                setSearchLoading(true);
+                const response = await apiService.products.globalSearch(query);
+                
+                if (response.data.success) {
+                    const fetchedProducts = response.data.products || [];
+                    setProductSearchResults(fetchedProducts);
+                } else {
+                    message.error(response.data.message || 'Failed to search products');
+                    setProductSearchResults([]);
+                }
+            } catch (error) {
+                console.error('❌ Error searching products:', error);
+                message.error('Failed to search products. Please try again.');
+                setProductSearchResults([]);
+            } finally {
+                setSearchLoading(false);
+            }
+        } else {
+            setProductSearchResults([]);
+        }
+    };
+
+    // Handle product selection
+    // Handle product selection - show form with product details and sale-specific fields
+    const handleProductSelect = (product) => {
+        const mrp = product.mrp || product.dealer_price || 0;
+        const dealerPrice = product.dealer_price || 0;
+        
+        // Automatically add product to sale items
+        const newItem = {
+            key: Date.now() + Math.random(),
+            productId: product._id,
+            productName: getProductDisplayName(product),
+            modelNumber: product.model_number || '',
+            serialNumber: product.serial_number || '',
+            brand: product.brand || '',
+            mrp: mrp,
+            dealerPrice: dealerPrice,
+            category: product.category_name || (product.categoryId?.name) || 'N/A',
+            distributor: product.supplierId?.name || 'N/A',
+            sellingPrice: dealerPrice, // Default selling price to dealer price
+            discount: mrp - dealerPrice, // Calculate discount based on MRP - dealer price
+            discountPercentage: mrp > 0 ? ((mrp - dealerPrice) / mrp) * 100 : 0,
+            igst: 0,
+            cgst: 9,
+            sgst: 9,
+            gstRate: 18
+        };
+
+        setSaleItems(prev => [...prev, newItem]);
+        
+        // Clear the search field and results for next search
+        setGlobalSearchQuery('');
+        setProductSearchResults([]);
+        
+        const displayName = getProductDisplayName(product);
+        message.success(`${displayName} added to sale!`);
+    };
+
+    const getCategoryIcon = (categoryName) => {
+        const name = categoryName?.toLowerCase();
+        if (name?.includes('mobile')) return <MobileOutlined />;
+        if (name?.includes('tv')) return <DesktopOutlined />;
+        if (name?.includes('electronics')) return <BarcodeOutlined />;
+        return <ShopOutlined />;
+    };
+
+    const getProductDisplayName = (product) => {
+        const brand = product.brand || '';
+        const model = product.model_number || '';
+        const type = product.type || '';
+        const capacity = product.capacity || '';
+        
+        if (brand && model) {
+            let displayName = `${brand} ${model}`;
+            if (type) displayName += ` (${type})`;
+            if (capacity) displayName += ` - ${capacity}`;
+            return displayName;
+        }
+        
+        if (brand) return brand;
+        if (model) return model;
+        
+        return product.name || 'Product';
     };
 
     // Customer search functions
@@ -515,22 +627,44 @@ const AddSale = () => {
             } else {
                 setItemSerialNumbers(prev => ({ ...prev, [index]: [] }));
             }
-        } else if (field === 'mrp' || field === 'sellingPrice' || field === 'discount') {
+        } else if (field === 'mrp' || field === 'sellingPrice' || field === 'discount' || field === 'discountPercentage') {
             const numValue = parseFloat(value) || 0;
             newItems[index][field] = numValue;
             
             const mrp = parseFloat(newItems[index].mrp) || 0;
-            const sellingPrice = parseFloat(newItems[index].sellingPrice) || 0;
+            let sellingPrice = parseFloat(newItems[index].sellingPrice) || 0;
+            let discount = parseFloat(newItems[index].discount) || 0;
+            let discountPercentage = parseFloat(newItems[index].discountPercentage) || 0;
             
-            if (field === 'mrp' || field === 'sellingPrice') {
-                if (mrp > 0 && sellingPrice > 0) {
-                    const discount = mrp - sellingPrice;
+            if (field === 'sellingPrice') {
+                // When selling price changes, calculate discount
+                if (mrp > 0) {
+                    discount = Math.max(0, mrp - sellingPrice);
                     newItems[index].discount = discount;
-                    newItems[index].discountPercentage = ((discount / mrp) * 100).toFixed(2);
+                    newItems[index].discountPercentage = parseFloat(((discount / mrp) * 100).toFixed(2));
                 }
-            } else if (field === 'discount' && mrp > 0) {
-                newItems[index].sellingPrice = mrp - numValue;
-                newItems[index].discountPercentage = ((numValue / mrp) * 100).toFixed(2);
+            } else if (field === 'discount') {
+                // When discount changes, calculate selling price
+                if (mrp > 0) {
+                    sellingPrice = Math.max(0, mrp - numValue);
+                    newItems[index].sellingPrice = sellingPrice;
+                    newItems[index].discountPercentage = parseFloat(((numValue / mrp) * 100).toFixed(2));
+                }
+            } else if (field === 'discountPercentage') {
+                // When discount percentage changes, calculate discount amount and selling price
+                if (mrp > 0) {
+                    discount = (mrp * numValue) / 100;
+                    sellingPrice = Math.max(0, mrp - discount);
+                    newItems[index].discount = parseFloat(discount.toFixed(2));
+                    newItems[index].sellingPrice = parseFloat(sellingPrice.toFixed(2));
+                }
+            } else if (field === 'mrp') {
+                // When MRP changes, recalculate discount percentage
+                if (sellingPrice > 0) {
+                    discount = Math.max(0, numValue - sellingPrice);
+                    newItems[index].discount = discount;
+                    newItems[index].discountPercentage = numValue > 0 ? parseFloat(((discount / numValue) * 100).toFixed(2)) : 0;
+                }
             }
             
             const gstRate = newItems[index].gstRate || 18;
@@ -629,9 +763,9 @@ const AddSale = () => {
                 onFinish={handleSubmit}
                 requiredMark={false}
             >
-                <Row gutter={16}>
+                <Row gutter={16} style={{ alignItems: 'flex-start' }}>
                     {/* Main Content */}
-                    <Col xs={24} lg={16}>
+                    <Col xs={24} lg={16} style={{ marginBottom: 16 }}>
                         {/* Customer Selection */}
                         <Card 
                             title={<><UserOutlined /> Customer Information</>}
@@ -800,7 +934,7 @@ const AddSale = () => {
                                             Cancel
                                         </Button>
                                         <Button type="primary" htmlType="submit">
-                                            {selectedCustomer ? 'Update Customer' : 'Add Customer'}
+                                            Save Customer
                                         </Button>
                                     </div>
                                 </Form>
@@ -921,225 +1055,346 @@ const AddSale = () => {
                                             Cancel
                                         </Button>
                                         <Button type="primary" htmlType="submit">
-                                            {selectedGuarantor ? 'Update Guarantor' : 'Add Guarantor'}
+                                            Save Guarantor
                                         </Button>
                                     </div>
                                 </Form>
                             </Card>
                         )}
 
-                        {/* Products Section */}
+                        {/* Products Section - GLOBAL SEARCH */}
                         <Card 
-                            title={<><ShoppingCartOutlined /> Sale Items</>}
+                            title={<><ShoppingCartOutlined /> Sale Items - Product Search</>}
                             style={{ marginBottom: 16 }}
-                            bodyStyle={{ padding: '12px' }}
+                            bodyStyle={{ padding: '16px' }}
                             size="small"
-                            extra={
-                                <Button 
-                                    type="primary" 
-                                    icon={<PlusOutlined />} 
-                                    onClick={handleAddItem}
-                                    size="small"
-                                >
-                                    Add Item
-                                </Button>
-                            }
                         >
-                            {saleItems.map((item, index) => (
-                                <Card 
-                                    key={item.key}
-                                    type="inner"
-                                    title={`Item ${index + 1}`}
-                                    style={{ 
-                                        marginBottom: index === saleItems.length - 1 ? 0 : 12,
-                                        border: '1px solid #e8e8e8'
-                                    }}
-                                    bodyStyle={{ padding: '12px' }}
-                                    headStyle={{ padding: '8px 12px', minHeight: '40px' }}
-                                    size="small"
-                                    extra={
-                                        saleItems.length > 1 && (
-                                            <Popconfirm
-                                                title="Remove this item?"
-                                                onConfirm={() => handleRemoveItem(index)}
-                                            >
-                                                <Button 
-                                                    icon={<DeleteOutlined />} 
-                                                    size="small" 
-                                                    danger
-                                                    type="text"
+                            {/* Global Product Search */}
+                            <div style={{ marginBottom: 16 }}>
+                                <Title level={5} style={{ marginBottom: 8 }}>
+                                    <SearchOutlined /> Search Products
+                                </Title>
+                                <Input
+                                    placeholder="Search by brand, model, or serial number (min 3 characters)..."
+                                    value={globalSearchQuery}
+                                    onChange={(e) => handleGlobalProductSearch(e.target.value)}
+                                    suffix={<SearchOutlined />}
+                                    size="large"
+                                    style={{ marginBottom: 12 }}
+                                />
+                                
+                                {searchLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                                        <Spin size="large" />
+                                        <div style={{ marginTop: 8 }}>Searching products...</div>
+                                    </div>
+                                ) : productSearchResults.length > 0 ? (
+                                    <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #d9d9d9', borderRadius: '6px' }}>
+                                        <Table
+                                            size="small"
+                                            dataSource={productSearchResults.slice((currentProductPage - 1) * 10, currentProductPage * 10)}
+                                            pagination={false}
+                                            scroll={{ x: 800 }}
+                                            rowKey="_id"
+                                            onRow={(record) => ({
+                                                onClick: () => handleProductSelect(record),
+                                                style: { cursor: 'pointer' }
+                                            })}
+                                            columns={[
+                                                {
+                                                    title: 'Brand',
+                                                    dataIndex: 'brand',
+                                                    key: 'brand',
+                                                    width: 100,
+                                                    render: (text) => text || 'N/A'
+                                                },
+                                                {
+                                                    title: 'Model',
+                                                    dataIndex: 'model_number',
+                                                    key: 'model_number',
+                                                    width: 120,
+                                                    render: (text) => text || 'N/A'
+                                                },
+                                                {
+                                                    title: 'Serial',
+                                                    dataIndex: 'serial_number',
+                                                    key: 'serial_number',
+                                                    width: 120,
+                                                    render: (text) => text || 'N/A'
+                                                },
+                                                {
+                                                    title: 'Price',
+                                                    dataIndex: 'dealer_price',
+                                                    key: 'dealer_price',
+                                                    width: 80,
+                                                    render: (text) => text ? `₹${Number(text).toLocaleString('en-IN')}` : 'N/A'
+                                                },
+                                                {
+                                                    title: 'Category',
+                                                    key: 'category',
+                                                    width: 120,
+                                                    render: (_, record) => {
+                                                        // First try category_name (direct field), then try populated categoryId
+                                                        if (record.category_name) {
+                                                            return record.category_name;
+                                                        }
+                                                        if (record.categoryId && typeof record.categoryId === 'object') {
+                                                            return record.categoryId.name || 'N/A';
+                                                        }
+                                                        return 'N/A';
+                                                    }
+                                                },
+                                                {
+                                                    title: 'Distributor',
+                                                    key: 'distributor',
+                                                    width: 150,
+                                                    render: (_, record) => {
+                                                        const supplier = record.supplierId;
+                                                        if (supplier && typeof supplier === 'object') {
+                                                            return (
+                                                                <div style={{ fontSize: '12px', lineHeight: '1.2' }}>
+                                                                    <div style={{ fontWeight: 'bold' }}>{supplier.name}</div>
+                                                                    <div style={{ color: '#666' }}>{supplier.gstNumber || 'N/A'}</div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return 'N/A';
+                                                    }
+                                                },
+                                                {
+                                                    title: 'Action',
+                                                    key: 'action',
+                                                    width: 80,
+                                                    render: (_, record) => (
+                                                        <Button 
+                                                            type="primary" 
+                                                            size="small"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleProductSelect(record);
+                                                            }}
+                                                        >
+                                                            Add to Sale
+                                                        </Button>
+                                                    )
+                                                }
+                                            ]}
+                                        />
+                                        {productSearchResults.length > 10 && (
+                                            <div style={{ padding: '16px', textAlign: 'center', borderTop: '1px solid #f0f0f0' }}>
+                                                <Pagination
+                                                    size="small"
+                                                    current={currentProductPage}
+                                                    total={productSearchResults.length}
+                                                    pageSize={10}
+                                                    onChange={setCurrentProductPage}
+                                                    showSizeChanger={false}
+                                                    showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} products`}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : globalSearchQuery.length >= 3 ? (
+                                    <Empty
+                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                        description="No products found matching your search"
+                                    />
+                                ) : globalSearchQuery.length > 0 && globalSearchQuery.length < 3 ? (
+                                    <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                        Enter at least 3 characters to search products
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                        Start typing to search for products by brand, model, or serial number
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Current Sale Items List */}
+                            <div style={{ marginTop: 16 }}>
+                                <Title level={5} style={{ marginBottom: 8 }}>
+                                    Sale Items ({saleItems.length})
+                                </Title>
+                                {saleItems.length > 0 ? (
+                                    <Row gutter={[16, 16]}>
+                                        {saleItems.map((item, index) => (
+                                            <Col xs={24} md={12} lg={8} key={item.key}>
+                                                <Card 
+                                                    type="inner"
+                                                    title={
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                                Item {index + 1}
+                                                            </span>
+                                                            <Popconfirm
+                                                                title="Remove this item?"
+                                                                onConfirm={() => handleRemoveItem(index)}
+                                                            >
+                                                                <Button 
+                                                                    icon={<DeleteOutlined />} 
+                                                                    size="small" 
+                                                                    danger
+                                                                    type="text"
+                                                                />
+                                                            </Popconfirm>
+                                                        </div>
+                                                    }
+                                                    style={{ 
+                                                        height: 'fit-content',
+                                                        border: '1px solid #e8e8e8',
+                                                        borderRadius: '8px',
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                    }}
+                                                    bodyStyle={{ padding: '16px' }}
+                                                    headStyle={{ 
+                                                        padding: '12px 16px', 
+                                                        backgroundColor: '#fafafa',
+                                                        borderBottom: '1px solid #e8e8e8'
+                                                    }}
+                                                    size="small"
                                                 >
-                                                    Remove
-                                                </Button>
-                                            </Popconfirm>
-                                        )
-                                    }
-                                >
-                                    {/* Row 1: Category, Brand, Product */}
-                                    <Row gutter={12} style={{ marginBottom: 12 }}>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Category
-                                            </label>
-                                            <Select
-                                                placeholder="Select category"
-                                                value={item.categoryId}
-                                                onChange={(value) => handleItemChange(index, 'categoryId', value)}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                            >
-                                                {categories.map(cat => (
-                                                    <Option key={cat._id} value={cat._id}>{cat.name}</Option>
-                                                ))}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Brand
-                                            </label>
-                                            <Select
-                                                placeholder="Select brand"
-                                                value={item.brandId}
-                                                onChange={(value) => handleItemChange(index, 'brandId', value)}
-                                                disabled={!item.categoryId}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                            >
-                                                {(itemBrands[index] || []).map(brand => (
-                                                    <Option key={brand._id} value={brand._id}>{brand.name}</Option>
-                                                ))}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Product
-                                            </label>
-                                            <Select
-                                                placeholder="Select product"
-                                                value={item.productId}
-                                                onChange={(value) => handleItemChange(index, 'productId', value)}
-                                                disabled={!item.brandId}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                            >
-                                                {(itemProducts[index] || []).map(product => (
-                                                    <Option key={product._id} value={product._id}>{product.name}</Option>
-                                                ))}
-                                            </Select>
-                                        </Col>
-                                    </Row>
+                                                    <Form layout="vertical" style={{ margin: 0 }}>
+                                                        {/* Product Details - Read Only */}
+                                                        <Form.Item label="Product Name" style={{ marginBottom: 12 }}>
+                                                            <Input 
+                                                                value={item.productName || 'N/A'}
+                                                                disabled 
+                                                                style={{ 
+                                                                    backgroundColor: '#f5f5f5',
+                                                                    color: '#595959'
+                                                                }} 
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="Brand & Model" style={{ marginBottom: 12 }}>
+                                                            <Input 
+                                                                value={`${item.brand || 'N/A'} - ${item.modelNumber || 'N/A'}`}
+                                                                disabled 
+                                                                style={{ 
+                                                                    backgroundColor: '#f5f5f5',
+                                                                    color: '#595959'
+                                                                }} 
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="Serial Number" style={{ marginBottom: 12 }}>
+                                                            <Input 
+                                                                value={item.serialNumber || 'N/A'}
+                                                                disabled 
+                                                                style={{ 
+                                                                    backgroundColor: '#f5f5f5',
+                                                                    color: '#595959'
+                                                                }} 
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="MRP" style={{ marginBottom: 12 }}>
+                                                            <InputNumber 
+                                                                value={item.mrp}
+                                                                disabled 
+                                                                style={{ 
+                                                                    width: '100%',
+                                                                    backgroundColor: '#f5f5f5',
+                                                                    color: '#595959'
+                                                                }}
+                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="Dealer Price" style={{ marginBottom: 12 }}>
+                                                            <InputNumber 
+                                                                value={item.dealerPrice}
+                                                                disabled 
+                                                                style={{ 
+                                                                    width: '100%',
+                                                                    backgroundColor: '#f5f5f5',
+                                                                    color: '#595959'
+                                                                }}
+                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                            />
+                                                        </Form.Item>
 
-                                    {/* Row 2: Serial Number, MRP, Selling Price */}
-                                    <Row gutter={12} style={{ marginBottom: 12 }}>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Serial Number
-                                            </label>
-                                            <Select
-                                                placeholder="Select serial number"
-                                                value={item.serialNumber}
-                                                onChange={(value) => handleItemChange(index, 'serialNumber', value)}
-                                                disabled={!item.productId}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                            >
-                                                {(itemSerialNumbers[index] || []).map(serialItem => (
-                                                    <Option key={serialItem._id} value={serialItem.serialNumber}>
-                                                        {serialItem.serialNumber} ({serialItem.condition})
-                                                    </Option>
-                                                ))}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                MRP (₹)
-                                            </label>
-                                            <InputNumber
-                                                value={item.mrp}
-                                                onChange={(value) => handleItemChange(index, 'mrp', value)}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                placeholder="0"
-                                            />
-                                        </Col>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Selling Price (₹)
-                                            </label>
-                                            <InputNumber
-                                                value={item.sellingPrice}
-                                                onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                placeholder="0"
-                                            />
-                                        </Col>
+                                                        <Divider style={{ margin: '16px 0' }} />
+                                                        
+                                                        {/* Editable Fields */}
+                                                        <Form.Item label="Selling Price" style={{ marginBottom: 12 }}>
+                                                            <InputNumber
+                                                                value={item.sellingPrice}
+                                                                onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
+                                                                style={{ width: '100%' }}
+                                                                min={0}
+                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                placeholder="Enter selling price"
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="Discount Amount" style={{ marginBottom: 12 }}>
+                                                            <InputNumber
+                                                                value={item.discount}
+                                                                onChange={(value) => handleItemChange(index, 'discount', value)}
+                                                                style={{ width: '100%' }}
+                                                                min={0}
+                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                placeholder="Enter discount"
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="Discount %" style={{ marginBottom: 12 }}>
+                                                            <InputNumber
+                                                                value={item.discountPercentage}
+                                                                onChange={(value) => handleItemChange(index, 'discountPercentage', value)}
+                                                                style={{ width: '100%' }}
+                                                                min={0}
+                                                                max={100}
+                                                                formatter={value => `${value}%`}
+                                                                parser={value => value.replace('%', '')}
+                                                                precision={2}
+                                                                placeholder="Enter discount %"
+                                                            />
+                                                        </Form.Item>
+                                                        
+                                                        <Form.Item label="Total with GST" style={{ marginBottom: 0 }}>
+                                                            <InputNumber
+                                                                value={((parseFloat(item.sellingPrice) || 0) * 1.18)}
+                                                                disabled
+                                                                style={{ 
+                                                                    width: '100%',
+                                                                    backgroundColor: '#f6ffed',
+                                                                    color: '#52c41a',
+                                                                    fontWeight: 'bold'
+                                                                }}
+                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                precision={2}
+                                                            />
+                                                        </Form.Item>
+                                                    </Form>
+                                                </Card>
+                                            </Col>
+                                        ))}
                                     </Row>
-
-                                    {/* Row 3: Discount, GST Rate, Total */}
-                                    <Row gutter={12}>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Discount (₹)
-                                            </label>
-                                            <InputNumber
-                                                value={item.discount}
-                                                onChange={(value) => handleItemChange(index, 'discount', value)}
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                placeholder="0"
-                                            />
-                                            {item.discountPercentage > 0 && (
-                                                <Text type="secondary" style={{ fontSize: '11px' }}>
-                                                    {item.discountPercentage}% off
-                                                </Text>
-                                            )}
-                                        </Col>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                GST Rate
-                                            </label>
-                                            <Input
-                                                value={`${item.gstRate}%`}
-                                                disabled
-                                                style={{ width: '100%' }}
-                                                size="small"
-                                            />
-                                        </Col>
-                                        <Col xs={24} sm={8}>
-                                            <label style={{ display: 'block', marginBottom: 2, fontWeight: 500, fontSize: '13px' }}>
-                                                Item Total
-                                            </label>
-                                            <Input
-                                                value={`₹ ${((parseFloat(item.sellingPrice) || 0) - (parseFloat(item.discount) || 0) + (((parseFloat(item.sellingPrice) || 0) - (parseFloat(item.discount) || 0)) * (parseFloat(item.gstRate) || 0)) / 100).toFixed(2)}`}
-                                                disabled
-                                                style={{ width: '100%', fontWeight: 'bold' }}
-                                                size="small"
-                                            />
-                                        </Col>
-                                    </Row>
-
-                                    {/* Product Name Display */}
-                                    {item.productName && (
-                                        <div style={{ marginTop: 8, padding: '6px 8px', backgroundColor: '#f8f9fa', borderRadius: 4, fontSize: '12px' }}>
-                                            <Text strong>Product: </Text>
-                                            <Text>{item.productName}</Text>
-                                            {item.modelNumber && (
-                                                <>
-                                                    <Text strong> | Model: </Text>
-                                                    <Text>{item.modelNumber}</Text>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </Card>
-                            ))}
+                                ) : (
+                                    <div style={{ 
+                                        textAlign: 'center', 
+                                        padding: '40px 20px', 
+                                        backgroundColor: '#fafafa',
+                                        border: '1px dashed #d9d9d9',
+                                        borderRadius: '8px'
+                                    }}>
+                                        <ShoppingCartOutlined style={{ fontSize: '48px', color: '#bfbfbf', marginBottom: '16px' }} />
+                                        <Title level={4} style={{ color: '#8c8c8c', margin: '0 0 8px 0' }}>
+                                            No items added to sale
+                                        </Title>
+                                        <Text style={{ color: '#8c8c8c' }}>
+                                            Search and select products above to add them to this sale
+                                        </Text>
+                                    </div>
+                                )}
+                            </div>
                         </Card>
 
                         {/* Payment Section */}
@@ -1360,12 +1615,13 @@ const AddSale = () => {
 
                     {/* Summary Sidebar */}
                     <Col xs={24} lg={8}>
-                        <Card 
-                            title="Order Summary" 
-                            style={{ position: 'sticky', top: 16 }}
-                            bodyStyle={{ padding: '16px' }}
-                            size="small"
-                        >
+                        <div className="order-summary-container">
+                            <Card 
+                                title="Order Summary" 
+                                bodyStyle={{ padding: '16px' }}
+                                size="small"
+                                className="order-summary-card"
+                            >
                             <div style={{ marginBottom: 12 }}>
                                 <Row justify="space-between">
                                     <Text>Subtotal:</Text>
@@ -1475,6 +1731,7 @@ const AddSale = () => {
                                 </div>
                             ))}
                         </Card>
+                        </div>
                     </Col>
                 </Row>
             </Form>

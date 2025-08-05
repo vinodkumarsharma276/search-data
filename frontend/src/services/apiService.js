@@ -67,6 +67,8 @@ const apiService = {
         updateStock: (id, data) => apiClient.patch(`/products/${id}/stock`, data),
         getLowStock: () => apiClient.get('/products/reports/low-stock'),
         search: (params) => apiClient.get('/products/search-test', { params }),
+        searchTest: (params) => apiClient.get('/products/search-test', { params }),
+        globalSearch: (query) => apiClient.get(`/products/global-search?searchQuery=${encodeURIComponent(query)}`),
         getDistributors: () => apiClient.get('/products/distributors')
     },
 
