@@ -141,10 +141,6 @@ const AddDistributor = () => {
                                 name="gstNumber"
                                 rules={[
                                     { required: true, message: 'Please enter GST number' },
-                                    { 
-                                        pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
-                                        message: 'Please enter valid GST number'
-                                    }
                                 ]}
                             >
                                 <Input 
@@ -346,7 +342,6 @@ const AddDistributor = () => {
                                 name="ifscCode"
                                 rules={[
                                     { required: true, message: 'Please enter IFSC code' },
-                                    { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: 'Please enter valid IFSC code' }
                                 ]}
                             >
                                 <Input 
