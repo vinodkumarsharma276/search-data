@@ -1216,167 +1216,204 @@ const AddSale = () => {
                                     Sale Items ({saleItems.length})
                                 </Title>
                                 {saleItems.length > 0 ? (
-                                    <Row gutter={[16, 16]}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         {saleItems.map((item, index) => (
-                                            <Col xs={24} md={12} lg={8} key={item.key}>
-                                                <Card 
-                                                    type="inner"
-                                                    title={
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                                                Item {index + 1}
-                                                            </span>
-                                                            <Popconfirm
-                                                                title="Remove this item?"
-                                                                onConfirm={() => handleRemoveItem(index)}
+                                            <Card 
+                                                key={item.key}
+                                                type="inner"
+                                                title={
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
+                                                            Item {index + 1}: {item.brand} {item.modelNumber}
+                                                        </span>
+                                                        <Popconfirm
+                                                            title="Remove this item?"
+                                                            onConfirm={() => handleRemoveItem(index)}
+                                                        >
+                                                            <Button 
+                                                                icon={<DeleteOutlined />} 
+                                                                size="small" 
+                                                                danger
+                                                                type="text"
                                                             >
-                                                                <Button 
-                                                                    icon={<DeleteOutlined />} 
-                                                                    size="small" 
-                                                                    danger
-                                                                    type="text"
-                                                                />
-                                                            </Popconfirm>
-                                                        </div>
-                                                    }
-                                                    style={{ 
-                                                        height: 'fit-content',
-                                                        border: '1px solid #e8e8e8',
-                                                        borderRadius: '8px',
-                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                                    }}
-                                                    bodyStyle={{ padding: '16px' }}
-                                                    headStyle={{ 
-                                                        padding: '12px 16px', 
-                                                        backgroundColor: '#fafafa',
-                                                        borderBottom: '1px solid #e8e8e8'
-                                                    }}
-                                                    size="small"
-                                                >
-                                                    <Form layout="vertical" style={{ margin: 0 }}>
-                                                        {/* Product Details - Read Only */}
-                                                        <Form.Item label="Product Name" style={{ marginBottom: 12 }}>
-                                                            <Input 
-                                                                value={item.productName || 'N/A'}
-                                                                disabled 
-                                                                style={{ 
-                                                                    backgroundColor: '#f5f5f5',
-                                                                    color: '#595959'
-                                                                }} 
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="Brand & Model" style={{ marginBottom: 12 }}>
-                                                            <Input 
-                                                                value={`${item.brand || 'N/A'} - ${item.modelNumber || 'N/A'}`}
-                                                                disabled 
-                                                                style={{ 
-                                                                    backgroundColor: '#f5f5f5',
-                                                                    color: '#595959'
-                                                                }} 
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="Serial Number" style={{ marginBottom: 12 }}>
-                                                            <Input 
-                                                                value={item.serialNumber || 'N/A'}
-                                                                disabled 
-                                                                style={{ 
-                                                                    backgroundColor: '#f5f5f5',
-                                                                    color: '#595959'
-                                                                }} 
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="MRP" style={{ marginBottom: 12 }}>
-                                                            <InputNumber 
-                                                                value={item.mrp}
-                                                                disabled 
-                                                                style={{ 
-                                                                    width: '100%',
-                                                                    backgroundColor: '#f5f5f5',
-                                                                    color: '#595959'
-                                                                }}
-                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="Dealer Price" style={{ marginBottom: 12 }}>
-                                                            <InputNumber 
-                                                                value={item.dealerPrice}
-                                                                disabled 
-                                                                style={{ 
-                                                                    width: '100%',
-                                                                    backgroundColor: '#f5f5f5',
-                                                                    color: '#595959'
-                                                                }}
-                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                            />
-                                                        </Form.Item>
+                                                                Remove
+                                                            </Button>
+                                                        </Popconfirm>
+                                                    </div>
+                                                }
+                                                style={{ 
+                                                    width: '100%',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                                    marginBottom: '16px'
+                                                }}
+                                                bodyStyle={{ padding: '24px' }}
+                                                headStyle={{ 
+                                                    padding: '16px 24px', 
+                                                    backgroundColor: '#f8f9fa',
+                                                    borderBottom: '1px solid #e8e8e8'
+                                                }}
+                                            >
+                                                <Form layout="vertical" style={{ margin: 0 }}>
+                                                    {/* Product Information Section */}
+                                                    <div style={{ 
+                                                        marginBottom: '20px', 
+                                                        padding: '16px', 
+                                                        backgroundColor: '#fafafa', 
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #f0f0f0'
+                                                    }}>
+                                                        <Title level={5} style={{ marginBottom: '16px', color: '#595959' }}>
+                                                            Product Information
+                                                        </Title>
+                                                        <Row gutter={[16, 16]}>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Product Name" style={{ marginBottom: 16 }}>
+                                                                    <Input 
+                                                                        value={item.productName || 'N/A'}
+                                                                        disabled 
+                                                                        style={{ 
+                                                                            backgroundColor: '#f5f5f5',
+                                                                            color: '#595959',
+                                                                            borderColor: '#d9d9d9'
+                                                                        }} 
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Brand & Model" style={{ marginBottom: 16 }}>
+                                                                    <Input 
+                                                                        value={`${item.brand || 'N/A'} - ${item.modelNumber || 'N/A'}`}
+                                                                        disabled 
+                                                                        style={{ 
+                                                                            backgroundColor: '#f5f5f5',
+                                                                            color: '#595959',
+                                                                            borderColor: '#d9d9d9'
+                                                                        }} 
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Serial Number" style={{ marginBottom: 16 }}>
+                                                                    <Input 
+                                                                        value={item.serialNumber || 'N/A'}
+                                                                        disabled 
+                                                                        style={{ 
+                                                                            backgroundColor: '#f5f5f5',
+                                                                            color: '#595959',
+                                                                            borderColor: '#d9d9d9'
+                                                                        }} 
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="MRP" style={{ marginBottom: 16 }}>
+                                                                    <InputNumber 
+                                                                        value={item.mrp}
+                                                                        disabled 
+                                                                        style={{ 
+                                                                            width: '100%',
+                                                                            backgroundColor: '#f5f5f5',
+                                                                            color: '#595959'
+                                                                        }}
+                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Dealer Price" style={{ marginBottom: 16 }}>
+                                                                    <InputNumber 
+                                                                        value={item.dealerPrice}
+                                                                        disabled 
+                                                                        style={{ 
+                                                                            width: '100%',
+                                                                            backgroundColor: '#f5f5f5',
+                                                                            color: '#595959'
+                                                                        }}
+                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Category" style={{ marginBottom: 16 }}>
+                                                                    <Input 
+                                                                        value={item.category || 'N/A'}
+                                                                        disabled 
+                                                                        style={{ 
+                                                                            backgroundColor: '#f5f5f5',
+                                                                            color: '#595959',
+                                                                            borderColor: '#d9d9d9'
+                                                                        }} 
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                        </Row>
+                                                    </div>
 
-                                                        <Divider style={{ margin: '16px 0' }} />
-                                                        
-                                                        {/* Editable Fields */}
-                                                        <Form.Item label="Selling Price" style={{ marginBottom: 12 }}>
-                                                            <InputNumber
-                                                                value={item.sellingPrice}
-                                                                onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
-                                                                style={{ width: '100%' }}
-                                                                min={0}
-                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                placeholder="Enter selling price"
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="Discount Amount" style={{ marginBottom: 12 }}>
-                                                            <InputNumber
-                                                                value={item.discount}
-                                                                onChange={(value) => handleItemChange(index, 'discount', value)}
-                                                                style={{ width: '100%' }}
-                                                                min={0}
-                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                placeholder="Enter discount"
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="Discount %" style={{ marginBottom: 12 }}>
-                                                            <InputNumber
-                                                                value={item.discountPercentage}
-                                                                onChange={(value) => handleItemChange(index, 'discountPercentage', value)}
-                                                                style={{ width: '100%' }}
-                                                                min={0}
-                                                                max={100}
-                                                                formatter={value => `${value}%`}
-                                                                parser={value => value.replace('%', '')}
-                                                                precision={2}
-                                                                placeholder="Enter discount %"
-                                                            />
-                                                        </Form.Item>
-                                                        
-                                                        <Form.Item label="Total with GST" style={{ marginBottom: 0 }}>
-                                                            <InputNumber
-                                                                value={((parseFloat(item.sellingPrice) || 0) * 1.18)}
-                                                                disabled
-                                                                style={{ 
-                                                                    width: '100%',
-                                                                    backgroundColor: '#f6ffed',
-                                                                    color: '#52c41a',
-                                                                    fontWeight: 'bold'
-                                                                }}
-                                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                precision={2}
-                                                            />
-                                                        </Form.Item>
-                                                    </Form>
-                                                </Card>
-                                            </Col>
+                                                    {/* Pricing Section */}
+                                                    <div style={{ 
+                                                        padding: '16px', 
+                                                        backgroundColor: '#fff', 
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #e8e8e8'
+                                                    }}>
+                                                        <Title level={5} style={{ marginBottom: '16px', color: '#1890ff' }}>
+                                                            Pricing Information
+                                                        </Title>
+                                                        <Row gutter={[16, 16]}>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Selling Price" style={{ marginBottom: 16 }}>
+                                                                    <InputNumber
+                                                                        value={item.sellingPrice}
+                                                                        onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
+                                                                        style={{ width: '100%' }}
+                                                                        min={0}
+                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                        placeholder="Enter selling price"
+                                                                        size="large"
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Discount Amount" style={{ marginBottom: 16 }}>
+                                                                    <InputNumber
+                                                                        value={item.discount}
+                                                                        onChange={(value) => handleItemChange(index, 'discount', value)}
+                                                                        style={{ width: '100%' }}
+                                                                        min={0}
+                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                                                                        placeholder="Enter discount"
+                                                                        size="large"
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col xs={24} sm={8} md={8} lg={8}>
+                                                                <Form.Item label="Discount %" style={{ marginBottom: 16 }}>
+                                                                    <InputNumber
+                                                                        value={item.discountPercentage}
+                                                                        onChange={(value) => handleItemChange(index, 'discountPercentage', value)}
+                                                                        style={{ width: '100%' }}
+                                                                        min={0}
+                                                                        max={100}
+                                                                        formatter={value => `${value}%`}
+                                                                        parser={value => value.replace('%', '')}
+                                                                        precision={2}
+                                                                        placeholder="Enter discount %"
+                                                                        size="large"
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                        </Row>
+                                                    </div>
+                                                </Form>
+                                            </Card>
                                         ))}
-                                    </Row>
+                                    </div>
                                 ) : (
                                     <div style={{ 
                                         textAlign: 'center', 
