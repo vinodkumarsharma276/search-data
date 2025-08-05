@@ -15,7 +15,8 @@ import {
     Pagination,
     Tag,
     Empty,
-    Spin
+    Spin,
+    message
 } from 'antd';
 import {
     SearchOutlined,
@@ -36,39 +37,47 @@ const SearchProduct = () => {
     const [loading, setLoading] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
     
-    // Category hierarchy state (similar to AddProduct)
+    // Category hierarchy state
     const [categoryLevels, setCategoryLevels] = useState([]);
     const [selectedCategoryPath, setSelectedCategoryPath] = useState([]);
     const [finalCategoryId, setFinalCategoryId] = useState(null);
     const [isLeafCategory, setIsLeafCategory] = useState(false);
     
+    // State for new search/filter logic
     const [searchQuery, setSearchQuery] = useState('');
-    const [products, setProducts] = useState([]);
-    const [totalProducts, setTotalProducts] = useState(0);
+    const [allProducts, setAllProducts] = useState([]); // Holds all products for the category
+    const [filteredProducts, setFilteredProducts] = useState([]); // Holds products for display
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(50);
     const [searchPerformed, setSearchPerformed] = useState(false);
+    
+    // State for dynamic table columns
+    const [categoryInfo, setCategoryInfo] = useState(null);
 
     // Fetch top-level categories on component mount
     useEffect(() => {
         fetchTopLevelCategories();
     }, []);
 
-    // Auto-search when query length >= 3 and leaf category is selected
+    // Frontend filtering when searchQuery changes
     useEffect(() => {
-        if (finalCategoryId && searchQuery.length >= 3) {
-            const timeoutId = setTimeout(() => {
-                handleSearch();
-            }, 500); // Debounce search
-
-            return () => clearTimeout(timeoutId);
-        } else if (searchQuery.length < 3 && searchPerformed) {
-            // Clear results if query becomes too short
-            setProducts([]);
-            setTotalProducts(0);
-            setSearchPerformed(false);
+        if (searchQuery.length >= 3) {
+            const lowercasedQuery = searchQuery.toLowerCase();
+            const filtered = allProducts.filter(product => {
+                // Simple search on product name, model, or serial
+                return (
+                    product.name?.toLowerCase().includes(lowercasedQuery) ||
+                    product.model_number?.toLowerCase().includes(lowercasedQuery) ||
+                    product.serial_number?.toLowerCase().includes(lowercasedQuery)
+                );
+            });
+            setFilteredProducts(filtered);
+        } else {
+            // If query is less than 3 chars, show all products for the category
+            setFilteredProducts(allProducts);
         }
-    }, [searchQuery, finalCategoryId]);
+        setCurrentPage(1); // Reset to first page on new filter
+    }, [searchQuery, allProducts]);
 
     const fetchTopLevelCategories = async () => {
         try {
@@ -76,7 +85,6 @@ const SearchProduct = () => {
             const response = await apiService.categories.getTopLevel();
             if (response.data.success) {
                 setCategoryLevels([response.data.data || []]);
-                console.log('✅ Loaded top-level categories for search:', response.data.data?.length);
             }
         } catch (error) {
             console.error('❌ Error fetching categories:', error);
@@ -85,51 +93,79 @@ const SearchProduct = () => {
         }
     };
 
-    // Handle hierarchical category selection (similar to AddProduct)
+    // Fetches all products for a given category
+    const fetchAllProductsForCategory = async (categoryId) => {
+        if (!categoryId) return;
+
+        try {
+            setSearchLoading(true);
+            // Use the search endpoint with an empty query to get all products
+            const response = await apiService.products.search({
+                categoryId: categoryId,
+                searchQuery: '', // Empty query to fetch all
+                page: 1,
+                limit: 1000 // Fetch a large number of products, assuming this is enough
+            });
+
+            if (response.data.success) {
+                const fetchedProducts = response.data.products || [];
+                const categoryData = response.data.categoryInfo || null;
+                
+                setAllProducts(fetchedProducts);
+                setFilteredProducts(fetchedProducts); // Initially, display all
+                setCategoryInfo(categoryData); // Store category info for dynamic columns
+                setSearchPerformed(true);
+            } else {
+                message.error(response.data.message || 'Failed to fetch products');
+                setAllProducts([]);
+                setFilteredProducts([]);
+                setCategoryInfo(null);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching products for category:', error);
+            message.error('Failed to fetch products. Please try again.');
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    // Handle hierarchical category selection
     const handleCategorySelection = async (categoryId, levelIndex) => {
-        console.log('🎯 Category selected at level', levelIndex, ':', categoryId);
-        
-        // Update selected category path up to current level
         const newPath = selectedCategoryPath.slice(0, levelIndex);
         newPath[levelIndex] = categoryId;
         setSelectedCategoryPath(newPath);
         
-        // Clear category levels after current level
         const newLevels = categoryLevels.slice(0, levelIndex + 1);
         
+        // Reset states on new selection
+        setAllProducts([]);
+        setFilteredProducts([]);
+        setSearchQuery('');
+        form.setFieldsValue({ searchQuery: '' });
+        setFinalCategoryId(null);
+        setIsLeafCategory(false);
+        setSearchPerformed(false);
+        setCurrentPage(1);
+        setCategoryInfo(null); // Clear category info
+
         try {
-            // Get the selected category details
             const categoryResponse = await apiService.categories.getById(categoryId);
             if (categoryResponse.data.success) {
                 const category = categoryResponse.data.data;
                 
                 if (category.is_leaf) {
-                    // This is a leaf category - enable search
-                    console.log('🍃 Leaf category selected, search enabled');
                     setCategoryLevels(newLevels);
                     setFinalCategoryId(categoryId);
                     setIsLeafCategory(true);
+                    await fetchAllProductsForCategory(categoryId); // Fetch products immediately
                 } else {
-                    // Not a leaf - fetch children for next level
-                    console.log('🌿 Non-leaf category, fetching children');
-                    
                     const childrenResponse = await apiService.categories.getChildren(categoryId);
                     if (childrenResponse.data.success && childrenResponse.data.data.length > 0) {
                         setCategoryLevels([...newLevels, childrenResponse.data.data]);
-                        setFinalCategoryId(null);
-                        setIsLeafCategory(false);
-                        
-                        console.log('✅ Loaded children for next level:', childrenResponse.data.data.length);
+                    } else {
+                        setCategoryLevels(newLevels); // No more children
                     }
                 }
-                
-                // Clear previous search results when category changes
-                setSearchQuery('');
-                setProducts([]);
-                setTotalProducts(0);
-                setCurrentPage(1);
-                setSearchPerformed(false);
-                form.setFieldsValue({ searchQuery: '' });
             }
         } catch (error) {
             console.error('❌ Error handling category selection:', error);
@@ -138,53 +174,10 @@ const SearchProduct = () => {
 
     const handleSearchQueryChange = (e) => {
         setSearchQuery(e.target.value);
-        setCurrentPage(1); // Reset to first page on new search
     };
 
-    const handleSearch = useCallback(async (page = 1) => {
-        if (!finalCategoryId || searchQuery.length < 3) {
-            return;
-        }
-
-        try {
-            setSearchLoading(true);
-            console.log('🔍 Searching products:', { 
-                category: finalCategoryId, 
-                query: searchQuery, 
-                page,
-                pageSize 
-            });
-
-            const response = await apiService.products.search({
-                categoryId: finalCategoryId,
-                searchQuery: searchQuery,
-                page: page,
-                limit: pageSize
-            });
-
-            if (response.data.success) {
-                setProducts(response.data.products || []);
-                setTotalProducts(response.data.total || 0);
-                setCurrentPage(page);
-                setSearchPerformed(true);
-                console.log('✅ Search results:', response.data.products?.length, 'of', response.data.total);
-            } else {
-                message.error(response.data.message || 'Search failed');
-                setProducts([]);
-                setTotalProducts(0);
-            }
-        } catch (error) {
-            console.error('❌ Search error:', error);
-            message.error('Search failed. Please try again.');
-            setProducts([]);
-            setTotalProducts(0);
-        } finally {
-            setSearchLoading(false);
-        }
-    }, [finalCategoryId, searchQuery, pageSize]);
-
     const handlePageChange = (page) => {
-        handleSearch(page);
+        setCurrentPage(page);
     };
 
     const getCategoryIcon = (categoryName) => {
@@ -196,352 +189,193 @@ const SearchProduct = () => {
     };
 
     const getProductDisplayName = (product) => {
-        return product.name || 
-               product.getDisplayName?.() ||
-               product.model_number ||
-               product.brand ||
-               'Unknown Product';
-    };
-
-    const getProductPrice = (product) => {
-        return product.sellingPrice || 
-               product.price ||
-               product.mrp ||
-               product.dealer_price ||
-               0;
-    };
-
-    // Table columns configuration
-    const columns = [
-        {
-            title: '#',
-            key: 'index',
-            width: 50,
-            render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
-        },
-        {
-            title: 'Brand',
-            dataIndex: 'brand',
-            key: 'brand',
-            width: 100,
-            render: (brand) => (
-                <Text strong style={{ fontSize: '15px' }}>
-                    {brand || 'N/A'}
-                </Text>
-            ),
-        },
-        {
-            title: 'Model Number',
-            dataIndex: 'model_number',
-            key: 'model_number',
-            width: 120,
-            render: (text) => (
-                <Text style={{ fontSize: '14px' }}>{text || 'N/A'}</Text>
-            ),
-        },
-        {
-            title: 'Serial Number',
-            dataIndex: 'serial_number',
-            key: 'serial_number',
-            width: 130,
-            render: (text) => (
-                <Text style={{ fontSize: '14px', fontFamily: 'monospace' }}>
-                    {text || 'N/A'}
-                </Text>
-            ),
-        },
-        {
-            title: 'MRP',
-            dataIndex: 'mrp',
-            key: 'mrp',
-            width: 100,
-            render: (mrp) => (
-                <Text style={{ fontSize: '14px', color: '#52c41a' }}>
-                    {mrp ? `₹${Number(mrp).toLocaleString('en-IN')}` : 'N/A'}
-                </Text>
-            ),
-        },
-        {
-            title: 'Dealer Price',
-            dataIndex: 'dealer_price',
-            key: 'dealer_price',
-            width: 110,
-            render: (dealerPrice) => (
-                <Text strong style={{ fontSize: '14px', color: '#fa8c16' }}>
-                    {dealerPrice ? `₹${Number(dealerPrice).toLocaleString('en-IN')}` : 'N/A'}
-                </Text>
-            ),
+        // For your actual data structure, create a meaningful display name
+        const brand = product.brand || '';
+        const model = product.model_number || '';
+        const type = product.type || '';
+        const capacity = product.capacity || '';
+        
+        if (brand && model) {
+            let displayName = `${brand} ${model}`;
+            if (type) displayName += ` (${type})`;
+            if (capacity) displayName += ` - ${capacity}`;
+            return displayName;
         }
-    ];
+        
+        if (brand) return brand;
+        if (model) return model;
+        
+        return product.name || 'Product';
+    };
 
-    const selectedCategoryName = useMemo(() => {
-        // Get the final (leaf) category name from the hierarchy
-        if (finalCategoryId && categoryLevels.length > 0) {
-            for (const level of categoryLevels) {
-                const category = level.find(cat => cat._id === finalCategoryId);
-                if (category) return category.name;
+    // Generate dynamic table columns based on category form schema
+    const generateDynamicColumns = () => {
+        if (!categoryInfo || !categoryInfo.form_schema) {
+            // Fallback to basic columns if no category info
+            return [
+                {
+                    title: 'Brand',
+                    dataIndex: 'brand',
+                    key: 'brand',
+                },
+                {
+                    title: 'Model',
+                    dataIndex: 'model_number',
+                    key: 'model_number',
+                }
+            ];
+        }
+
+        const dynamicColumns = [];
+        
+        // Generate columns based on the category's form schema
+        categoryInfo.form_schema.forEach(field => {
+            if (field.field_id === 'dealer_price' || field.field_id === 'mrp') {
+                // Special handling for price fields
+                dynamicColumns.push({
+                    title: field.label,
+                    dataIndex: field.field_id,
+                    key: field.field_id,
+                    render: (text) => text ? `₹${Number(text).toLocaleString('en-IN')}` : 'N/A',
+                });
+            } else if (field.field_id === 'star_rating') {
+                // Special handling for star rating
+                dynamicColumns.push({
+                    title: field.label,
+                    dataIndex: field.field_id,
+                    key: field.field_id,
+                    render: (text) => text ? `${text} ⭐` : 'N/A',
+                });
+            } else if (field.type === 'dropdown' && field.options) {
+                // For dropdown fields, show the actual value
+                dynamicColumns.push({
+                    title: field.label,
+                    dataIndex: field.field_id,
+                    key: field.field_id,
+                    render: (text) => {
+                        if (!text) return 'N/A';
+                        // Find the option label for the value
+                        const option = field.options.find(opt => opt.value === text);
+                        return option ? option.label : text;
+                    },
+                });
+            } else {
+                // Standard column
+                dynamicColumns.push({
+                    title: field.label,
+                    dataIndex: field.field_id,
+                    key: field.field_id,
+                    render: (text) => text || 'N/A',
+                });
             }
-        }
-        return '';
-    }, [categoryLevels, finalCategoryId]);
+        });
+
+        return dynamicColumns;
+    };
+
+    const columns = useMemo(() => {
+        return generateDynamicColumns();
+    }, [categoryInfo]);
+
+    const paginatedProducts = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredProducts.slice(startIndex, startIndex + pageSize);
+    }, [filteredProducts, currentPage, pageSize]);
 
     return (
-        <div>
-            <Breadcrumb style={{ marginBottom: '24px' }}>
-                <Breadcrumb.Item>
-                    <Link to="/dashboard">Dashboard</Link>
-                </Breadcrumb.Item>
+        <div className="search-product-container">
+            <Breadcrumb style={{ margin: '16px 0' }}>
+                <Breadcrumb.Item><Link to="/"><HomeOutlined /></Link></Breadcrumb.Item>
                 <Breadcrumb.Item>Search Products</Breadcrumb.Item>
             </Breadcrumb>
-
-            <Card
-                title={
-                    <Space>
-                        <SearchOutlined style={{ color: '#fa8c16' }} />
-                        <Title level={3} style={{ margin: 0, color: '#333333' }}>
-                            Search Products
-                        </Title>
-                    </Space>
-                }
-                style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '8px',
-                    border: '1px solid #e1e5e9',
-                    marginBottom: '24px'
-                }}
+            
+            <Card 
+                title={<Title level={3}><SearchOutlined /> Search for Products</Title>}
+                bordered={false} 
+                style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}
             >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    requiredMark={false}
-                >
-                    <Row gutter={16}>
-                        {/* Hierarchical Category Selection */}
-                        {categoryLevels.length > 0 ? (
-                            categoryLevels.map((levelCategories, levelIndex) => (
-                                <Col key={levelIndex} xs={24} sm={12} md={8} lg={6}>
+                <Spin spinning={loading}>
+                    <Form form={form} layout="vertical">
+                        <Row gutter={[16, 16]}>
+                            {categoryLevels.map((level, levelIndex) => (
+                                <Col xs={24} sm={12} md={8} lg={6} key={levelIndex}>
                                     <Form.Item
-                                        label={
-                                            <Space>
-                                                <FilterOutlined />
-                                                <span style={{ fontWeight: 500 }}>
-                                                    {levelIndex === 0 ? 'Main Category' : 
-                                                     levelIndex === 1 ? 'Sub Category' : 
-                                                     `Category ${levelIndex + 1}`}
-                                                </span>
-                                                {levelIndex === 0 && <span style={{ color: '#ff4d4f' }}>*</span>}
-                                            </Space>
-                                        }
-                                        rules={levelIndex === 0 ? [{ required: true, message: 'Please select a category' }] : []}
+                                        label={`Level ${levelIndex + 1} Category`}
+                                        required={levelIndex === 0}
                                     >
                                         <Select
-                                            placeholder={levelIndex === 0 ? 'Select main category' : 'Select subcategory'}
-                                            value={selectedCategoryPath[levelIndex]}
+                                            showSearch
+                                            placeholder={`Select Level ${levelIndex + 1}`}
                                             onChange={(value) => handleCategorySelection(value, levelIndex)}
-                                            loading={loading}
-                                            size="large"
-                                            style={{ fontSize: '14px' }}
+                                            value={selectedCategoryPath[levelIndex]}
+                                            filterOption={(input, option) =>
+                                                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                            }
                                         >
-                                            {levelCategories.map(category => (
-                                                <Option key={category._id} value={category._id}>
-                                                    <Space>
-                                                        {getCategoryIcon(category.name)}
-                                                        {category.name}
-                                                    </Space>
-                                                </Option>
+                                            {level.map(cat => (
+                                                <Option key={cat._id} value={cat._id}>{cat.name}</Option>
                                             ))}
                                         </Select>
                                     </Form.Item>
                                 </Col>
-                            ))
-                        ) : (
-                            <Col xs={24} sm={12} md={8} lg={6}>
-                                <Form.Item
-                                    label={
-                                        <Space>
-                                            <FilterOutlined />
-                                            <span style={{ fontWeight: 500 }}>Main Category</span>
-                                            <span style={{ color: '#ff4d4f' }}>*</span>
-                                        </Space>
-                                    }
-                                >
-                                    <Select
-                                        placeholder="Loading categories..."
-                                        disabled
-                                        loading={loading}
-                                        size="large"
-                                    />
-                                </Form.Item>
-                            </Col>
+                            ))}
+                        </Row>
+
+                        {isLeafCategory && (
+                            <Row gutter={16}>
+                                <Col xs={24}>
+                                    <Form.Item label="Filter Products by Name, Model, or Serial Number">
+                                        <Input
+                                            placeholder="Type at least 3 characters to filter results..."
+                                            value={searchQuery}
+                                            onChange={handleSearchQueryChange}
+                                            prefix={<FilterOutlined />}
+                                            disabled={!isLeafCategory || searchLoading}
+                                            allowClear
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
                         )}
-                        
-                        <Col xs={24} sm={12} md={10} lg={12}>
-                            <Form.Item
-                                label={
-                                    <Space>
-                                        <SearchOutlined />
-                                        <span style={{ fontWeight: 500 }}>Search Query</span>
-                                        <span style={{ fontSize: '12px', color: '#666' }}>
-                                            (Brand, Model, or Serial Number)
-                                        </span>
-                                    </Space>
-                                }
-                                name="searchQuery"
-                            >
-                                <Input
-                                    placeholder={isLeafCategory ? 
-                                        "Type at least 3 characters to search..." : 
-                                        "Select a category first"
-                                    }
-                                    value={searchQuery}
-                                    onChange={handleSearchQueryChange}
-                                    disabled={!isLeafCategory}
-                                    size="large"
-                                    style={{ fontSize: '14px' }}
-                                    suffix={
-                                        searchLoading ? (
-                                            <Spin size="small" />
-                                        ) : (
-                                            <SearchOutlined style={{ color: isLeafCategory ? '#fa8c16' : '#ccc' }} />
-                                        )
-                                    }
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={24} md={6} lg={6}>
-                            <Form.Item label=" " style={{ marginTop: '6px' }}>
-                                <Space>
-                                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                                        {isLeafCategory && searchQuery.length >= 3 ? (
-                                            searchLoading ? 'Searching...' : 
-                                            `Found ${totalProducts} products`
-                                        ) : finalCategoryId && searchQuery.length > 0 && searchQuery.length < 3 ? (
-                                            `Type ${3 - searchQuery.length} more characters`
-                                        ) : finalCategoryId ? (
-                                            'Ready to search'
-                                        ) : (
-                                            'Select category to start'
-                                        )}
-                                    </Text>
-                                </Space>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Form>
+                    </Form>
+                </Spin>
             </Card>
 
-            {/* Search Results */}
-            <Card
-                title={
-                    <Space>
-                        <ShopOutlined style={{ color: '#fa8c16' }} />
-                        <Title level={4} style={{ margin: 0, color: '#333333' }}>
-                            Search Results
-                            {selectedCategoryName && (
-                                <Text type="secondary" style={{ fontSize: '14px', marginLeft: '8px' }}>
-                                    in {selectedCategoryName}
-                                </Text>
-                            )}
-                        </Title>
-                    </Space>
-                }
-                extra={
-                    totalProducts > 0 && (
-                        <Text type="secondary" style={{ fontSize: '12px' }}>
-                            Page {currentPage} of {Math.ceil(totalProducts / pageSize)}
-                        </Text>
-                    )
-                }
-                style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '8px',
-                    border: '1px solid #e1e5e9'
-                }}
+            <Card 
+                title="Product List" 
+                style={{ marginTop: '24px' }}
+                extra={searchPerformed && <Text>{filteredProducts.length} of {allProducts.length} products shown</Text>}
             >
-                {searchPerformed ? (
-                    products.length > 0 ? (
+                <Spin spinning={searchLoading}>
+                    {searchPerformed && filteredProducts.length > 0 ? (
                         <>
                             <Table
                                 columns={columns}
-                                dataSource={products}
+                                dataSource={paginatedProducts}
                                 rowKey="_id"
                                 pagination={false}
-                                loading={searchLoading}
-                                size="small"
-                                scroll={{ x: 800 }}
-                                style={{ marginBottom: '16px' }}
-                                rowClassName={(record, index) => 
-                                    index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
-                                }
+                                style={{ marginTop: '20px' }}
                             />
-                            
-                            {totalProducts > pageSize && (
-                                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                                    <Pagination
-                                        current={currentPage}
-                                        total={totalProducts}
-                                        pageSize={pageSize}
-                                        onChange={handlePageChange}
-                                        showSizeChanger={false}
-                                        showQuickJumper
-                                        showTotal={(total, range) => 
-                                            `${range[0]}-${range[1]} of ${total} products`
-                                        }
-                                        style={{ justifyContent: 'center' }}
-                                    />
-                                </div>
-                            )}
+                            <Pagination
+                                current={currentPage}
+                                pageSize={pageSize}
+                                total={filteredProducts.length}
+                                onChange={handlePageChange}
+                                style={{ marginTop: '20px', textAlign: 'right' }}
+                                showSizeChanger={false}
+                            />
                         </>
                     ) : (
                         <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
                             description={
-                                <Space direction="vertical" size={8}>
-                                    <Text>No products found</Text>
-                                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                                        Try searching with different keywords in {selectedCategoryName}
-                                    </Text>
-                                </Space>
+                                searchPerformed
+                                    ? "No products found matching your filter."
+                                    : "Please select a final product category to see the list of products."
                             }
                         />
-                    )
-                ) : (
-                    <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={
-                            <Space direction="vertical" size={8}>
-                                <Text>Ready to search</Text>
-                                <Text type="secondary" style={{ fontSize: '12px' }}>
-                                    {!finalCategoryId ? 
-                                        'Select a category and enter search terms to find products' :
-                                        'Enter at least 3 characters to start searching'
-                                    }
-                                </Text>
-                            </Space>
-                        }
-                    />
-                )}
+                    )}
+                </Spin>
             </Card>
-
-            {/* Custom CSS for table styling */}
-            <style jsx>{`
-                .table-row-light {
-                    background-color: #fafafa;
-                }
-                .table-row-dark {
-                    background-color: #ffffff;
-                }
-                .ant-table-tbody > tr:hover > td {
-                    background-color: #e6f7ff !important;
-                }
-                .ant-pagination-item-active {
-                    border-color: #fa8c16;
-                    background-color: #fa8c16;
-                }
-                .ant-pagination-item-active a {
-                    color: #fff;
-                }
-            `}</style>
         </div>
     );
 };

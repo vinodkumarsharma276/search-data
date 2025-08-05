@@ -64,18 +64,19 @@ router.get('/', protect, async (req, res) => {
 // @access  Public (for testing only)
 router.get('/search-test', async (req, res) => {
     try {
-        const { categoryId, searchQuery, page = 1, limit = 50 } = req.query;
+        const { categoryId, searchQuery, page = 1, limit = 1000 } = req.query;
         
         console.log('🔍 Product search request (TEST):', { categoryId, searchQuery, page, limit });
         
-        if (!categoryId || !searchQuery) {
+        if (!categoryId) {
             return res.status(400).json({
                 success: false,
-                message: 'Category ID and search query are required'
+                message: 'Category ID is required'
             });
         }
         
-        if (searchQuery.length < 3) {
+        // If searchQuery is provided, it must be at least 3 characters
+        if (searchQuery && searchQuery.length < 3) {
             return res.status(400).json({
                 success: false,
                 message: 'Search query must be at least 3 characters long'
@@ -91,41 +92,46 @@ router.get('/search-test', async (req, res) => {
         
         // Build search query
         let query = {
-            $and: [
-                // Category filter - handle multiple field names and formats, including subcategories
-                {
-                    $or: [
-                        ...allCategoryIds.flatMap(catId => [
-                            { categoryId: catId },
-                            { category: catId },
-                            { selected_category_id: catId },
-                            { category_id: catId },
-                            // Also try ObjectId format for string comparisons
-                            { categoryId: new mongoose.Types.ObjectId(catId) },
-                            { category: new mongoose.Types.ObjectId(catId) },
-                            { selected_category_id: new mongoose.Types.ObjectId(catId) },
-                            { category_id: new mongoose.Types.ObjectId(catId) }
-                        ])
-                    ]
-                },
-                // Search in dynamic_fields and name fields
-                {
-                    $or: [
-                        { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
-                        { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
-                        { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
-                        { name: { $regex: searchQuery, $options: 'i' } },
-                        { product_name: { $regex: searchQuery, $options: 'i' } },
-                        // Legacy fields (in case some products still have them at root level)
-                        { model_number: { $regex: searchQuery, $options: 'i' } },
-                        { modelNumber: { $regex: searchQuery, $options: 'i' } },
-                        { serial_number: { $regex: searchQuery, $options: 'i' } },
-                        { serialNumber: { $regex: searchQuery, $options: 'i' } },
-                        { brand: { $regex: searchQuery, $options: 'i' } }
-                    ]
-                }
+            // Category filter - handle multiple field names and formats, including subcategories
+            $or: [
+                ...allCategoryIds.flatMap(catId => [
+                    { categoryId: catId },
+                    { category: catId },
+                    { selected_category_id: catId },
+                    { category_id: catId },
+                    // Also try ObjectId format for string comparisons
+                    { categoryId: new mongoose.Types.ObjectId(catId) },
+                    { category: new mongoose.Types.ObjectId(catId) },
+                    { selected_category_id: new mongoose.Types.ObjectId(catId) },
+                    { category_id: new mongoose.Types.ObjectId(catId) }
+                ])
             ]
         };
+
+        // Only add text search if searchQuery is provided
+        if (searchQuery) {
+            query = {
+                $and: [
+                    query,
+                    // Search in dynamic_fields and name fields
+                    {
+                        $or: [
+                            { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
+                            { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
+                            { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
+                            { name: { $regex: searchQuery, $options: 'i' } },
+                            { product_name: { $regex: searchQuery, $options: 'i' } },
+                            // Legacy fields (in case some products still have them at root level)
+                            { model_number: { $regex: searchQuery, $options: 'i' } },
+                            { modelNumber: { $regex: searchQuery, $options: 'i' } },
+                            { serial_number: { $regex: searchQuery, $options: 'i' } },
+                            { serialNumber: { $regex: searchQuery, $options: 'i' } },
+                            { brand: { $regex: searchQuery, $options: 'i' } }
+                        ]
+                    }
+                ]
+            };
+        }
         
         console.log('📋 MongoDB query (TEST):', JSON.stringify(query, null, 2));
         
@@ -140,13 +146,31 @@ router.get('/search-test', async (req, res) => {
         
         console.log('✅ Search results (TEST):', products.length, 'of', total, 'total');
         
+        // Get category information including form schema for dynamic table columns
+        let categoryInfo = null;
+        if (products.length > 0) {
+            try {
+                const category = await Category.findById(categoryId);
+                if (category) {
+                    categoryInfo = {
+                        _id: category._id,
+                        name: category.name,
+                        form_schema: category.form_schema || []
+                    };
+                }
+            } catch (err) {
+                console.warn('Failed to fetch category info:', err.message);
+            }
+        }
+        
         res.json({
             success: true,
             products: products,
             total: total,
             page: parseInt(page),
             limit: parseInt(limit),
-            totalPages: Math.ceil(total / parseInt(limit))
+            totalPages: Math.ceil(total / parseInt(limit)),
+            categoryInfo: categoryInfo
         });
         
     } catch (error) {
