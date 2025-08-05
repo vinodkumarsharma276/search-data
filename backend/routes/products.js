@@ -59,6 +59,70 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
+// @desc    Global search products by serial number or other fields (TEST VERSION - NO AUTH)
+// @route   GET /api/products/global-search
+// @access  Public (for testing only)
+router.get('/global-search', async (req, res) => {
+    try {
+        const { searchQuery, page = 1, limit = 1000 } = req.query;
+        
+        console.log('🔍 Global product search request (TEST):', { searchQuery, page, limit });
+        
+        if (!searchQuery || searchQuery.length < 3) {
+            return res.status(400).json({
+                success: false,
+                message: 'Search query must be at least 3 characters long'
+            });
+        }
+        
+        // Build global search query across all products (exclude deleted by default)
+        let query = {
+            deleted: { $ne: true }, // Exclude soft-deleted products
+            $or: [
+                { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
+                { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
+                { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
+                { product_name: { $regex: searchQuery, $options: 'i' } },
+                // Legacy fields (in case some products still have them at root level)
+                { model_number: { $regex: searchQuery, $options: 'i' } },
+                { modelNumber: { $regex: searchQuery, $options: 'i' } },
+                { serial_number: { $regex: searchQuery, $options: 'i' } },
+                { serialNumber: { $regex: searchQuery, $options: 'i' } },
+                { brand: { $regex: searchQuery, $options: 'i' } }
+            ]
+        };
+        
+        console.log('📋 MongoDB global search query (TEST):', JSON.stringify(query, null, 2));
+        
+        // Execute search with pagination
+        const products = await Product.find(query)
+            .populate('supplierId', 'name companyName gstNumber')
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .sort({ createdAt: -1 });
+        
+        const total = await Product.countDocuments(query);
+        
+        console.log('✅ Global search results (TEST):', products.length, 'of', total, 'total');
+        
+        res.json({
+            success: true,
+            products: products,
+            total: total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / parseInt(limit))
+        });
+        
+    } catch (error) {
+        console.error('❌ Global product search error (TEST):', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error while searching products'
+        });
+    }
+});
+
 // @desc    Search products by category and query (TEST VERSION - NO AUTH)
 // @route   GET /api/products/search-test
 // @access  Public (for testing only)
@@ -90,14 +154,16 @@ router.get('/search-test', async (req, res) => {
         
         console.log('🔍 Searching in categories (TEST):', allCategoryIds);
         
-        // Build search query
+        // Build search query (exclude deleted products by default)
         let query = {
+            deleted: { $ne: true }, // Exclude soft-deleted products
             // Category filter - handle multiple field names and formats, including subcategories
             $or: [
                 ...allCategoryIds.flatMap(catId => [
                     { categoryId: catId },
                     { category: catId },
                     { selected_category_id: catId },
+                    // Legacy category_id field support
                     { category_id: catId },
                     // Also try ObjectId format for string comparisons
                     { categoryId: new mongoose.Types.ObjectId(catId) },
@@ -119,7 +185,6 @@ router.get('/search-test', async (req, res) => {
                             { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
                             { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
                             { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
-                            { name: { $regex: searchQuery, $options: 'i' } },
                             { product_name: { $regex: searchQuery, $options: 'i' } },
                             // Legacy fields (in case some products still have them at root level)
                             { model_number: { $regex: searchQuery, $options: 'i' } },
@@ -137,7 +202,7 @@ router.get('/search-test', async (req, res) => {
         
         // Execute search with pagination
         const products = await Product.find(query)
-            .populate('supplierId', 'name companyName')
+            .populate('supplierId', 'name companyName gstNumber')
             .limit(parseInt(limit))
             .skip((parseInt(page) - 1) * parseInt(limit))
             .sort({ createdAt: -1 });
@@ -273,6 +338,28 @@ router.get('/search', protect, async (req, res) => {
         res.status(500).json({
             success: false,
             message: error.message || 'Server error while searching products'
+        });
+    }
+});
+
+// @desc    Get all distributors for dropdown
+// @route   GET /api/products/distributors
+// @access  Public (for testing only)
+router.get('/distributors', async (req, res) => {
+    try {
+        const Distributor = require('../models/Distributor');
+        const distributors = await Distributor.find({ isActive: { $ne: false } }, 'name companyName gstNumber')
+            .sort({ name: 1 });
+
+        res.json({
+            success: true,
+            data: distributors
+        });
+    } catch (error) {
+        console.error('Get distributors error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error while fetching distributors'
         });
     }
 });
@@ -624,7 +711,7 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
     }
 });
 
-// @desc    Update product
+// @desc    Update product (for dynamic schema products)
 // @route   PUT /api/products/:id
 // @access  Protected (Admin/Manager only)
 router.put('/:id', protect, checkPermission('update'), async (req, res) => {
@@ -638,112 +725,40 @@ router.put('/:id', protect, checkPermission('update'), async (req, res) => {
             });
         }
 
-        const {
-            name,
-            modelNumber,
-            brandId,
-            categoryId,
-            purchasePrice,
-            mrp,
-            sellingPrice,
-            currentStock,
-            minimumStock,
-            maximumStock,
-            gstRate,
-            hsnCode,
-            description,
-            features,
-            warrantyPeriod,
-            weight,
-            dimensions,
-            images,
-            specifications,
-            supplierId,
-            isActive
-        } = req.body;
+        console.log('🔄 Updating product:', req.params.id);
+        console.log('📋 Update data received:', JSON.stringify(req.body, null, 2));
 
-        // Validate brand and category if provided
-        if (brandId && brandId !== product.brandId.toString()) {
-            const brand = await Brand.findById(brandId);
-            if (!brand) {
+        // For our dynamic schema, we'll update the fields directly
+        const updateData = { ...req.body };
+        
+        // Remove any undefined or null values
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] === undefined || updateData[key] === null || updateData[key] === '') {
+                delete updateData[key];
+            }
+        });
+
+        // Validate distributor if provided
+        if (updateData.supplierId) {
+            const Distributor = require('../models/Distributor');
+            const distributor = await Distributor.findById(updateData.supplierId);
+            if (!distributor) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid brand ID'
+                    message: 'Invalid distributor ID'
                 });
             }
         }
 
-        if (categoryId && categoryId !== product.categoryId.toString()) {
-            const category = await Category.findById(categoryId);
-            if (!category) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid category ID'
-                });
-            }
-        }
-
-        // Validate pricing logic if prices are being updated
-        const newMrp = mrp || product.mrp;
-        const newSellingPrice = sellingPrice || product.sellingPrice;
-        const newPurchasePrice = purchasePrice || product.purchasePrice;
-
-        if (newSellingPrice > newMrp) {
-            return res.status(400).json({
-                success: false,
-                message: 'Selling price cannot be greater than MRP'
-            });
-        }
-
-        if (newPurchasePrice >= newSellingPrice) {
-            return res.status(400).json({
-                success: false,
-                message: 'Purchase price should be less than selling price'
-            });
-        }
-
-        // Update fields
-        const updateFields = {
-            name,
-            modelNumber,
-            brandId,
-            categoryId,
-            purchasePrice,
-            mrp,
-            sellingPrice,
-            currentStock,
-            minimumStock,
-            maximumStock,
-            gstRate,
-            hsnCode,
-            description,
-            features,
-            warrantyPeriod,
-            weight,
-            dimensions,
-            images,
-            specifications,
-            supplierId,
-            isActive
-        };
-
-        // Remove undefined fields
-        Object.keys(updateFields).forEach(key => 
-            updateFields[key] === undefined && delete updateFields[key]
-        );
-
-        // Update basePrice if purchasePrice is updated
-        if (purchasePrice) {
-            updateFields.basePrice = purchasePrice;
-        }
+        console.log('🧹 Cleaned update data:', JSON.stringify(updateData, null, 2));
 
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id,
-            updateFields,
-            { new: true, runValidators: true }
-        ).populate('brandId', 'name')
-         .populate('categoryId', 'name')
-         .populate('supplierId', 'companyName');
+            { $set: updateData },
+            { new: true, runValidators: false } // Disable validators for dynamic schema
+        ).populate('supplierId', 'name companyName gstNumber');
+
+        console.log('✅ Product updated successfully:', updatedProduct._id);
 
         res.json({
             success: true,
@@ -751,12 +766,13 @@ router.put('/:id', protect, checkPermission('update'), async (req, res) => {
             data: updatedProduct
         });
     } catch (error) {
-        console.error('Update product error:', error);
+        console.error('❌ Update product error:', error);
         
         if (error.code === 11000) {
+            const duplicateField = Object.keys(error.keyPattern)[0];
             return res.status(400).json({
                 success: false,
-                message: 'Product with this model number already exists'
+                message: `Product with this ${duplicateField} already exists`
             });
         }
         
@@ -783,6 +799,7 @@ router.delete('/:id', protect, checkPermission('delete'), async (req, res) => {
 
         // Soft delete - mark as inactive instead of removing
         product.isActive = false;
+        product.deleted = true; // Also mark with our standardized soft delete flag
         await product.save();
 
         res.json({
@@ -791,6 +808,37 @@ router.delete('/:id', protect, checkPermission('delete'), async (req, res) => {
         });
     } catch (error) {
         console.error('Delete product error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error while deleting product'
+        });
+    }
+});
+
+// @desc    Soft delete product (mark as deleted)
+// @route   PATCH /api/products/:id/soft-delete
+// @access  Public (for testing only)
+router.patch('/:id/soft-delete', async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        // Mark as deleted
+        product.deleted = true;
+        await product.save();
+
+        res.json({
+            success: true,
+            message: 'Product marked as deleted successfully'
+        });
+    } catch (error) {
+        console.error('Soft delete product error:', error);
         res.status(500).json({
             success: false,
             message: error.message || 'Server error while deleting product'

@@ -53,10 +53,14 @@ const SearchProduct = () => {
     
     // State for dynamic table columns
     const [categoryInfo, setCategoryInfo] = useState(null);
+    const [editingRowId, setEditingRowId] = useState(null);
+    const [editingRowData, setEditingRowData] = useState({});
+    const [distributors, setDistributors] = useState([]);
 
     // Fetch top-level categories on component mount
     useEffect(() => {
         fetchTopLevelCategories();
+        fetchDistributors();
     }, []);
 
     // Frontend filtering when searchQuery changes
@@ -90,6 +94,17 @@ const SearchProduct = () => {
             console.error('❌ Error fetching categories:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchDistributors = async () => {
+        try {
+            const response = await apiService.products.getDistributors();
+            if (response.data.success) {
+                setDistributors(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching distributors:', error);
         }
     };
 
@@ -180,6 +195,58 @@ const SearchProduct = () => {
         setCurrentPage(page);
     };
 
+    const handleAction = (action, record) => {
+        if (action === 'edit') {
+            setEditingRowId(record._id);
+            setEditingRowData({ ...record }); // Copy the record for editing
+        } else if (action === 'delete') {
+            handleDeleteProduct(record._id);
+        }
+    };
+
+    const handleDeleteProduct = async (productId) => {
+        try {
+            const response = await apiService.products.softDelete(productId);
+            if (response.data.success) {
+                message.success('Product deleted successfully');
+                // Refresh the product list
+                if (finalCategoryId) {
+                    await fetchAllProductsForCategory(finalCategoryId);
+                }
+            } else {
+                message.error('Failed to delete product');
+            }
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            message.error('Failed to delete product');
+        }
+    };
+
+    const handleSaveEdit = async (record) => {
+        try {
+            // Use the editingRowData for updates
+            const updateData = { ...editingRowData };
+            
+            console.log('Updating product with data:', updateData);
+            
+            const response = await apiService.products.update(record._id, updateData);
+            if (response.data.success) {
+                message.success('Product updated successfully');
+                setEditingRowId(null);
+                setEditingRowData({});
+                // Refresh the product list
+                if (finalCategoryId) {
+                    await fetchAllProductsForCategory(finalCategoryId);
+                }
+            } else {
+                message.error('Failed to update product');
+            }
+        } catch (error) {
+            console.error('Error updating product:', error);
+            message.error('Failed to update product');
+        }
+    };
+
     const getCategoryIcon = (categoryName) => {
         const name = categoryName?.toLowerCase();
         if (name?.includes('mobile')) return <MobileOutlined />;
@@ -236,7 +303,18 @@ const SearchProduct = () => {
                     title: field.label,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    render: (text) => text ? `₹${Number(text).toLocaleString('en-IN')}` : 'N/A',
+                    render: (text, record) => {
+                        if (editingRowId === record._id) {
+                            return (
+                                <Input
+                                    type="number"
+                                    defaultValue={text}
+                                    onChange={(e) => record[field.field_id] = e.target.value}
+                                />
+                            );
+                        }
+                        return text ? `₹${Number(text).toLocaleString('en-IN')}` : 'N/A';
+                    },
                 });
             } else if (field.field_id === 'star_rating') {
                 // Special handling for star rating
@@ -244,7 +322,24 @@ const SearchProduct = () => {
                     title: field.label,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    render: (text) => text ? `${text} ⭐` : 'N/A',
+                    render: (text, record) => {
+                        if (editingRowId === record._id) {
+                            return (
+                                <Select
+                                    style={{ width: '100%' }}
+                                    defaultValue={text}
+                                    onChange={(value) => record[field.field_id] = value}
+                                >
+                                    {field.options?.map(option => (
+                                        <Option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            );
+                        }
+                        return text ? `${text} ⭐` : 'N/A';
+                    },
                 });
             } else if (field.type === 'dropdown' && field.options) {
                 // For dropdown fields, show the actual value
@@ -252,7 +347,29 @@ const SearchProduct = () => {
                     title: field.label,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    render: (text) => {
+                    width: 150,
+                    render: (text, record) => {
+                        if (editingRowId === record._id) {
+                            return (
+                                <Select
+                                    style={{ width: 130 }}
+                                    value={editingRowData[field.field_id] || text}
+                                    onChange={(value) => {
+                                        setEditingRowData(prev => ({
+                                            ...prev,
+                                            [field.field_id]: value
+                                        }));
+                                    }}
+                                    dropdownStyle={{ zIndex: 9999 }}
+                                >
+                                    {field.options.map(option => (
+                                        <Option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            );
+                        }
                         if (!text) return 'N/A';
                         // Find the option label for the value
                         const option = field.options.find(opt => opt.value === text);
@@ -265,9 +382,104 @@ const SearchProduct = () => {
                     title: field.label,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    render: (text) => text || 'N/A',
+                    width: field.field_id === 'model_number' || field.field_id === 'serial_number' ? 120 : 100,
+                    render: (text, record) => {
+                        if (editingRowId === record._id) {
+                            return (
+                                <Input
+                                    value={editingRowData[field.field_id] || text || ''}
+                                    onChange={(e) => {
+                                        setEditingRowData(prev => ({
+                                            ...prev,
+                                            [field.field_id]: e.target.value
+                                        }));
+                                    }}
+                                    style={{ width: field.field_id === 'model_number' || field.field_id === 'serial_number' ? 110 : 90 }}
+                                />
+                            );
+                        }
+                        return text || 'N/A';
+                    },
                 });
             }
+        });
+
+        // Add Distributor column
+        dynamicColumns.push({
+            title: 'Distributor',
+            key: 'distributor',
+            width: 200,
+            render: (text, record) => {
+                if (editingRowId === record._id) {
+                    const currentSupplierId = editingRowData.supplierId || 
+                        (record.supplierId && typeof record.supplierId === 'object' ? record.supplierId._id : record.supplierId);
+                    
+                    return (
+                        <Select
+                            style={{ width: 180 }}
+                            value={currentSupplierId}
+                            onChange={(value) => {
+                                setEditingRowData(prev => ({
+                                    ...prev,
+                                    supplierId: value
+                                }));
+                            }}
+                            dropdownStyle={{ zIndex: 9999 }}
+                        >
+                            {distributors.map(dist => (
+                                <Option key={dist._id} value={dist._id}>
+                                    {dist.name}
+                                </Option>
+                            ))}
+                        </Select>
+                    );
+                } else {
+                    const supplier = record.supplierId;
+                    if (supplier && typeof supplier === 'object') {
+                        return (
+                            <div style={{ fontSize: '12px', lineHeight: '1.2' }}>
+                                <div style={{ fontWeight: 'bold' }}>{supplier.name}</div>
+                                <div style={{ color: '#666' }}>{supplier.gstNumber || 'N/A'}</div>
+                            </div>
+                        );
+                    }
+                    return 'N/A';
+                }
+            },
+        });
+
+        // Add Action column
+        dynamicColumns.push({
+            title: 'Action',
+            key: 'action',
+            width: 100,
+            fixed: 'right',
+            render: (text, record) => {
+                if (editingRowId === record._id) {
+                    return (
+                        <Button 
+                            type="primary" 
+                            size="small"
+                            onClick={() => handleSaveEdit(record)}
+                            style={{ width: 60 }}
+                        >
+                            OK
+                        </Button>
+                    );
+                } else {
+                    return (
+                        <Select
+                            style={{ width: 80 }}
+                            placeholder="..."
+                            onChange={(value) => handleAction(value, record)}
+                            dropdownStyle={{ zIndex: 9999 }}
+                        >
+                            <Option value="edit">Edit</Option>
+                            <Option value="delete">Delete</Option>
+                        </Select>
+                    );
+                }
+            },
         });
 
         return dynamicColumns;
@@ -275,7 +487,7 @@ const SearchProduct = () => {
 
     const columns = useMemo(() => {
         return generateDynamicColumns();
-    }, [categoryInfo]);
+    }, [categoryInfo, editingRowId, editingRowData, distributors]);
 
     const paginatedProducts = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
@@ -348,13 +560,18 @@ const SearchProduct = () => {
             >
                 <Spin spinning={searchLoading}>
                     {searchPerformed && filteredProducts.length > 0 ? (
-                        <>
+                        <div style={{ overflowX: 'auto', marginTop: '20px' }}>
                             <Table
                                 columns={columns}
                                 dataSource={paginatedProducts}
                                 rowKey="_id"
                                 pagination={false}
-                                style={{ marginTop: '20px' }}
+                                scroll={{ 
+                                    x: 'max-content',
+                                    y: 600 
+                                }}
+                                size="small"
+                                style={{ minWidth: '1200px' }}
                             />
                             <Pagination
                                 current={currentPage}
@@ -364,7 +581,7 @@ const SearchProduct = () => {
                                 style={{ marginTop: '20px', textAlign: 'right' }}
                                 showSizeChanger={false}
                             />
-                        </>
+                        </div>
                     ) : (
                         <Empty
                             description={
