@@ -198,6 +198,26 @@ const SearchDistributor = () => {
             render: (text) => text || '-'
         },
         {
+            title: 'Total Products',
+            dataIndex: 'totalProducts',
+            key: 'totalProducts',
+            width: 120,
+            align: 'right',
+            render: (text) => <Text strong>{text.toLocaleString()}</Text>
+        },
+        {
+            title: 'Total Value',
+            dataIndex: 'totalValue',
+            key: 'totalValue',
+            width: 150,
+            align: 'right',
+            render: (text) => (
+                <Text style={{ color: '#3f8600' }}>
+                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(text || 0)}
+                </Text>
+            )
+        },
+        {
             title: 'Created',
             dataIndex: 'createdAt',
             key: 'createdAt',
@@ -235,7 +255,7 @@ const SearchDistributor = () => {
 
     return (
         <div style={{ padding: '24px', minHeight: '100vh' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+            <div>
                 <Card style={{ marginBottom: '24px' }}>
                     <div style={{ marginBottom: '24px' }}>
                         <Title level={3} style={{ margin: 0, marginBottom: '8px' }}>
@@ -302,7 +322,7 @@ const SearchDistributor = () => {
                             dataSource={getPaginatedData()}
                             pagination={false}
                             rowKey="_id"
-                            scroll={{ x: 1200 }}
+                            scroll={{ x: 1500 }}
                             size="middle"
                         />
                         

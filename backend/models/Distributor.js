@@ -93,6 +93,10 @@ const distributorSchema = new mongoose.Schema({
         enum: ['Active', 'Inactive'],
         default: 'Active'
     },
+    deleted: {
+        type: Boolean,
+        default: false
+    },
     // Legacy fields for compatibility
     contactPerson: {
         type: String,
@@ -117,7 +121,8 @@ const distributorSchema = new mongoose.Schema({
         default: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    collection: 'distributors'
 });
 
 // Create text index for search

@@ -69,19 +69,71 @@ router.post('/', async (req, res) => {
     }
 });
 
-// GET /api/distributors - Get all distributors
+// GET /api/distributors - Get all distributors with product stats
 router.get('/', async (req, res) => {
-    console.log('🏪 GET /api/distributors - Fetching all distributors');
+    console.log('🏪 GET /api/distributors - Fetching all distributors with product stats');
 
     try {
-        const distributors = await Distributor.find()
-            .select('name companyType primaryPhone email city state gstNumber panNumber address status createdAt')
-            .sort({ createdAt: -1 });
+        const distributorsWithStats = await Distributor.aggregate([
+            // Filter out soft-deleted distributors
+            {
+                $match: { deleted: { $ne: true } }
+            },
+            // Lookup products associated with each distributor
+            {
+                $lookup: {
+                    from: 'products', // The collection name for products
+                    localField: '_id',
+                    foreignField: 'supplierId',
+                    as: 'products'
+                }
+            },
+            // Add fields for total products and total value
+            {
+                $addFields: {
+                    totalProducts: { $size: "$products" },
+                    totalValue: {
+                        $reduce: {
+                            input: "$products",
+                            initialValue: 0,
+                            in: {
+                                $add: [
+                                    "$$value",
+                                    { $ifNull: [ "$$this.price", "$$this.sellingPrice", "$$this.dealer_price", "$$this.mrp", "$$this.common_purchase_price", "$$this.purchase_price", 0 ] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            // Project the desired fields for the final output
+            {
+                $project: {
+                    name: 1,
+                    companyType: 1,
+                    primaryPhone: 1,
+                    email: 1,
+                    city: 1,
+                    state: 1,
+                    gstNumber: 1,
+                    panNumber: 1,
+                    address: 1,
+                    status: 1,
+                    createdAt: 1,
+                    totalProducts: 1,
+                    totalValue: 1
+                }
+            },
+            // Sort by creation date
+            {
+                $sort: { createdAt: -1 }
+            }
+        ]);
 
-        console.log('✅ Found distributors:', distributors.length);
+        console.log('✅ Found distributors:', distributorsWithStats.length);
         res.json({
             success: true,
-            distributors: distributors
+            distributors: distributorsWithStats
         });
 
     } catch (error) {
@@ -197,12 +249,16 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// DELETE /api/distributors/:id - Delete distributor
+// DELETE /api/distributors/:id - Soft delete distributor
 router.delete('/:id', async (req, res) => {
-    console.log('🏪 DELETE /api/distributors/:id - Deleting distributor:', req.params.id);
+    console.log('🏪 DELETE /api/distributors/:id - Soft deleting distributor:', req.params.id);
 
     try {
-        const distributor = await Distributor.findByIdAndDelete(req.params.id);
+        const distributor = await Distributor.findByIdAndUpdate(
+            req.params.id,
+            { $set: { deleted: true } },
+            { new: true }
+        );
 
         if (!distributor) {
             return res.status(404).json({
@@ -211,7 +267,7 @@ router.delete('/:id', async (req, res) => {
             });
         }
 
-        console.log('✅ Distributor deleted successfully:', distributor.name);
+        console.log('✅ Distributor soft deleted successfully:', distributor.name);
         res.json({
             success: true,
             message: 'Distributor deleted successfully',
@@ -219,7 +275,7 @@ router.delete('/:id', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error deleting distributor:', error);
+        console.error('❌ Error soft deleting distributor:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to delete distributor',
