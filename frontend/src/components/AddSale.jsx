@@ -266,9 +266,23 @@ const AddSale = () => {
             dealerPrice: dealerPrice,
             category: product.category_name || (product.categoryId?.name) || 'N/A',
             distributor: product.supplierId?.name || 'N/A',
+            // Additional product fields
+            description: product.description || 'N/A',
+            warranty: product.warranty || 'N/A',
+            color: product.color || 'N/A',
+            storage: product.storage || 'N/A',
+            ram: product.ram || 'N/A',
+            processor: product.processor || 'N/A',
+            operatingSystem: product.operating_system || product.os || 'N/A',
+            screenSize: product.screen_size || product.display_size || 'N/A',
+            weight: product.weight || 'N/A',
+            dimensions: product.dimensions || 'N/A',
+            connectivity: product.connectivity || 'N/A',
+            features: product.features || 'N/A',
+            // Pricing fields
             sellingPrice: dealerPrice, // Default selling price to dealer price
             discount: mrp - dealerPrice, // Calculate discount based on MRP - dealer price
-            discountPercentage: mrp > 0 ? ((mrp - dealerPrice) / mrp) * 100 : 0,
+            discountPercentage: mrp > 0 ? parseFloat(((mrp - dealerPrice) / mrp * 100).toFixed(2)) : 0,
             igst: 0,
             cgst: 9,
             sgst: 9,
@@ -1267,90 +1281,106 @@ const AddSale = () => {
                                                         <Title level={5} style={{ marginBottom: '16px', color: '#595959' }}>
                                                             Product Information
                                                         </Title>
-                                                        <Row gutter={[16, 16]}>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Product Name" style={{ marginBottom: 16 }}>
-                                                                    <Input 
-                                                                        value={item.productName || 'N/A'}
-                                                                        disabled 
-                                                                        style={{ 
-                                                                            backgroundColor: '#f5f5f5',
-                                                                            color: '#595959',
-                                                                            borderColor: '#d9d9d9'
-                                                                        }} 
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Brand & Model" style={{ marginBottom: 16 }}>
-                                                                    <Input 
-                                                                        value={`${item.brand || 'N/A'} - ${item.modelNumber || 'N/A'}`}
-                                                                        disabled 
-                                                                        style={{ 
-                                                                            backgroundColor: '#f5f5f5',
-                                                                            color: '#595959',
-                                                                            borderColor: '#d9d9d9'
-                                                                        }} 
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Serial Number" style={{ marginBottom: 16 }}>
-                                                                    <Input 
-                                                                        value={item.serialNumber || 'N/A'}
-                                                                        disabled 
-                                                                        style={{ 
-                                                                            backgroundColor: '#f5f5f5',
-                                                                            color: '#595959',
-                                                                            borderColor: '#d9d9d9'
-                                                                        }} 
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="MRP" style={{ marginBottom: 16 }}>
-                                                                    <InputNumber 
-                                                                        value={item.mrp}
-                                                                        disabled 
-                                                                        style={{ 
-                                                                            width: '100%',
-                                                                            backgroundColor: '#f5f5f5',
-                                                                            color: '#595959'
-                                                                        }}
-                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Dealer Price" style={{ marginBottom: 16 }}>
-                                                                    <InputNumber 
-                                                                        value={item.dealerPrice}
-                                                                        disabled 
-                                                                        style={{ 
-                                                                            width: '100%',
-                                                                            backgroundColor: '#f5f5f5',
-                                                                            color: '#595959'
-                                                                        }}
-                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Category" style={{ marginBottom: 16 }}>
-                                                                    <Input 
-                                                                        value={item.category || 'N/A'}
-                                                                        disabled 
-                                                                        style={{ 
-                                                                            backgroundColor: '#f5f5f5',
-                                                                            color: '#595959',
-                                                                            borderColor: '#d9d9d9'
-                                                                        }} 
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                        </Row>
+                                                        {/* Dynamic Product Information Fields */}
+                                                        {(() => {
+                                                            // Define all possible fields with their labels and property names
+                                                            const productFields = [
+                                                                { label: 'Product Name', key: 'productName', type: 'text' },
+                                                                { label: 'Brand & Model', key: 'brandModel', type: 'text', 
+                                                                  value: `${item.brand || 'N/A'} - ${item.modelNumber || 'N/A'}` },
+                                                                { label: 'Serial Number', key: 'serialNumber', type: 'text' },
+                                                                { label: 'Category', key: 'category', type: 'text' },
+                                                                { label: 'Distributor', key: 'distributor', type: 'text' },
+                                                                { label: 'Description', key: 'description', type: 'text' },
+                                                                { label: 'MRP', key: 'mrp', type: 'currency' },
+                                                                { label: 'Dealer Price', key: 'dealerPrice', type: 'currency' },
+                                                                { label: 'Warranty', key: 'warranty', type: 'text' },
+                                                                { label: 'Color', key: 'color', type: 'text' },
+                                                                { label: 'Storage', key: 'storage', type: 'text' },
+                                                                { label: 'RAM', key: 'ram', type: 'text' },
+                                                                { label: 'Processor', key: 'processor', type: 'text' },
+                                                                { label: 'Operating System', key: 'operatingSystem', type: 'text' },
+                                                                { label: 'Screen Size', key: 'screenSize', type: 'text' },
+                                                                { label: 'Weight', key: 'weight', type: 'text' },
+                                                                { label: 'Dimensions', key: 'dimensions', type: 'text' },
+                                                                { label: 'Connectivity', key: 'connectivity', type: 'text' },
+                                                                { label: 'Features', key: 'features', type: 'textarea' }
+                                                            ];
+
+                                                            // Filter fields that have actual data (not N/A, null, undefined, or empty)
+                                                            const fieldsWithData = productFields.filter(field => {
+                                                                const value = field.value || item[field.key];
+                                                                return value && 
+                                                                       value !== 'N/A' && 
+                                                                       value !== '' && 
+                                                                       value !== null && 
+                                                                       value !== undefined &&
+                                                                       value.toString().trim() !== '';
+                                                            });
+
+                                                            // Group fields into rows of 3
+                                                            const rows = [];
+                                                            for (let i = 0; i < fieldsWithData.length; i += 3) {
+                                                                rows.push(fieldsWithData.slice(i, i + 3));
+                                                            }
+
+                                                            return rows.map((row, rowIndex) => (
+                                                                <Row key={rowIndex} gutter={[16, 16]}>
+                                                                    {row.map((field, colIndex) => {
+                                                                        const value = field.value || item[field.key];
+                                                                        const isFullWidth = field.type === 'textarea';
+                                                                        const colSpan = isFullWidth ? 24 : 8;
+                                                                        
+                                                                        return (
+                                                                            <Col key={field.key} xs={24} sm={isFullWidth ? 24 : 12} md={colSpan} lg={colSpan}>
+                                                                                <Form.Item label={field.label} style={{ marginBottom: 16 }}>
+                                                                                    {field.type === 'currency' ? (
+                                                                                        <InputNumber 
+                                                                                            value={value}
+                                                                                            disabled 
+                                                                                            style={{ 
+                                                                                                width: '100%',
+                                                                                                backgroundColor: '#f5f5f5',
+                                                                                                color: '#595959'
+                                                                                            }}
+                                                                                            formatter={val => `₹ ${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                                            parser={val => val.replace(/₹\s?|(,*)/g, '')}
+                                                                                        />
+                                                                                    ) : field.type === 'textarea' ? (
+                                                                                        <Input.TextArea 
+                                                                                            value={value}
+                                                                                            disabled 
+                                                                                            rows={2}
+                                                                                            style={{ 
+                                                                                                backgroundColor: '#f5f5f5',
+                                                                                                color: '#595959',
+                                                                                                borderColor: '#d9d9d9'
+                                                                                            }} 
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <Input 
+                                                                                            value={value}
+                                                                                            disabled 
+                                                                                            style={{ 
+                                                                                                backgroundColor: '#f5f5f5',
+                                                                                                color: '#595959',
+                                                                                                borderColor: '#d9d9d9'
+                                                                                            }} 
+                                                                                        />
+                                                                                    )}
+                                                                                </Form.Item>
+                                                                            </Col>
+                                                                        );
+                                                                    })}
+                                                                    {/* Fill remaining columns if row has less than 3 items and no textarea */}
+                                                                    {row.length < 3 && !row.some(field => field.type === 'textarea') && 
+                                                                        Array.from({ length: 3 - row.length }).map((_, emptyIndex) => (
+                                                                            <Col key={`empty-${rowIndex}-${emptyIndex}`} xs={0} sm={0} md={8} lg={8} />
+                                                                        ))
+                                                                    }
+                                                                </Row>
+                                                            ));
+                                                        })()}
                                                     </div>
 
                                                     {/* Pricing Section */}
