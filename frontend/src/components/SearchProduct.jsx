@@ -57,6 +57,12 @@ const SearchProduct = () => {
     const [editingRowData, setEditingRowData] = useState({});
     const [distributors, setDistributors] = useState([]);
 
+    // Helper to map index to display label
+    const getCategoryLevelLabel = (idx) => {
+        if (idx === 0) return 'Main Category';
+        return `Sub Category ${idx}`; // idx 1 -> Sub Category 1, etc.
+    };
+
     // Fetch top-level categories on component mount
     useEffect(() => {
         fetchTopLevelCategories();
@@ -108,27 +114,29 @@ const SearchProduct = () => {
         }
     };
 
-    // Fetches all products for a given category
+    // Fetches all products for a given category (leaf) using name-based filters now
     const fetchAllProductsForCategory = async (categoryId) => {
         if (!categoryId) return;
-
         try {
             setSearchLoading(true);
-            // Use the search endpoint with an empty query to get all products
-            const response = await apiService.products.search({
-                categoryId: categoryId,
-                searchQuery: '', // Empty query to fetch all
-                page: 1,
-                limit: 1000 // Fetch a large number of products, assuming this is enough
-            });
-
+            // Fetch full category path (root -> leaf)
+            const pathResp = await apiService.categories.getCategoryPath(categoryId);
+            const params = { page: 1, limit: 1000 };
+            if (pathResp.data?.success) {
+                const pathArr = pathResp.data.data || [];
+                pathArr.forEach(node => {
+                    if (node.field_key && node.name) {
+                        params[node.field_key] = node.name; // e.g. main_category, sub_category_1, sub_category_2...
+                    }
+                });
+            }
+            // Fetch products filtered by the deepest category via all level params
+            const response = await apiService.products.search(params);
             if (response.data.success) {
                 const fetchedProducts = response.data.products || [];
-                const categoryData = response.data.categoryInfo || null;
-                
                 setAllProducts(fetchedProducts);
-                setFilteredProducts(fetchedProducts); // Initially, display all
-                setCategoryInfo(categoryData); // Store category info for dynamic columns
+                setFilteredProducts(fetchedProducts);
+                setCategoryInfo(null);
                 setSearchPerformed(true);
             } else {
                 message.error(response.data.message || 'Failed to fetch products');
@@ -278,19 +286,79 @@ const SearchProduct = () => {
     // Generate dynamic table columns based on category form schema
     const generateDynamicColumns = () => {
         if (!categoryInfo || !categoryInfo.form_schema) {
-            // Fallback to basic columns if no category info
-            return [
-                {
-                    title: 'Brand',
-                    dataIndex: 'brand',
-                    key: 'brand',
-                },
-                {
-                    title: 'Model',
-                    dataIndex: 'model_number',
-                    key: 'model_number',
-                }
+            // Auto-derive columns from fetched products when no category schema is available
+            const sampleProducts = (filteredProducts && filteredProducts.length ? filteredProducts : allProducts) || [];
+            const keySet = new Set();
+            sampleProducts.slice(0, 200).forEach(p => {
+                Object.keys(p || {}).forEach(k => keySet.add(k));
+            });
+            // Remove unwanted/internal keys
+            const exclude = new Set(['_id','id','__v','supplierId','deleted','sold','isActive','createdAt','updatedAt','lastPurchaseDate','category_path','category_path_ids','selected_category_id','common_attributes','specific_attributes','main_category','sub_category_1','sub_category_2','sub_category_3','sub_category_4']);
+            const preferredOrder = ['brand','product_name','model_number','serial_number','mrp','dealer_price','price','warrantyMonths','currentStock','minimumStock','color','ram','storage','capacity','size','os_version','condition'];
+            const numericFields = new Set(['mrp','dealer_price','price']);
+            const allKeys = Array.from(keySet).filter(k => !exclude.has(k) && /^[a-z0-9_]+$/i.test(k));
+            // Ensure preferred ordering first then remaining alphabetically
+            const ordered = [
+                ...preferredOrder.filter(k => allKeys.includes(k)),
+                ...allKeys.filter(k => !preferredOrder.includes(k)).sort()
             ];
+            const derivedColumns = ordered.slice(0, 25).map(field => ({
+                title: field.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+                dataIndex: field,
+                key: field,
+                width: ['model_number','serial_number','product_name'].includes(field) ? 160 : 120,
+                render: (text, record) => {
+                    if (editingRowId === record._id) {
+                        if (numericFields.has(field)) {
+                            return <Input type="number" value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: 110 }} />;
+                        }
+                        return <Input value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: ['model_number','serial_number','product_name'].includes(field)?150:110 }} />;
+                    }
+                    if (numericFields.has(field) && text !== undefined && text !== null && text !== '') {
+                        const num = Number(text);
+                        if (!isNaN(num)) return `₹${num.toLocaleString('en-IN')}`;
+                    }
+                    return text || 'N/A';
+                }
+            }));
+
+            // Distributor column
+            derivedColumns.push({
+                title: 'Distributor',
+                key: 'distributor',
+                width: 200,
+                render: (text, record) => {
+                    if (editingRowId === record._id) {
+                        const currentSupplierId = editingRowData.supplierId || (record.supplierId && typeof record.supplierId === 'object' ? record.supplierId._id : record.supplierId);
+                        return (
+                            <Select style={{ width: 180 }} value={currentSupplierId} onChange={(value) => setEditingRowData(prev => ({ ...prev, supplierId: value }))} dropdownStyle={{ zIndex: 9999 }}>
+                                {distributors.map(dist => (<Option key={dist._id} value={dist._id}>{dist.name}</Option>))}
+                            </Select>
+                        );
+                    }
+                    const supplier = record.supplierId;
+                    if (supplier && typeof supplier === 'object') {
+                        return <div style={{ fontSize: '12px', lineHeight: '1.2' }}><div style={{ fontWeight: 'bold' }}>{supplier.name}</div><div style={{ color: '#666' }}>{supplier.gstNumber || 'N/A'}</div></div>;
+                    }
+                    return 'N/A';
+                }
+            });
+            // Action column
+            derivedColumns.push({
+                title: 'Action',
+                key: 'action',
+                width: 100,
+                fixed: 'right',
+                render: (text, record) => editingRowId === record._id ? (
+                    <Button type="primary" size="small" onClick={() => handleSaveEdit(record)} style={{ width: 60 }}>OK</Button>
+                ) : (
+                    <Select style={{ width: 80 }} placeholder="..." onChange={(value) => handleAction(value, record)} dropdownStyle={{ zIndex: 9999 }}>
+                        <Option value="edit">Edit</Option>
+                        <Option value="delete">Delete</Option>
+                    </Select>
+                )
+            });
+            return derivedColumns;
         }
 
         const dynamicColumns = [];
@@ -487,7 +555,7 @@ const SearchProduct = () => {
 
     const columns = useMemo(() => {
         return generateDynamicColumns();
-    }, [categoryInfo, editingRowId, editingRowData, distributors]);
+    }, [categoryInfo, editingRowId, editingRowData, distributors, filteredProducts, allProducts]);
 
     const paginatedProducts = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
@@ -512,12 +580,12 @@ const SearchProduct = () => {
                             {categoryLevels.map((level, levelIndex) => (
                                 <Col xs={24} sm={12} md={8} lg={6} key={levelIndex}>
                                     <Form.Item
-                                        label={`Level ${levelIndex + 1} Category`}
+                                        label={getCategoryLevelLabel(levelIndex)}
                                         required={levelIndex === 0}
                                     >
                                         <Select
                                             showSearch
-                                            placeholder={`Select Level ${levelIndex + 1}`}
+                                            placeholder={`Select ${getCategoryLevelLabel(levelIndex)}`}
                                             onChange={(value) => handleCategorySelection(value, levelIndex)}
                                             value={selectedCategoryPath[levelIndex]}
                                             filterOption={(input, option) =>

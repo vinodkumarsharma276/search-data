@@ -314,6 +314,7 @@ const AddProduct = () => {
     };
 
     const handleSubmit = async (values) => {
+        console.log('[AddProduct] handleSubmit triggered with values:', values);
         if (!values.distributorId) {
             message.error('Please select a distributor');
             return;
@@ -322,10 +323,14 @@ const AddProduct = () => {
         try {
             const productsArray = products.map(p => {
                 const productData = { supplierId: values.distributorId };
+                const categoryIdField = values[`categoryId_product_${p.id}`];
+                if (categoryIdField) {
+                    productData.categoryId = categoryIdField;
+                }
                 Object.keys(values).forEach(key => {
                     if (key.endsWith(`_product_${p.id}`)) {
                         const cleanKey = key.replace(`_product_${p.id}`, '');
-                        if (!cleanKey.startsWith('mobile_imei_')) {
+                        if (!cleanKey.startsWith('mobile_imei_') && cleanKey !== 'categoryId') {
                             productData[cleanKey] = values[key];
                         }
                     }
@@ -335,6 +340,7 @@ const AddProduct = () => {
                 }
                 return productData;
             }).filter(p => p.categoryId);
+            console.log('[AddProduct] Built productsArray:', productsArray);
 
             if (productsArray.length === 0) {
                 message.error('Please select a category for at least one product.');
@@ -342,7 +348,9 @@ const AddProduct = () => {
                 return;
             }
 
+            console.log('[AddProduct] Sending create request...');
             const response = await apiService.products.create({ products: productsArray });
+            console.log('[AddProduct] Response:', response.data);
             if (response.data.success) {
                 message.success(`${productsArray.length} product(s) added successfully!`);
                 form.resetFields();
@@ -356,11 +364,12 @@ const AddProduct = () => {
                     categoryFormSchema: [],
                     imeiFields: [{ id: 1, value: '' }]
                 }]);
-                fetchTopLevelCategories();
+                await fetchTopLevelCategories();
             } else {
                 message.error(response.data.message || 'Failed to add products.');
             }
         } catch (error) {
+            console.error('[AddProduct] Error creating products:', error);
             message.error(error.response?.data?.message || 'An error occurred.');
         } finally {
             setLoading(false);
@@ -437,7 +446,6 @@ const AddProduct = () => {
                                             </Form.Item>
                                         </Col>
                                     ))}
-                                    
                                     {product.finalCategoryId && product.categoryFormSchema.map(field => (
                                         <DynamicField
                                             key={`${field.field_id}_product_${product.id}`}

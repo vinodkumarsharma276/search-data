@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/search-data');
+mongoose.connect('mongodb://localhost:27017/vinod-electronics');
 
 async function checkAllCollections() {
     try {

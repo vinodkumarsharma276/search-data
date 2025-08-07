@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Category = require('./models/Category');
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/ve_management', {
+mongoose.connect('mongodb://localhost:27017/vinod-electronics', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });

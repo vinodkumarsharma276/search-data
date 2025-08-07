@@ -9,7 +9,7 @@ const InventoryItem = require('../models/InventoryItem');
 const Customer = require('../models/Customer');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/search-data');
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/vinod-electronics');
 
 const seedData = async () => {
     try {

@@ -12,50 +12,32 @@ const router = express.Router();
 // @access  Protected
 router.get('/', protect, async (req, res) => {
     try {
-        const { page = 1, limit = 20, search, category, brand, isActive } = req.query;
-        
+        const { page = 1, limit = 20, search, brand, isActive, main_category, sub_category_1, sub_category_2, sub_category_3, sub_category_4 } = req.query; // extended sub categories
         let query = {};
-        
         if (search) {
-            query = {
-                $or: [
-                    { name: { $regex: search, $options: 'i' } },
-                    { modelNumber: { $regex: search, $options: 'i' } },
-                    { hsnCode: { $regex: search, $options: 'i' } }
-                ]
-            };
+            query.$or = [
+                { product_name: { $regex: search, $options: 'i' } },
+                { model_number: { $regex: search, $options: 'i' } },
+                { brand: { $regex: search, $options: 'i' } }
+            ];
         }
-        
-        if (category) query.categoryId = category;
-        if (brand) query.brandId = brand;
+        if (brand) query.brand = { $regex: `^${brand}$`, $options: 'i' };
         if (isActive !== undefined) query.isActive = isActive === 'true';
-
+        if (main_category) query.main_category = main_category;
+        if (sub_category_1) query.sub_category_1 = sub_category_1;
+        if (sub_category_2) query.sub_category_2 = sub_category_2;
+        if (sub_category_3) query.sub_category_3 = sub_category_3;
+        if (sub_category_4) query.sub_category_4 = sub_category_4;
         const products = await Product.find(query)
-            .populate('brandId', 'name')
-            .populate('categoryId', 'name')
             .populate('supplierId', 'companyName')
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit))
             .sort({ createdAt: -1 });
-
         const total = await Product.countDocuments(query);
-
-        res.json({
-            success: true,
-            data: products,
-            pagination: {
-                current: parseInt(page),
-                pageSize: parseInt(limit),
-                total,
-                pages: Math.ceil(total / limit)
-            }
-        });
+        res.json({ success: true, data: products, pagination: { current: parseInt(page), pageSize: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } });
     } catch (error) {
         console.error('Get products error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error while fetching products'
-        });
+        res.status(500).json({ success: false, message: error.message || 'Server error while fetching products' });
     }
 });
 
@@ -128,122 +110,44 @@ router.get('/global-search', async (req, res) => {
 // @access  Public (for testing only)
 router.get('/search-test', async (req, res) => {
     try {
-        const { categoryId, searchQuery, page = 1, limit = 1000 } = req.query;
-        
-        console.log('🔍 Product search request (TEST):', { categoryId, searchQuery, page, limit });
-        
-        if (!categoryId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Category ID is required'
-            });
-        }
-        
-        // If searchQuery is provided, it must be at least 3 characters
-        if (searchQuery && searchQuery.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'Search query must be at least 3 characters long'
-            });
-        }
-        
-        // Get all subcategories for hierarchical search
-        const allCategoryIds = [categoryId];
-        const subcategories = await Category.find({ parent_id: categoryId }, '_id').lean();
-        subcategories.forEach(sub => allCategoryIds.push(sub._id.toString()));
-        
-        console.log('🔍 Searching in categories (TEST):', allCategoryIds);
-        
-        // Build search query (exclude deleted products by default)
-        let query = {
-            deleted: { $ne: true }, // Exclude soft-deleted products
-            // Category filter - handle multiple field names and formats, including subcategories
-            $or: [
-                ...allCategoryIds.flatMap(catId => [
-                    { categoryId: catId },
-                    { category: catId },
-                    { selected_category_id: catId },
-                    // Legacy category_id field support
-                    { category_id: catId },
-                    // Also try ObjectId format for string comparisons
-                    { categoryId: new mongoose.Types.ObjectId(catId) },
-                    { category: new mongoose.Types.ObjectId(catId) },
-                    { selected_category_id: new mongoose.Types.ObjectId(catId) },
-                    { category_id: new mongoose.Types.ObjectId(catId) }
-                ])
-            ]
-        };
+        const { main_category, sub_category_1, sub_category_2, sub_category_3, sub_category_4, searchQuery, page = 1, limit = 1000 } = req.query;
+        console.log('🔍 Product search request (TEST):', { main_category, sub_category_1, sub_category_2, sub_category_3, sub_category_4, searchQuery, page, limit });
 
-        // Only add text search if searchQuery is provided
-        if (searchQuery) {
-            query = {
-                $and: [
-                    query,
-                    // Search in dynamic_fields and name fields
-                    {
-                        $or: [
-                            { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
-                            { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
-                            { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
-                            { product_name: { $regex: searchQuery, $options: 'i' } },
-                            // Legacy fields (in case some products still have them at root level)
-                            { model_number: { $regex: searchQuery, $options: 'i' } },
-                            { modelNumber: { $regex: searchQuery, $options: 'i' } },
-                            { serial_number: { $regex: searchQuery, $options: 'i' } },
-                            { serialNumber: { $regex: searchQuery, $options: 'i' } },
-                            { brand: { $regex: searchQuery, $options: 'i' } }
-                        ]
-                    }
-                ]
-            };
+        if (!main_category && !sub_category_1 && !sub_category_2 && !sub_category_3 && !sub_category_4) {
+            return res.status(400).json({ success: false, message: 'At least one category level is required' });
         }
-        
+        if (searchQuery && searchQuery.length > 0 && searchQuery.length < 3) {
+            return res.status(400).json({ success: false, message: 'Search query must be at least 3 characters long' });
+        }
+
+        const baseFilter = { deleted: { $ne: true } };
+        if (main_category) baseFilter.main_category = main_category;
+        if (sub_category_1) baseFilter.sub_category_1 = sub_category_1;
+        if (sub_category_2) baseFilter.sub_category_2 = sub_category_2;
+        if (sub_category_3) baseFilter.sub_category_3 = sub_category_3;
+        if (sub_category_4) baseFilter.sub_category_4 = sub_category_4;
+
+        let query = baseFilter;
+        if (searchQuery) {
+            query = { $and: [ baseFilter, { $or: [
+                { model_number: { $regex: searchQuery, $options: 'i' } },
+                { serial_number: { $regex: searchQuery, $options: 'i' } },
+                { brand: { $regex: searchQuery, $options: 'i' } },
+                { product_name: { $regex: searchQuery, $options: 'i' } }
+            ] } ] };
+        }
         console.log('📋 MongoDB query (TEST):', JSON.stringify(query, null, 2));
-        
-        // Execute search with pagination
+
         const products = await Product.find(query)
             .populate('supplierId', 'name companyName gstNumber')
             .limit(parseInt(limit))
             .skip((parseInt(page) - 1) * parseInt(limit))
             .sort({ createdAt: -1 });
-        
         const total = await Product.countDocuments(query);
-        
-        console.log('✅ Search results (TEST):', products.length, 'of', total, 'total');
-        
-        // Get category information including form schema for dynamic table columns
-        let categoryInfo = null;
-        if (products.length > 0) {
-            try {
-                const category = await Category.findById(categoryId);
-                if (category) {
-                    categoryInfo = {
-                        _id: category._id,
-                        name: category.name,
-                        form_schema: category.form_schema || []
-                    };
-                }
-            } catch (err) {
-                console.warn('Failed to fetch category info:', err.message);
-            }
-        }
-        
-        res.json({
-            success: true,
-            products: products,
-            total: total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(total / parseInt(limit)),
-            categoryInfo: categoryInfo
-        });
-        
+        res.json({ success: true, products, total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) });
     } catch (error) {
         console.error('❌ Product search error (TEST):', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error while searching products'
-        });
+        res.status(500).json({ success: false, message: error.message || 'Server error while searching products' });
     }
 });
 
@@ -252,93 +156,40 @@ router.get('/search-test', async (req, res) => {
 // @access  Protected
 router.get('/search', protect, async (req, res) => {
     try {
-        const { categoryId, searchQuery, page = 1, limit = 50 } = req.query;
-        
-        console.log('🔍 Product search request:', { categoryId, searchQuery, page, limit });
-        
-        if (!categoryId || !searchQuery) {
-            return res.status(400).json({
-                success: false,
-                message: 'Category ID and search query are required'
-            });
+        const { main_category, sub_category_1, sub_category_2, sub_category_3, sub_category_4, searchQuery, page = 1, limit = 50 } = req.query;
+        console.log('🔍 Product search request:', { main_category, sub_category_1, sub_category_2, sub_category_3, sub_category_4, searchQuery, page, limit });
+
+        if (!main_category && !sub_category_1 && !sub_category_2 && !sub_category_3 && !sub_category_4) {
+            return res.status(400).json({ success: false, message: 'At least one category level is required' });
         }
-        
-        if (searchQuery.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'Search query must be at least 3 characters long'
-            });
+        if (!searchQuery || searchQuery.length < 3) {
+            return res.status(400).json({ success: false, message: 'Search query (min 3 chars) is required' });
         }
-        
-        // Get all subcategories for hierarchical search
-        const allCategoryIds = [categoryId];
-        const subcategories = await Category.find({ parent_id: categoryId }, '_id').lean();
-        subcategories.forEach(sub => allCategoryIds.push(sub._id.toString()));
-        
-        console.log('🔍 Searching in categories:', allCategoryIds);
-        
-        // Build search query
-        let query = {
-            $and: [
-                // Category filter - handle multiple field names and formats, including subcategories
-                {
-                    $or: [
-                        ...allCategoryIds.flatMap(catId => [
-                            { categoryId: catId },
-                            { category: catId },
-                            { selected_category_id: catId },
-                            { category_id: catId },
-                            // Also try ObjectId format for string comparisons
-                            { categoryId: new mongoose.Types.ObjectId(catId) },
-                            { category: new mongoose.Types.ObjectId(catId) },
-                            { selected_category_id: new mongoose.Types.ObjectId(catId) },
-                            { category_id: new mongoose.Types.ObjectId(catId) }
-                        ])
-                    ]
-                },
-                // Search in model_number, serial_number, brand, or name fields
-                {
-                    $or: [
-                        { model_number: { $regex: searchQuery, $options: 'i' } },
-                        { modelNumber: { $regex: searchQuery, $options: 'i' } },
-                        { serial_number: { $regex: searchQuery, $options: 'i' } },
-                        { serialNumber: { $regex: searchQuery, $options: 'i' } },
-                        { brand: { $regex: searchQuery, $options: 'i' } },
-                        { name: { $regex: searchQuery, $options: 'i' } },
-                        { product_name: { $regex: searchQuery, $options: 'i' } }
-                    ]
-                }
-            ]
-        };
-        
+        const baseFilter = {};
+        if (main_category) baseFilter.main_category = main_category;
+        if (sub_category_1) baseFilter.sub_category_1 = sub_category_1;
+        if (sub_category_2) baseFilter.sub_category_2 = sub_category_2;
+        if (sub_category_3) baseFilter.sub_category_3 = sub_category_3;
+        if (sub_category_4) baseFilter.sub_category_4 = sub_category_4;
+
+        const query = { $and: [ baseFilter, { $or: [
+            { model_number: { $regex: searchQuery, $options: 'i' } },
+            { serial_number: { $regex: searchQuery, $options: 'i' } },
+            { brand: { $regex: searchQuery, $options: 'i' } },
+            { product_name: { $regex: searchQuery, $options: 'i' } }
+        ] } ] };
         console.log('📋 MongoDB query:', JSON.stringify(query, null, 2));
-        
-        // Execute search with pagination
+
         const products = await Product.find(query)
             .populate('supplierId', 'name companyName')
             .limit(parseInt(limit))
             .skip((parseInt(page) - 1) * parseInt(limit))
             .sort({ createdAt: -1 });
-        
         const total = await Product.countDocuments(query);
-        
-        console.log('✅ Search results:', products.length, 'of', total, 'total');
-        
-        res.json({
-            success: true,
-            products: products,
-            total: total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(total / parseInt(limit))
-        });
-        
+        res.json({ success: true, products, total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) });
     } catch (error) {
         console.error('❌ Product search error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error while searching products'
-        });
+        res.status(500).json({ success: false, message: error.message || 'Server error while searching products' });
     }
 });
 
@@ -370,27 +221,16 @@ router.get('/distributors', async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
     try {
         const product = await Product.findById(req.params.id)
-            .populate('brandId', 'name')
-            .populate('categoryId', 'name')
-            .populate('supplierId', 'companyName contactPerson phone email');
+            .populate('supplierId', 'companyName contactPerson phone email'); // removed brandId/categoryId populates
 
         if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not found'
-            });
+            return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
-        res.json({
-            success: true,
-            data: product
-        });
+        res.json({ success: true, data: product });
     } catch (error) {
         console.error('Get product error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error while fetching product'
-        });
+        res.status(500).json({ success: false, message: error.message || 'Server error while fetching product' });
     }
 });
 
@@ -402,15 +242,11 @@ router.post('/', protect, checkPermission('create'), async (req, res) => {
     console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
     
     try {
-        // Handle both single product and array of products
         let productsArray = [];
-        
         if (req.body.products && Array.isArray(req.body.products)) {
-            // Multiple products sent as array
             productsArray = req.body.products;
             console.log(`📦 Processing ${productsArray.length} products from array`);
         } else {
-            // Single product - convert to array for consistent processing
             productsArray = [req.body];
             console.log('📦 Processing single product (converted to array)');
         }
@@ -418,114 +254,73 @@ router.post('/', protect, checkPermission('create'), async (req, res) => {
         const createdProducts = [];
         const errors = [];
 
-        // Process each product in the array
         for (let i = 0; i < productsArray.length; i++) {
             const productData = productsArray[i];
-            
             try {
                 console.log(`🔄 Processing product ${i + 1}/${productsArray.length}`);
-                
-                // Validate required business fields for this product
-                if (!productData.supplierId) {
-                    throw new Error(`Product ${i + 1}: Distributor (supplierId) is required`);
-                }
+                if (!productData.supplierId) throw new Error(`Product ${i + 1}: Distributor (supplierId) is required`);
 
-                // Validate distributor exists
                 const Distributor = require('../models/Distributor');
                 const distributor = await Distributor.findById(productData.supplierId);
-                if (!distributor) {
-                    throw new Error(`Product ${i + 1}: Invalid distributor ID`);
-                }
-
+                if (!distributor) throw new Error(`Product ${i + 1}: Invalid distributor ID`);
                 console.log(`✅ Product ${i + 1} - Validated distributor:`, distributor.name);
 
-                // Process and clean the product data - only keep field_id based fields
-                const cleanProductData = {
-                    supplierId: productData.supplierId
-                };
+                const cleanProductData = { supplierId: productData.supplierId, sold: false };
 
-                // Map common fields and category-specific fields using field_id values
+                if (productData.categoryId) {
+                    try {
+                        const leafCategory = await Category.findById(productData.categoryId);
+                        if (!leafCategory) throw new Error('Invalid categoryId provided');
+                        const path = await leafCategory.getCategoryPath();
+                        console.log(`🧭 Category path for product ${i + 1}:`, path.map(p => `${p.level}:${p.field_key}=>${p.name}`).join(' | '));
+                        // Store names not ids for hierarchy
+                        path.forEach(node => {
+                            cleanProductData[node.field_key] = node.name; // human readable
+                        });
+                        // Do NOT copy categoryId (de-duplicate)
+                    } catch (catErr) {
+                        console.error('❌ Failed hierarchy build:', catErr.message);
+                        throw new Error(`Product ${i + 1}: ${catErr.message}`);
+                    }
+                }
+
                 Object.keys(productData).forEach(key => {
-                    // Skip system fields that aren't in form schema
-                    if (['supplierId', 'distributorId'].includes(key)) {
-                        return;
-                    }
-                    
-                    // Only keep fields that have valid field_id patterns
-                    // field_id values should be clean names like: model_number, serial_number, brand, imei, etc.
-                    if (key.match(/^[a-z_]+$/)) {
-                        cleanProductData[key] = productData[key];
-                    }
+                    if (['supplierId', 'distributorId', 'categoryId'].includes(key)) return;
+                    if (/^[a-z0-9_]+$/.test(key)) cleanProductData[key] = productData[key];
                 });
 
-                console.log(`🧹 Cleaned product data for product ${i + 1}:`, cleanProductData);
-
-                // Create product with the clean data
+                console.log(`🧹 Cleaned product data ${i + 1}:`, cleanProductData);
                 const product = new Product(cleanProductData);
-                
-                console.log(`💾 Saving product ${i + 1} with clean schema...`);
                 const savedProduct = await product.save();
-                
-                console.log(`✅ Product ${i + 1} saved successfully:`, savedProduct._id);
-
-                // Populate response 
                 await savedProduct.populate('supplierId', 'name gstNumber');
                 createdProducts.push(savedProduct);
-
+                console.log(`✅ Product ${i + 1} saved:`, savedProduct._id);
             } catch (error) {
                 console.error(`❌ Error creating product ${i + 1}:`, error.message);
-                errors.push({
-                    index: i + 1,
-                    message: error.message,
-                    productData: productData.model_number || `Product ${i + 1}`
-                });
+                errors.push({ index: i + 1, message: error.message, productData: productData.model_number || `Product ${i + 1}` });
             }
         }
 
-        // Return appropriate response based on results
         if (createdProducts.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to create any products',
-                errors: errors
-            });
+            return res.status(400).json({ success: false, message: 'Failed to create any products', errors });
         }
 
         const response = {
             success: true,
-            message: createdProducts.length === 1 
-                ? 'Product created successfully' 
-                : `Created ${createdProducts.length} of ${productsArray.length} products`,
+            message: createdProducts.length === 1 ? 'Product created successfully' : `Created ${createdProducts.length} of ${productsArray.length} products`,
             data: createdProducts.length === 1 ? createdProducts[0] : createdProducts,
-            summary: {
-                total: productsArray.length,
-                successful: createdProducts.length,
-                failed: errors.length
-            }
+            summary: { total: productsArray.length, successful: createdProducts.length, failed: errors.length }
         };
-
-        if (errors.length > 0) {
-            response.errors = errors;
-        }
-
-        const statusCode = errors.length === 0 ? 201 : 207; // 207 = Multi-Status
-        res.status(statusCode).json(response);
+        if (errors.length) response.errors = errors;
+        res.status(errors.length ? 207 : 201).json(response);
 
     } catch (error) {
         console.error('❌ Error in product creation:', error);
-        
         if (error.code === 11000) {
             const duplicateField = Object.keys(error.keyPattern)[0];
-            return res.status(400).json({
-                success: false,
-                message: `Product with this ${duplicateField} already exists`
-            });
+            return res.status(400).json({ success: false, message: `Product with this ${duplicateField} already exists` });
         }
-        
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to create product(s)'
-        });
+        res.status(500).json({ success: false, message: error.message || 'Failed to create product(s)' });
     }
 });
 
@@ -910,8 +705,7 @@ router.get('/reports/low-stock', protect, async (req, res) => {
             $expr: { $lte: ['$currentStock', '$minimumStock'] },
             isActive: true
         })
-        .populate('brandId', 'name')
-        .populate('categoryId', 'name')
+        .populate('supplierId', 'name') // removed brandId/categoryId populates
         .sort({ currentStock: 1 });
 
         res.json({

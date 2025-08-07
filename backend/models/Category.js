@@ -60,6 +60,20 @@ const categorySchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    level: {
+        type: Number,
+        default: 0,
+        index: true
+    },
+    field_key: {
+        type: String,
+        required: true,
+        index: true
+    },
+    field_label: {
+        type: String,
+        required: true
+    },
     form_schema: [formFieldSchema],
     description: {
         type: String,
@@ -94,7 +108,10 @@ categorySchema.methods.getCategoryPath = async function() {
     while (current) {
         path.unshift({
             id: current._id,
-            name: current.name
+            name: current.name,
+            field_key: current.field_key,
+            field_label: current.field_label,
+            level: current.level
         });
         
         if (current.parent_id) {

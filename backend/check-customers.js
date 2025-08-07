@@ -4,7 +4,7 @@ const Customer = require('./models/Customer');
 async function checkCustomers() {
     try {
         // Connect to MongoDB - adjust connection string if needed
-        const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/search-data';
+        const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/vinod-electronics';
         await mongoose.connect(mongoUri);
         console.log('✅ Connected to MongoDB');
         

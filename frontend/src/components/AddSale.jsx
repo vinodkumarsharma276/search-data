@@ -248,11 +248,53 @@ const AddSale = () => {
         }
     };
 
+    // Build category hierarchy path
+    const buildCategoryPath = (product) => {
+        const pathParts = [];
+        
+        // Try to get top-level category (different possible structures)
+        const topLevel = product.parentCategory?.name || product.rootCategory?.name;
+        const mainCategory = product.category_name || product.categoryId?.name;
+        const subCategory = product.subcategory_name || product.subcategoryId?.name || product.sub_category;
+        
+        // Only add unique values to avoid duplication
+        if (topLevel && topLevel !== mainCategory) {
+            pathParts.push(topLevel);
+        }
+        
+        if (mainCategory && mainCategory !== subCategory) {
+            pathParts.push(mainCategory);
+        }
+        
+        if (subCategory && subCategory !== mainCategory) {
+            pathParts.push(subCategory);
+        }
+        
+        // If we only have one level, just show that
+        if (pathParts.length === 0 && mainCategory) {
+            pathParts.push(mainCategory);
+        }
+        
+        return pathParts.length > 0 ? pathParts.join(' > ') : 'N/A';
+    };
+
     // Handle product selection
     // Handle product selection - show form with product details and sale-specific fields
     const handleProductSelect = (product) => {
         const mrp = product.mrp || product.dealer_price || 0;
         const dealerPrice = product.dealer_price || 0;
+        
+        // Debug: Log the product object to understand category structure
+        console.log('Product category data:', {
+            category_name: product.category_name,
+            categoryId: product.categoryId,
+            subcategory_name: product.subcategory_name,
+            subcategoryId: product.subcategoryId,
+            sub_category: product.sub_category,
+            parentCategory: product.parentCategory,
+            rootCategory: product.rootCategory,
+            fullProduct: product
+        });
         
         // Automatically add product to sale items
         const newItem = {
@@ -263,8 +305,11 @@ const AddSale = () => {
             brand: product.brand || '',
             mrp: mrp,
             dealerPrice: dealerPrice,
+            // Enhanced category hierarchy
+            topLevelCategory: product.parentCategory?.name || product.rootCategory?.name || 'N/A',
             category: product.category_name || (product.categoryId?.name) || 'N/A',
             subCategory: product.subcategory_name || (product.subcategoryId?.name) || product.sub_category || 'N/A',
+            categoryPath: buildCategoryPath(product),
             distributor: product.supplierId?.name || 'N/A',
             // Additional product fields
             description: product.description || 'N/A',
@@ -1336,6 +1381,32 @@ const AddSale = () => {
                                                                 { label: 'Features', key: 'features', type: 'textarea' }
                                                             ];
 
+                                                            // Smart category fields - only show meaningful hierarchy
+                                                            const categoryFields = [];
+                                                            const topLevel = item.topLevelCategory;
+                                                            const category = item.category; 
+                                                            const subCategory = item.subCategory;
+                                                            
+                                                            // Only show hierarchy if we have real different levels
+                                                            if (topLevel && topLevel !== 'N/A' && category && category !== 'N/A' && topLevel !== category) {
+                                                                categoryFields.push({ label: 'Top Level Category', key: 'topLevelCategory', type: 'text' });
+                                                            }
+                                                            
+                                                            // Always show main category if it exists
+                                                            if (category && category !== 'N/A') {
+                                                                categoryFields.push({ label: 'Category', key: 'category', type: 'text' });
+                                                            }
+                                                            
+                                                            // Only show subcategory if it's different from main category
+                                                            if (subCategory && subCategory !== 'N/A' && subCategory !== category) {
+                                                                categoryFields.push({ label: 'Sub Category', key: 'subCategory', type: 'text' });
+                                                            }
+                                                            
+                                                            // Show category path only if we have a real hierarchy
+                                                            if (categoryFields.length > 1) {
+                                                                categoryFields.unshift({ label: 'Category Hierarchy', key: 'categoryPath', type: 'text' });
+                                                            }
+
                                                             // Add pricing fields that are always shown (editable)
                                                             const pricingFields = [
                                                                 { label: 'Selling Price', key: 'sellingPrice', type: 'editable-currency', required: true },
@@ -1356,8 +1427,8 @@ const AddSale = () => {
                                                                        value.toString().trim() !== '';
                                                             });
 
-                                                            // Combine filtered product fields with pricing fields
-                                                            const allFields = [...fieldsWithData, ...pricingFields];
+                                                            // Combine filtered product fields with smart category fields and pricing fields
+                                                            const allFields = [...fieldsWithData, ...categoryFields, ...pricingFields];
 
                                                             // Group fields into rows of 3
                                                             const rows = [];

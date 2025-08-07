@@ -8,20 +8,13 @@ const productSchema = new mongoose.Schema({
         required: true
     },
     
-    // Standardized category reference (single field to avoid confusion)
-    categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category'
-    },
-    
     // Soft delete flag
     deleted: {
         type: Boolean,
         default: false
     },
-    
-    // Legacy support flag to identify old data structure
-    isLegacyData: {
+    // Sold flag
+    sold: {
         type: Boolean,
         default: false
     }
@@ -75,7 +68,6 @@ productSchema.set('toObject', { virtuals: true });
 // Essential Indexes for Performance
 productSchema.index({ supplierId: 1 });
 productSchema.index({ createdAt: -1 });
-productSchema.index({ categoryId: 1 });
 productSchema.index({ deleted: 1 });
 
 // Compound index for non-deleted active products

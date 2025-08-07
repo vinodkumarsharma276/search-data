@@ -2,7 +2,7 @@ import React, { createContext, useState, useMemo, useContext, useEffect } from '
 import { ConfigProvider, App as AntApp, theme as antdTheme } from 'antd';
 
 export const ThemeContext = createContext({
-  theme: 'light',
+  theme: 'dark',
   toggleTheme: () => {},
 });
 

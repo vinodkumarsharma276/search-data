@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Category = require('./models/Category');
 
 // Database configuration
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/searchdb';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/vinod-electronics';
 
 async function checkCategories() {
     try {
