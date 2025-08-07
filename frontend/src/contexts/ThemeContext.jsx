@@ -2,12 +2,12 @@ import React, { createContext, useState, useMemo, useContext, useEffect } from '
 import { ConfigProvider, App as AntApp, theme as antdTheme } from 'antd';
 
 export const ThemeContext = createContext({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {},
 });
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
 
   useEffect(() => {
     document.body.className = `theme-${theme}`;

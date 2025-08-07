@@ -258,13 +258,13 @@ const AddSale = () => {
         const newItem = {
             key: Date.now() + Math.random(),
             productId: product._id,
-            productName: getProductDisplayName(product),
             modelNumber: product.model_number || '',
             serialNumber: product.serial_number || '',
             brand: product.brand || '',
             mrp: mrp,
             dealerPrice: dealerPrice,
             category: product.category_name || (product.categoryId?.name) || 'N/A',
+            subCategory: product.subcategory_name || (product.subcategoryId?.name) || product.sub_category || 'N/A',
             distributor: product.supplierId?.name || 'N/A',
             // Additional product fields
             description: product.description || 'N/A',
@@ -280,9 +280,11 @@ const AddSale = () => {
             connectivity: product.connectivity || 'N/A',
             features: product.features || 'N/A',
             // Pricing fields
-            sellingPrice: dealerPrice, // Default selling price to dealer price
-            discount: mrp - dealerPrice, // Calculate discount based on MRP - dealer price
-            discountPercentage: mrp > 0 ? parseFloat(((mrp - dealerPrice) / mrp * 100).toFixed(2)) : 0,
+            sellingPrice: parseFloat((dealerPrice * 1.15).toFixed(2)), // Selling price = Dealer price + 15%
+            discount: mrp - parseFloat((dealerPrice * 1.15).toFixed(2)), // Calculate discount based on MRP - selling price
+            discountPercentage: mrp > 0 ? parseFloat(((mrp - parseFloat((dealerPrice * 1.15).toFixed(2))) / mrp * 100).toFixed(2)) : 0,
+            profit: parseFloat((parseFloat((dealerPrice * 1.15).toFixed(2)) - dealerPrice).toFixed(2)), // Profit = Selling price - Dealer price
+            profitPercentage: dealerPrice > 0 ? parseFloat(((parseFloat((dealerPrice * 1.15).toFixed(2)) - dealerPrice) / dealerPrice * 100).toFixed(2)) : 0, // Profit % = (Profit / Dealer price) * 100
             igst: 0,
             cgst: 9,
             sgst: 9,
@@ -569,10 +571,9 @@ const AddSale = () => {
     };
 
     const handleRemoveItem = (index) => {
-        if (saleItems.length > 1) {
-            const newItems = saleItems.filter((_, i) => i !== index);
-            setSaleItems(newItems);
-        }
+        const newItems = saleItems.filter((_, i) => i !== index);
+        setSaleItems(newItems);
+        message.success('Item removed from sale!');
     };
 
     const handleItemChange = async (index, field, value) => {
@@ -651,26 +652,47 @@ const AddSale = () => {
             let discountPercentage = parseFloat(newItems[index].discountPercentage) || 0;
             
             if (field === 'sellingPrice') {
-                // When selling price changes, calculate discount
+                // When selling price changes, calculate discount and profit
                 if (mrp > 0) {
                     discount = Math.max(0, mrp - sellingPrice);
                     newItems[index].discount = discount;
                     newItems[index].discountPercentage = parseFloat(((discount / mrp) * 100).toFixed(2));
                 }
+                // Calculate profit
+                const dealerPrice = parseFloat(newItems[index].dealerPrice) || 0;
+                if (dealerPrice > 0) {
+                    const profit = Math.max(0, sellingPrice - dealerPrice);
+                    newItems[index].profit = parseFloat(profit.toFixed(2));
+                    newItems[index].profitPercentage = parseFloat(((profit / dealerPrice) * 100).toFixed(2));
+                }
             } else if (field === 'discount') {
-                // When discount changes, calculate selling price
+                // When discount changes, calculate selling price and profit
                 if (mrp > 0) {
                     sellingPrice = Math.max(0, mrp - numValue);
                     newItems[index].sellingPrice = sellingPrice;
                     newItems[index].discountPercentage = parseFloat(((numValue / mrp) * 100).toFixed(2));
+                    // Calculate profit
+                    const dealerPrice = parseFloat(newItems[index].dealerPrice) || 0;
+                    if (dealerPrice > 0) {
+                        const profit = Math.max(0, sellingPrice - dealerPrice);
+                        newItems[index].profit = parseFloat(profit.toFixed(2));
+                        newItems[index].profitPercentage = parseFloat(((profit / dealerPrice) * 100).toFixed(2));
+                    }
                 }
             } else if (field === 'discountPercentage') {
-                // When discount percentage changes, calculate discount amount and selling price
+                // When discount percentage changes, calculate discount amount, selling price and profit
                 if (mrp > 0) {
                     discount = (mrp * numValue) / 100;
                     sellingPrice = Math.max(0, mrp - discount);
                     newItems[index].discount = parseFloat(discount.toFixed(2));
                     newItems[index].sellingPrice = parseFloat(sellingPrice.toFixed(2));
+                    // Calculate profit
+                    const dealerPrice = parseFloat(newItems[index].dealerPrice) || 0;
+                    if (dealerPrice > 0) {
+                        const profit = Math.max(0, sellingPrice - dealerPrice);
+                        newItems[index].profit = parseFloat(profit.toFixed(2));
+                        newItems[index].profitPercentage = parseFloat(((profit / dealerPrice) * 100).toFixed(2));
+                    }
                 }
             } else if (field === 'mrp') {
                 // When MRP changes, recalculate discount percentage
@@ -1242,7 +1264,11 @@ const AddSale = () => {
                                                         </span>
                                                         <Popconfirm
                                                             title="Remove this item?"
+                                                            description="Are you sure you want to remove this item from the sale?"
                                                             onConfirm={() => handleRemoveItem(index)}
+                                                            onCancel={() => console.log('Remove cancelled')}
+                                                            okText="Yes"
+                                                            cancelText="No"
                                                         >
                                                             <Button 
                                                                 icon={<DeleteOutlined />} 
@@ -1285,16 +1311,19 @@ const AddSale = () => {
                                                         {(() => {
                                                             // Define all possible fields with their labels and property names
                                                             const productFields = [
-                                                                { label: 'Product Name', key: 'productName', type: 'text' },
-                                                                { label: 'Brand & Model', key: 'brandModel', type: 'text', 
-                                                                  value: `${item.brand || 'N/A'} - ${item.modelNumber || 'N/A'}` },
+                                                                { label: 'Brand', key: 'brand', type: 'text' },
+                                                                { label: 'Model', key: 'modelNumber', type: 'text' },
                                                                 { label: 'Serial Number', key: 'serialNumber', type: 'text' },
                                                                 { label: 'Category', key: 'category', type: 'text' },
+                                                                { label: 'Sub Category', key: 'subCategory', type: 'text' },
                                                                 { label: 'Distributor', key: 'distributor', type: 'text' },
                                                                 { label: 'Description', key: 'description', type: 'text' },
                                                                 { label: 'MRP', key: 'mrp', type: 'currency' },
                                                                 { label: 'Dealer Price', key: 'dealerPrice', type: 'currency' },
                                                                 { label: 'Warranty', key: 'warranty', type: 'text' },
+                                                                { label: 'IGST (%)', key: 'igst', type: 'percentage' },
+                                                                { label: 'CGST (%)', key: 'cgst', type: 'percentage' },
+                                                                { label: 'SGST (%)', key: 'sgst', type: 'percentage' },
                                                                 { label: 'Color', key: 'color', type: 'text' },
                                                                 { label: 'Storage', key: 'storage', type: 'text' },
                                                                 { label: 'RAM', key: 'ram', type: 'text' },
@@ -1305,6 +1334,15 @@ const AddSale = () => {
                                                                 { label: 'Dimensions', key: 'dimensions', type: 'text' },
                                                                 { label: 'Connectivity', key: 'connectivity', type: 'text' },
                                                                 { label: 'Features', key: 'features', type: 'textarea' }
+                                                            ];
+
+                                                            // Add pricing fields that are always shown (editable)
+                                                            const pricingFields = [
+                                                                { label: 'Selling Price', key: 'sellingPrice', type: 'editable-currency', required: true },
+                                                                { label: 'Discount Amount', key: 'discount', type: 'editable-currency', required: true },
+                                                                { label: 'Discount %', key: 'discountPercentage', type: 'editable-percentage', required: true },
+                                                                { label: 'Profit Amount', key: 'profit', type: 'currency', required: true },
+                                                                { label: 'Profit %', key: 'profitPercentage', type: 'percentage', required: true }
                                                             ];
 
                                                             // Filter fields that have actual data (not N/A, null, undefined, or empty)
@@ -1318,10 +1356,13 @@ const AddSale = () => {
                                                                        value.toString().trim() !== '';
                                                             });
 
+                                                            // Combine filtered product fields with pricing fields
+                                                            const allFields = [...fieldsWithData, ...pricingFields];
+
                                                             // Group fields into rows of 3
                                                             const rows = [];
-                                                            for (let i = 0; i < fieldsWithData.length; i += 3) {
-                                                                rows.push(fieldsWithData.slice(i, i + 3));
+                                                            for (let i = 0; i < allFields.length; i += 3) {
+                                                                rows.push(allFields.slice(i, i + 3));
                                                             }
 
                                                             return rows.map((row, rowIndex) => (
@@ -1345,6 +1386,43 @@ const AddSale = () => {
                                                                                             }}
                                                                                             formatter={val => `₹ ${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                                                                             parser={val => val.replace(/₹\s?|(,*)/g, '')}
+                                                                                        />
+                                                                                    ) : field.type === 'percentage' ? (
+                                                                                        <InputNumber 
+                                                                                            value={value}
+                                                                                            disabled 
+                                                                                            style={{ 
+                                                                                                width: '100%',
+                                                                                                backgroundColor: '#f5f5f5',
+                                                                                                color: '#595959'
+                                                                                            }}
+                                                                                            formatter={val => `${val}%`}
+                                                                                            parser={val => val.replace('%', '')}
+                                                                                            precision={2}
+                                                                                        />
+                                                                                    ) : field.type === 'editable-currency' ? (
+                                                                                        <InputNumber
+                                                                                            value={item[field.key]}
+                                                                                            onChange={(val) => handleItemChange(index, field.key, val)}
+                                                                                            style={{ width: '100%' }}
+                                                                                            min={0}
+                                                                                            formatter={val => `₹ ${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                                            parser={val => val.replace(/₹\s?|(,*)/g, '')}
+                                                                                            placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                                                            size="large"
+                                                                                        />
+                                                                                    ) : field.type === 'editable-percentage' ? (
+                                                                                        <InputNumber
+                                                                                            value={item[field.key]}
+                                                                                            onChange={(val) => handleItemChange(index, field.key, val)}
+                                                                                            style={{ width: '100%' }}
+                                                                                            min={0}
+                                                                                            max={100}
+                                                                                            formatter={val => `${val}%`}
+                                                                                            parser={val => val.replace('%', '')}
+                                                                                            precision={2}
+                                                                                            placeholder="Enter discount %"
+                                                                                            size="large"
                                                                                         />
                                                                                     ) : field.type === 'textarea' ? (
                                                                                         <Input.TextArea 
@@ -1383,63 +1461,6 @@ const AddSale = () => {
                                                         })()}
                                                     </div>
 
-                                                    {/* Pricing Section */}
-                                                    <div style={{ 
-                                                        padding: '16px', 
-                                                        backgroundColor: '#fff', 
-                                                        borderRadius: '6px',
-                                                        border: '1px solid #e8e8e8'
-                                                    }}>
-                                                        <Title level={5} style={{ marginBottom: '16px', color: '#1890ff' }}>
-                                                            Pricing Information
-                                                        </Title>
-                                                        <Row gutter={[16, 16]}>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Selling Price" style={{ marginBottom: 16 }}>
-                                                                    <InputNumber
-                                                                        value={item.sellingPrice}
-                                                                        onChange={(value) => handleItemChange(index, 'sellingPrice', value)}
-                                                                        style={{ width: '100%' }}
-                                                                        min={0}
-                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                        placeholder="Enter selling price"
-                                                                        size="large"
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Discount Amount" style={{ marginBottom: 16 }}>
-                                                                    <InputNumber
-                                                                        value={item.discount}
-                                                                        onChange={(value) => handleItemChange(index, 'discount', value)}
-                                                                        style={{ width: '100%' }}
-                                                                        min={0}
-                                                                        formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                        parser={value => value.replace(/₹\s?|(,*)/g, '')}
-                                                                        placeholder="Enter discount"
-                                                                        size="large"
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col xs={24} sm={8} md={8} lg={8}>
-                                                                <Form.Item label="Discount %" style={{ marginBottom: 16 }}>
-                                                                    <InputNumber
-                                                                        value={item.discountPercentage}
-                                                                        onChange={(value) => handleItemChange(index, 'discountPercentage', value)}
-                                                                        style={{ width: '100%' }}
-                                                                        min={0}
-                                                                        max={100}
-                                                                        formatter={value => `${value}%`}
-                                                                        parser={value => value.replace('%', '')}
-                                                                        precision={2}
-                                                                        placeholder="Enter discount %"
-                                                                        size="large"
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                        </Row>
-                                                    </div>
                                                 </Form>
                                             </Card>
                                         ))}
