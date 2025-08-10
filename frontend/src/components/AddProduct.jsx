@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Form,
@@ -16,7 +16,8 @@ import {
     Switch,
     AutoComplete,
     Modal,
-    Tag
+    Tag,
+    Checkbox
 } from 'antd';
 import {
     SaveOutlined,
@@ -165,6 +166,8 @@ const AddProduct = () => {
         categoryFormSchema: [],
         imeiFields: [{ id: 1, value: '' }]
     }]);
+    const [copyPrevious, setCopyPrevious] = useState(false); // toggle to copy last product data when adding new
+    const pendingCopyRef = useRef(null); // holds values to apply after render
     
     const getProductState = (productId) => products.find(p => p.id === productId) || products[0];
     
@@ -315,17 +318,54 @@ const AddProduct = () => {
 
     const addAnotherProduct = () => {
         const newProductId = (products.length > 0 ? Math.max(...products.map(p => p.id)) : 0) + 1;
-        const firstProduct = getProductState(products[0].id);
-        
-        setProducts([...products, {
+        const last = products[products.length - 1];
+        const base = copyPrevious ? last : products[0];
+        const copying = copyPrevious && !!base.finalCategoryId;
+        const isMobile = copying && base.categoryFormSchema.some(f => f.field_id === 'mobile_imei');
+
+        const newProduct = {
             id: newProductId,
-            categoryLevels: firstProduct.categoryLevels,
-            selectedCategoryPath: [],
-            finalCategoryId: null,
-            categoryFormSchema: [],
-            imeiFields: [{ id: 1, value: '' }]
-        }]);
+            categoryLevels: base.categoryLevels,
+            selectedCategoryPath: copying ? [...base.selectedCategoryPath] : [],
+            finalCategoryId: copying ? base.finalCategoryId : null,
+            categoryFormSchema: copying ? JSON.parse(JSON.stringify(base.categoryFormSchema)) : [],
+            imeiFields: isMobile ? base.imeiFields.map((f, idx) => ({ id: idx + 1, value: '' })) : [{ id: 1, value: '' }]
+        };
+        setProducts(prev => [...prev, newProduct]);
+
+        if (copying) {
+            const allVals = form.getFieldsValue(true); // get all registered values
+            const suffixOld = `_product_${base.id}`;
+            const suffixNew = `_product_${newProductId}`;
+            const updates = {};
+            Object.keys(allVals).forEach(key => {
+                if (key.endsWith(suffixOld)) {
+                    if (key.includes('serial_number') || key.startsWith('mobile_imei_')) return; // skip serial & IMEIs
+                    const v = allVals[key];
+                    if (v === undefined || v === null || v === '') return;
+                    updates[key.replace(suffixOld, suffixNew)] = v;
+                }
+            });
+            const catFieldOld = `categoryId_product_${base.id}`;
+            if (allVals[catFieldOld]) updates[`categoryId_product_${newProductId}`] = allVals[catFieldOld];
+            pendingCopyRef.current = { productId: newProductId, values: updates };
+        }
     };
+
+    // Apply deferred copy once products state (and new dynamic fields) have rendered
+    useEffect(() => {
+        if (!pendingCopyRef.current) return;
+        const { productId, values } = pendingCopyRef.current;
+        // Set form values (even if some fields not yet mounted; they'll pick up on mount)
+        form.setFieldsValue(values);
+        // Attempt focus after next paint
+        requestAnimationFrame(() => {
+            const input = document.querySelector(`input[name='serial_number_product_${productId}']`);
+            if (input) input.focus();
+        });
+        // Clear ref
+        pendingCopyRef.current = null;
+    }, [products, form]);
 
     const handleSubmit = async (values) => {
         console.log('[AddProduct] handleSubmit triggered with values:', values);
@@ -519,12 +559,7 @@ const AddProduct = () => {
                     </Card>
 
                     <Card
-                        title={
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>Product Details ({products.length} product{products.length > 1 ? 's' : ''})</span>
-                                <Button type="primary" icon={<PlusCircleOutlined />} onClick={addAnotherProduct} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>Add Another Product</Button>
-                            </div>
-                        }
+                        title={<span>Product Details ({products.length} product{products.length > 1 ? 's' : ''})</span>}
                         style={{ marginBottom: 24 }}
                         bodyStyle={{ padding: '16px' }}
                     >
@@ -563,6 +598,16 @@ const AddProduct = () => {
                                     ))}
                                 </Row>
                                 <Form.Item key={`categoryId_product_${product.id}`} name={`categoryId_product_${product.id}`} style={{ display: 'none' }}><Input /></Form.Item>
+                                {productIndex === products.length - 1 && (
+                                    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '8px 4px', borderTop: '1px dashed #e5e5e5' }}>
+                                        <Checkbox
+                                            checked={copyPrevious}
+                                            onChange={e => setCopyPrevious(e.target.checked)}
+                                            style={{ fontSize: 12 }}
+                                        >Copy previous when adding next</Checkbox>
+                                        <Button type="primary" icon={<PlusCircleOutlined />} onClick={addAnotherProduct} size="small" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>Add Another Product</Button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </Card>
