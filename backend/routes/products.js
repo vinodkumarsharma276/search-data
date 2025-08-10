@@ -444,7 +444,7 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
                     selected_category_id: finalCategoryId,
                     supplierId,
                     brand,
-                    price: sellingPrice,
+                    mrp: sellingPrice, // renamed from price
                     warrantyMonths: 12,
                     serialNumber: serialNumber || undefined,
                     common_attributes: commonAttrs,

@@ -122,13 +122,36 @@ const SearchProduct = () => {
             // Fetch full category path (root -> leaf)
             const pathResp = await apiService.categories.getCategoryPath(categoryId);
             const params = { page: 1, limit: 1000 };
+            let mergedSchema = [];
             if (pathResp.data?.success) {
-                const pathArr = pathResp.data.data || [];
-                pathArr.forEach(node => {
+                const rawPath = pathResp.data.data || [];
+                // Fetch full category docs (some path responses may omit form_schema)
+                const fullPath = await Promise.all(rawPath.map(async (node) => {
+                    if (node.form_schema && node.form_schema.length) return node; // already has schema
+                    try {
+                        const detail = await apiService.categories.getById(node._id || node.id);
+                        if (detail.data?.success) return { ...node, ...detail.data.data };
+                    } catch (e) { /* ignore fetch errors */ }
+                    return node; // fallback
+                }));
+                // Build query params for each hierarchy level
+                fullPath.forEach(node => {
                     if (node.field_key && node.name) {
-                        params[node.field_key] = node.name; // e.g. main_category, sub_category_1, sub_category_2...
+                        params[node.field_key] = node.name;
                     }
                 });
+                // Merge form schemas from each node (root common first, specifics later)
+                const schemaMap = new Map();
+                fullPath.forEach(node => {
+                    if (Array.isArray(node.form_schema)) {
+                        node.form_schema.forEach(f => {
+                            if (f && f.field_id && !schemaMap.has(f.field_id)) {
+                                schemaMap.set(f.field_id, { ...f });
+                            }
+                        });
+                    }
+                });
+                mergedSchema = Array.from(schemaMap.values()).sort((a,b) => (a.display_order ?? 999) - (b.display_order ?? 999));
             }
             // Fetch products filtered by the deepest category via all level params
             const response = await apiService.products.search(params);
@@ -136,7 +159,8 @@ const SearchProduct = () => {
                 const fetchedProducts = response.data.products || [];
                 setAllProducts(fetchedProducts);
                 setFilteredProducts(fetchedProducts);
-                setCategoryInfo(null);
+                // Set category info with merged schema for dynamic columns
+                setCategoryInfo(mergedSchema.length ? { form_schema: mergedSchema } : null);
                 setSearchPerformed(true);
             } else {
                 message.error(response.data.message || 'Failed to fetch products');
@@ -293,9 +317,9 @@ const SearchProduct = () => {
                 Object.keys(p || {}).forEach(k => keySet.add(k));
             });
             // Remove unwanted/internal keys
-            const exclude = new Set(['_id','id','__v','supplierId','deleted','sold','isActive','createdAt','updatedAt','lastPurchaseDate','category_path','category_path_ids','selected_category_id','common_attributes','specific_attributes','main_category','sub_category_1','sub_category_2','sub_category_3','sub_category_4']);
-            const preferredOrder = ['brand','product_name','model_number','serial_number','mrp','dealer_price','price','warrantyMonths','currentStock','minimumStock','color','ram','storage','capacity','size','os_version','condition'];
-            const numericFields = new Set(['mrp','dealer_price','price']);
+            const exclude = new Set(['_id','id','__v','supplierId','deleted','sold','isActive','createdAt','updatedAt','lastPurchaseDate','category_path','category_path_ids','selected_category_id','common_attributes','specific_attributes','main_category','sub_category_1','sub_category_2','sub_category_3','sub_category_4','displayName']);
+            const preferredOrder = ['brand','product_name','model_number','serial_number','dealer_price','mrp','warrantyMonths','currentStock','minimumStock','color','ram','storage','capacity','size','os_version','condition'];
+            const numericFields = new Set(['mrp','dealer_price']);
             const allKeys = Array.from(keySet).filter(k => !exclude.has(k) && /^[a-z0-9_]+$/i.test(k));
             // Ensure preferred ordering first then remaining alphabetically
             const ordered = [
@@ -307,10 +331,11 @@ const SearchProduct = () => {
                 dataIndex: field,
                 key: field,
                 width: ['model_number','serial_number','product_name'].includes(field) ? 160 : 120,
+                align: numericFields.has(field) ? 'right' : undefined,
                 render: (text, record) => {
                     if (editingRowId === record._id) {
                         if (numericFields.has(field)) {
-                            return <Input type="number" value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: 110 }} />;
+                            return <Input type="number" value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: 110, textAlign: 'right' }} />;
                         }
                         return <Input value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: ['model_number','serial_number','product_name'].includes(field)?150:110 }} />;
                     }
@@ -363,14 +388,18 @@ const SearchProduct = () => {
 
         const dynamicColumns = [];
         
-        // Generate columns based on the category's form schema
-        categoryInfo.form_schema.forEach(field => {
-            if (field.field_id === 'dealer_price' || field.field_id === 'mrp') {
+        // Generate columns based on the category's form schema (sorted by display_order)
+        const sortedSchema = [...categoryInfo.form_schema].sort((a,b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    sortedSchema.forEach(field => {
+        const colLabel = field.label || field.field_id.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        if (field.field_id === 'dealer_price' || field.field_id === 'mrp') {
                 // Special handling for price fields
                 dynamicColumns.push({
-                    title: field.label,
+            title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
+            width: 130,
+            align: 'right',
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             return (
@@ -384,10 +413,10 @@ const SearchProduct = () => {
                         return text ? `₹${Number(text).toLocaleString('en-IN')}` : 'N/A';
                     },
                 });
-            } else if (field.field_id === 'star_rating') {
+        } else if (field.field_id === 'star_rating') {
                 // Special handling for star rating
                 dynamicColumns.push({
-                    title: field.label,
+            title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
                     render: (text, record) => {
@@ -409,10 +438,10 @@ const SearchProduct = () => {
                         return text ? `${text} ⭐` : 'N/A';
                     },
                 });
-            } else if (field.type === 'dropdown' && field.options) {
+        } else if (field.type === 'dropdown' && field.options) {
                 // For dropdown fields, show the actual value
                 dynamicColumns.push({
-                    title: field.label,
+            title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
                     width: 150,
@@ -444,13 +473,13 @@ const SearchProduct = () => {
                         return option ? option.label : text;
                     },
                 });
-            } else {
+        } else {
                 // Standard column
                 dynamicColumns.push({
-                    title: field.label,
+            title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    width: field.field_id === 'model_number' || field.field_id === 'serial_number' ? 120 : 100,
+                    width: field.field_id === 'model_number' || field.field_id === 'serial_number' ? 140 : 110,
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             return (
@@ -638,8 +667,9 @@ const SearchProduct = () => {
                                     x: 'max-content',
                                     y: 600 
                                 }}
+                                tableLayout="fixed"
                                 size="small"
-                                style={{ minWidth: '1200px' }}
+                                style={{ minWidth: '900px' }}
                             />
                             <Pagination
                                 current={currentPage}

@@ -13,7 +13,15 @@ require('dotenv').config();
 // Common fields that apply to ALL products (truly universal only)
 const COMMON_PRODUCT_FIELDS = [
     {
-        field_id: 'price',
+        field_id: 'dealer_price',
+        label: 'Dealer Price (₹)',
+        type: 'number',
+        is_required: false,
+        enabled: true,
+        display_order: 89 // show before MRP
+    },
+    {
+        field_id: 'mrp', // renamed from price -> mrp
         label: 'MRP (₹)',
         type: 'number',
         is_required: true,
@@ -83,7 +91,7 @@ async function seedCategoryHierarchy() {
             field_key: rootMeta.field_key,
             field_label: rootMeta.field_label,
             form_schema: COMMON_PRODUCT_FIELDS,
-            description: 'Electronic devices - Universal fields: Price, Model Number (shown after specific fields)',
+            description: 'Electronic devices - Universal fields: Dealer Price, MRP, Model Number (shown after specific fields)',
             isActive: true
         });
         // PREVIEW before save

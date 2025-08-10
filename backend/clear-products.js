@@ -5,10 +5,12 @@ require('dotenv').config();
 // Use the same URI as other scripts
 async function clearProducts() {
     try {
-        // Connect to MongoDB using .env config
-        await mongoose.connect(process.env.MONGODB_URI);
+        // Determine URI with fallback
+        const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/vinod-electronics';
+        await mongoose.connect(uri);
         console.log('🔗 Connected to MongoDB');
         console.log('🗄️ Database name:', mongoose.connection.db.databaseName);
+        console.log('🌐 Using URI:', uri);
         
         // Count current products
         const currentCount = await Product.countDocuments();
