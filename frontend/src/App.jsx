@@ -132,6 +132,10 @@ function App() {
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />
                         <Route 
+                            path="/deleted-products" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />} 
+                        />
+                        <Route 
                             path="/add-customer" 
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />

@@ -14,7 +14,9 @@ import {
     Select,
     InputNumber,
     Switch,
-    AutoComplete
+    AutoComplete,
+    Modal,
+    Tag
 } from 'antd';
 import {
     SaveOutlined,
@@ -374,26 +376,102 @@ const AddProduct = () => {
             console.log('[AddProduct] Sending create request...');
             const response = await apiService.products.create({ products: productsArray });
             console.log('[AddProduct] Response:', response.data);
-            if (response.data.success) {
-                message.success(`${productsArray.length} product(s) added successfully!`);
-                form.resetFields();
-                setDistributorSearchValue('');
-                setSelectedDistributor(null);
-                setProducts([{
-                    id: 1,
-                    categoryLevels: [],
-                    selectedCategoryPath: [],
-                    finalCategoryId: null,
-                    categoryFormSchema: [],
-                    imeiFields: [{ id: 1, value: '' }]
-                }]);
-                await fetchRootCategories();
+            const { success, errors = [], message: msg } = response.data || {};
+
+            const formatErrorsNode = (errs, summary) => {
+                if (!errs.length) return null;
+                const max = 40; // show up to 40 detailed entries
+                const items = errs.slice(0, max).map((e, idx) => {
+                    const msg = e.message || '';
+                    // Highlight duplicate serial
+                    const serialMatch = msg.match(/Duplicate serial number '([^']+)'/i);
+                    const imeiMatch = msg.match(/IMEI numbers? already exist \(([^)]+)\)/i);
+                    let formattedDetail = msg;
+                    if (serialMatch) {
+                        formattedDetail = (
+                            <>
+                                Duplicate serial number <Tag color="red" style={{ fontSize: 11 }}>{serialMatch[1]}</Tag> already exists
+                            </>
+                        );
+                    } else if (imeiMatch) {
+                        const imeis = imeiMatch[1].split(/[,\s]+/).filter(Boolean);
+                        formattedDetail = (
+                            <>
+                                IMEI already exists: {imeis.map((im, i2) => <Tag key={i2} color="volcano" style={{ marginBottom: 2, fontSize: 11 }}>{im}</Tag>)}
+                            </>
+                        );
+                    }
+                    return (
+                        <li key={idx} style={{ marginBottom: 4, fontSize: 12, lineHeight: 1.3 }}>
+                            <strong style={{ color: '#444' }}>Product {e.index}:</strong> {formattedDetail}
+                        </li>
+                    );
+                });
+                return (
+                    <div style={{ maxHeight: 260, overflowY: 'auto', paddingRight: 4 }}>
+                        {summary && (
+                            <p style={{ margin: '0 0 8px', fontSize: 12 }}>
+                                Created <strong>{summary.successful}</strong> of <strong>{summary.total}</strong> products. Failures: <strong>{summary.failed}</strong>
+                            </p>
+                        )}
+                        <ul style={{ paddingLeft: 18, margin: 0 }}>{items}</ul>
+                        {errors.length > max && <p style={{ marginTop: 8, fontSize: 12 }}>...and {errors.length - max} more.</p>}
+                    </div>
+                );
+            };
+
+            if (success) {
+                if (errors.length) {
+                    Modal.warning({
+                        title: 'Some products could not be added',
+                        width: 560,
+                        content: formatErrorsNode(errors, response.data.summary),
+                        okText: 'OK'
+                    });
+                } else {
+                    message.success(`${productsArray.length} product(s) added successfully!`);
+                }
+                // Reset only if at least one product created
+                if ((response.data.summary?.successful || 0) > 0) {
+                    form.resetFields();
+                    setDistributorSearchValue('');
+                    setSelectedDistributor(null);
+                    setProducts([{ id: 1, categoryLevels: [], selectedCategoryPath: [], finalCategoryId: null, categoryFormSchema: [], imeiFields: [{ id: 1, value: '' }] }]);
+                    await fetchRootCategories();
+                }
             } else {
-                message.error(response.data.message || 'Failed to add products.');
+                // Failure (e.g., duplicate serial/IMEI when none created)
+                const primaryErrorMsg = errors.length ? formatErrorsNode(errors, response.data.summary) : (msg || 'Failed to add products');
+                Modal.error({
+                    title: 'Product Creation Failed',
+                    width: 560,
+                    content: primaryErrorMsg,
+                    okText: 'OK'
+                });
             }
         } catch (error) {
             console.error('[AddProduct] Error creating products:', error);
-            message.error(error.response?.data?.message || 'An error occurred.');
+            const server = error.response?.data;
+            const errorsArr = server?.errors || [];
+            const duplicateError = errorsArr.length ? errorsArr[0].message : (server?.message || error.message || 'An error occurred.');
+            const formatSingle = () => {
+                const msg = duplicateError;
+                const serialMatch = msg.match(/Duplicate serial number '([^']+)'/i);
+                const imeiMatch = msg.match(/IMEI numbers? already exist \(([^)]+)\)/i);
+                if (serialMatch) {
+                    return <span>Duplicate serial number <Tag color="red" style={{ fontSize: 11 }}>{serialMatch[1]}</Tag> already exists</span>;
+                } else if (imeiMatch) {
+                    const imeis = imeiMatch[1].split(/[,\s]+/).filter(Boolean);
+                    return <span>IMEI already exists: {imeis.map((im,i) => <Tag key={i} color="volcano" style={{ fontSize: 11, marginBottom: 2 }}>{im}</Tag>)}</span>;
+                }
+                return msg;
+            };
+            Modal.error({
+                title: 'Product Creation Error',
+                width: 520,
+                content: formatSingle(),
+                okText: 'OK'
+            });
         } finally {
             setLoading(false);
         }

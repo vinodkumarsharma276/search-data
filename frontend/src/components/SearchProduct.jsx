@@ -453,6 +453,18 @@ const SearchProduct = () => {
                     return 'N/A';
                 }
             });
+            // Sold status column (before Action)
+            derivedColumns.push({
+                title: 'Sold',
+                key: 'sold',
+                dataIndex: 'sold',
+                width: 70,
+                render: (value) => {
+                    const sold = !!value;
+                    return <Tag color={sold ? 'red' : 'green'} style={{ fontSize: 10, padding: '0 6px' }}>{sold ? 'YES' : 'NO'}</Tag>;
+                }
+            });
+
             // Action column
             derivedColumns.push({
                 title: 'Action',
@@ -684,6 +696,19 @@ const SearchProduct = () => {
                     return 'N/A';
                 }
             },
+        });
+
+        // Add Sold column before Action
+        dynamicColumns.push({
+            title: 'Sold',
+            key: 'sold',
+            dataIndex: 'sold',
+            width: 70,
+            render: (value) => {
+                const sold = !!value;
+                return <Tag color={sold ? 'red' : 'green'} style={{ fontSize: 10, padding: '0 6px' }}>{sold ? 'YES' : 'NO'}</Tag>;
+            },
+            fixed: dynamicColumns.some(c => c.fixed === 'right') ? undefined : undefined
         });
 
         // Add Action column

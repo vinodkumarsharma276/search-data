@@ -70,6 +70,8 @@ const apiService = {
         searchTest: (params) => apiClient.get('/products/search-test', { params }),
         globalSearch: (query) => apiClient.get(`/products/global-search?searchQuery=${encodeURIComponent(query)}`),
         getDistributors: () => apiClient.get('/products/distributors')
+    ,getDeleted: (params) => apiClient.get('/products/deleted', { params })
+    ,restore: (id) => apiClient.patch(`/products/${id}/restore`)
     },
 
     // Employee API methods

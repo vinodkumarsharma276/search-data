@@ -35,6 +35,7 @@ import SearchPage from './SearchPage';
 import AddProduct from './AddProduct';
 import SearchProduct from './SearchProduct';
 import AddCategory from './AddCategory';
+import DeletedProducts from './DeletedProducts';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -57,6 +58,7 @@ const Dashboard = () => {
         if (path.startsWith('/search-sale')) return 'search-sale';
     if (path.startsWith('/add-product')) return 'add-product';
     if (path.startsWith('/search-product')) return 'search-product';
+    if (path.startsWith('/deleted-products')) return 'deleted-products';
     if (path.startsWith('/add-category')) return 'add-category';
         if (path.startsWith('/add-distributor')) return 'add-distributor';
         if (path.startsWith('/search-distributor')) return 'search-distributor';
@@ -107,6 +109,11 @@ const Dashboard = () => {
                     key: 'search-product',
                     icon: <SearchOutlined />,
                     label: 'Search Products',
+                },
+                {
+                    key: 'deleted-products',
+                    icon: <SearchOutlined />,
+                    label: 'Deleted Products',
                 },
                 {
                     key: 'add-category',
@@ -195,6 +202,8 @@ const Dashboard = () => {
                 return <SearchDistributor />;
             case 'search-product':
                 return <SearchProduct />;
+            case 'deleted-products':
+                return <DeletedProducts />;
             case 'add-category':
                 return <AddCategory />;
             case 'search-customer':

@@ -215,6 +215,34 @@ router.get('/distributors', async (req, res) => {
     }
 });
 
+// @desc    Get deleted (soft-deleted) products
+// @route   GET /api/products/deleted
+// @access  Protected
+router.get('/deleted', protect, async (req, res) => {
+    try {
+        const { page = 1, limit = 50 } = req.query;
+        const query = { deleted: true };
+        console.log('🔍 Fetching deleted products', { page, limit, query });
+        const products = await Product.find(query)
+            .populate('supplierId', 'name companyName gstNumber')
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .sort({ updatedAt: -1 });
+        console.log('✅ Deleted products fetched count:', products.length);
+        const total = await Product.countDocuments(query);
+        res.json({ success: true, products, total, page: parseInt(page), limit: parseInt(limit) });
+    } catch (error) {
+        console.error('❌ Get deleted products error. Context:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            page: req.query.page,
+            limit: req.query.limit
+        });
+        res.status(500).json({ success: false, message: error.message || 'Server error while fetching deleted products', error: error.name });
+    }
+});
+
 // @desc    Get product by ID
 // @route   GET /api/products/:id
 // @access  Protected
@@ -259,6 +287,31 @@ router.post('/', protect, checkPermission('create'), async (req, res) => {
             try {
                 console.log(`🔄 Processing product ${i + 1}/${productsArray.length}`);
                 if (!productData.supplierId) throw new Error(`Product ${i + 1}: Distributor (supplierId) is required`);
+
+                // Duplicate serial number check (case-insensitive)
+                if (productData.serial_number) {
+                    const existingSerial = await Product.findOne({ serial_number: productData.serial_number.toUpperCase() });
+                    if (existingSerial) {
+                        throw new Error(`Product ${i + 1}: Duplicate serial number '${productData.serial_number}' already exists`);
+                    }
+                }
+
+                // Duplicate IMEI check (mobile_imei can be string or array)
+                if (productData.mobile_imei) {
+                    const imeis = Array.isArray(productData.mobile_imei) ? productData.mobile_imei : [productData.mobile_imei];
+                    const cleanedImeis = imeis.map(v => String(v).trim()).filter(Boolean);
+                    if (cleanedImeis.length) {
+                        // Query for each IMEI specifically and gather only duplicates
+                        const duplicates = [];
+                        for (const imei of cleanedImeis) {
+                            const exists = await Product.findOne({ mobile_imei: imei });
+                            if (exists) duplicates.push(imei);
+                        }
+                        if (duplicates.length) {
+                            throw new Error(`Product ${i + 1}: IMEI already exists (${duplicates.join(', ')})`);
+                        }
+                    }
+                }
 
                 const Distributor = require('../models/Distributor');
                 const distributor = await Distributor.findById(productData.supplierId);
@@ -471,6 +524,7 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
                     common_attributes: commonAttrs,
                     specific_attributes: specificAttrs,
                     isActive: true,
+                    sold: false,
                     lastPurchaseDate: new Date()
                 };
 
@@ -495,6 +549,33 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
                         newProductData[key] = productData[key];
                     }
                 });
+
+                // Duplicate serial check (case-insensitive) if serial field present either as serial_number or serialNumber
+                const candidateSerial = productData.serial_number || productData.serialNumber || newProductData.serial_number || newProductData.serialNumber;
+                if (candidateSerial) {
+                    const existingSerial = await Product.findOne({ serial_number: candidateSerial.toUpperCase() });
+                    if (existingSerial) {
+                        throw new Error(`Product ${i + 1}: Duplicate serial number '${candidateSerial}' already exists`);
+                    }
+                }
+
+                // Duplicate IMEI check if mobile_imei provided in categoryFormData or product root
+                const rawImei = categoryFormData.mobile_imei || productData.mobile_imei;
+                if (rawImei) {
+                    const imeis = Array.isArray(rawImei) ? rawImei : [rawImei];
+                    const cleanedImeis = imeis.map(v => String(v).trim()).filter(Boolean);
+                    if (cleanedImeis.length) {
+                        const duplicates = [];
+                        for (const imei of cleanedImeis) {
+                            const exists = await Product.findOne({ mobile_imei: imei });
+                            if (exists) duplicates.push(imei);
+                        }
+                        if (duplicates.length) {
+                            throw new Error(`Product ${i + 1}: IMEI already exists (${duplicates.join(', ')})`);
+                        }
+                    }
+                    if (!newProductData.mobile_imei) newProductData.mobile_imei = imeis;
+                }
 
                 const product = new Product(newProductData);
                 await product.save();
@@ -673,6 +754,28 @@ router.patch('/:id/soft-delete', async (req, res) => {
             success: false,
             message: error.message || 'Server error while deleting product'
         });
+    }
+});
+
+// @desc    Get deleted (soft-deleted) products
+// @route   GET /api/products/deleted
+// @access  Protected
+
+// @desc    Restore a soft-deleted product
+// @route   PATCH /api/products/:id/restore
+// @access  Protected
+router.patch('/:id/restore', protect, checkPermission('update'), async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+        if (!product.deleted) return res.json({ success: true, message: 'Product already active' });
+        product.deleted = false;
+        product.isActive = true;
+        await product.save();
+        res.json({ success: true, message: 'Product restored', data: product });
+    } catch (error) {
+        console.error('Restore product error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error while restoring product' });
     }
 });
 
