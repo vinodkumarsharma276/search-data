@@ -42,6 +42,9 @@ const SearchProduct = () => {
     const [selectedCategoryPath, setSelectedCategoryPath] = useState([]);
     const [finalCategoryId, setFinalCategoryId] = useState(null);
     const [isLeafCategory, setIsLeafCategory] = useState(false);
+    // Multi-root support removed from UI (auto-select first root internally)
+    const [roots, setRoots] = useState([]); // retained for internal fetch; not displayed
+    const [selectedRootKey, setSelectedRootKey] = useState(null); // internal only
     
     // State for new search/filter logic
     const [searchQuery, setSearchQuery] = useState('');
@@ -63,44 +66,68 @@ const SearchProduct = () => {
         return `Sub Category ${idx}`; // idx 1 -> Sub Category 1, etc.
     };
 
-    // Fetch top-level categories on component mount
+    // Fetch first root (internally) and distributors on mount
     useEffect(() => {
-        fetchTopLevelCategories();
+        fetchRoots();
         fetchDistributors();
     }, []);
 
     // Frontend filtering when searchQuery changes
     useEffect(() => {
-        if (searchQuery.length >= 3) {
-            const lowercasedQuery = searchQuery.toLowerCase();
-            const filtered = allProducts.filter(product => {
-                // Simple search on product name, model, or serial
-                return (
-                    product.name?.toLowerCase().includes(lowercasedQuery) ||
-                    product.model_number?.toLowerCase().includes(lowercasedQuery) ||
-                    product.serial_number?.toLowerCase().includes(lowercasedQuery)
-                );
+        if (!allProducts || !allProducts.length) {
+            setFilteredProducts([]);
+            return;
+        }
+        if (searchQuery && searchQuery.length >= 3) {
+            const q = searchQuery.trim().toLowerCase();
+            const filtered = allProducts.filter(p => {
+                const model = (p.model_number || '').toString().toLowerCase();
+                const serial = (p.serial_number || '').toString().toLowerCase();
+                const pname = (p.product_name || p.name || '').toString().toLowerCase();
+                const brand = (p.brand || '').toString().toLowerCase();
+                return model.includes(q) || serial.includes(q) || pname.includes(q) || brand.includes(q);
             });
             setFilteredProducts(filtered);
         } else {
-            // If query is less than 3 chars, show all products for the category
             setFilteredProducts(allProducts);
         }
-        setCurrentPage(1); // Reset to first page on new filter
+        setCurrentPage(1);
     }, [searchQuery, allProducts]);
 
-    const fetchTopLevelCategories = async () => {
+    // Load roots then auto-select first root tree
+    const fetchRoots = async () => {
         try {
             setLoading(true);
-            const response = await apiService.categories.getTopLevel();
-            if (response.data.success) {
-                setCategoryLevels([response.data.data || []]);
+            const resp = await apiService.categories.getRoots();
+            if (resp.data.success) {
+                const list = resp.data.data || [];
+                setRoots(list);
+                if (list.length) {
+                    // Build top-level (Main Category) options from all roots so user can pick any root directly
+                    const topLevel = list.map(r => ({ _id: r.root_id, name: r.name, is_leaf: false }));
+                    setCategoryLevels([topLevel]);
+                } else {
+                    setCategoryLevels([]);
+                }
             }
-        } catch (error) {
-            console.error('❌ Error fetching categories:', error);
-        } finally {
-            setLoading(false);
-        }
+        } catch (e) {
+            console.error('❌ Error fetching roots:', e);
+        } finally { setLoading(false); }
+    };
+
+    // Load a materialized tree and build first level options
+    const loadRootTree = async (rootKey) => {
+        try {
+            setLoading(true);
+            const resp = await apiService.categories.getTree(rootKey);
+            if (resp.data.success) {
+                const nodes = resp.data.data?.nodes || [];
+                const top = nodes.filter(n => !n.parent_id).map(n => ({ _id: n._id, name: n.name, is_leaf: n.is_leaf }));
+                setCategoryLevels([top]);
+            }
+        } catch (e) {
+            console.error('❌ Error loading tree:', e);
+        } finally { setLoading(false); }
     };
 
     const fetchDistributors = async () => {
@@ -196,22 +223,37 @@ const SearchProduct = () => {
         setCategoryInfo(null); // Clear category info
 
         try {
-            const categoryResponse = await apiService.categories.getById(categoryId);
-            if (categoryResponse.data.success) {
-                const category = categoryResponse.data.data;
-                
-                if (category.is_leaf) {
-                    setCategoryLevels(newLevels);
-                    setFinalCategoryId(categoryId);
-                    setIsLeafCategory(true);
-                    await fetchAllProductsForCategory(categoryId); // Fetch products immediately
+            // First, detect if this selection corresponds to a root category (present in roots list)
+            const asRoot = roots.find(r => String(r.root_id) === String(categoryId));
+            if (asRoot) {
+                // Load its tree and populate next level (its children) as Sub Category 1
+                const resp = await apiService.categories.getTree(asRoot.root_key);
+                if (resp.data.success) {
+                    const nodes = resp.data.data?.nodes || [];
+                    // Top-level children (level 1) are nodes whose parent_id equals the root's id
+                    const topChildren = nodes
+                        .filter(n => n.parent_id && String(n.parent_id) === String(asRoot.root_id))
+                        .map(n => ({ _id: n._id, name: n.name, is_leaf: n.is_leaf }));
+                    // Reset deeper levels when switching root
+                    setCategoryLevels([categoryLevels[0], topChildren]);
+                }
+                return; // stop further processing
+            }
+
+            const detailResp = await apiService.categories.getById(categoryId);
+            if (!detailResp.data.success) return;
+            const category = detailResp.data.data;
+            if (category.is_leaf) {
+                setCategoryLevels(newLevels);
+                setFinalCategoryId(categoryId);
+                setIsLeafCategory(true);
+                await fetchAllProductsForCategory(categoryId);
+            } else {
+                const childrenResp = await apiService.categories.getChildren(categoryId);
+                if (childrenResp.data.success && childrenResp.data.data.length) {
+                    setCategoryLevels([...newLevels, childrenResp.data.data]);
                 } else {
-                    const childrenResponse = await apiService.categories.getChildren(categoryId);
-                    if (childrenResponse.data.success && childrenResponse.data.data.length > 0) {
-                        setCategoryLevels([...newLevels, childrenResponse.data.data]);
-                    } else {
-                        setCategoryLevels(newLevels); // No more children
-                    }
+                    setCategoryLevels(newLevels);
                 }
             }
         } catch (error) {
@@ -307,6 +349,46 @@ const SearchProduct = () => {
         return product.name || 'Product';
     };
 
+    // Helper to compute adaptive width for a field based on sample data
+    const computeAdaptiveWidth = (fieldId, rows) => {
+        // Preferred explicit widths for some known fields (acts as upper bounds / defaults)
+        const explicit = {
+            product_name: 180,
+            name: 180,
+            model_number: 160,
+            serial_number: 170,
+            dealer_price: 110,
+            mrp: 110,
+            warrantyMonths: 110,
+            brand: 120,
+            color: 90,
+            ram: 80,
+            ram_gb: 80,
+            storage: 100,
+            storage_gb: 110,
+            capacity: 110,
+            size: 90,
+            star_rating: 95,
+            os_version: 120,
+            supplierId: 160
+        };
+        const sample = rows.slice(0, 200);
+        let maxLen = 0;
+        sample.forEach(r => {
+            const v = r && r[fieldId];
+            if (v === undefined || v === null) return;
+            const str = String(v);
+            if (str.length > maxLen) maxLen = str.length;
+        });
+        // Base character width approximation
+        let width = Math.min(240, Math.max(60, maxLen * 7 + 28));
+        if (explicit[fieldId]) {
+            // Don't exceed explicit; also ensure at least explicit * 0.7 to avoid too tiny
+            width = Math.min(explicit[fieldId], Math.max(width, Math.round(explicit[fieldId] * 0.7)));
+        }
+        return width;
+    };
+
     // Generate dynamic table columns based on category form schema
     const generateDynamicColumns = () => {
         if (!categoryInfo || !categoryInfo.form_schema) {
@@ -326,26 +408,29 @@ const SearchProduct = () => {
                 ...preferredOrder.filter(k => allKeys.includes(k)),
                 ...allKeys.filter(k => !preferredOrder.includes(k)).sort()
             ];
-            const derivedColumns = ordered.slice(0, 25).map(field => ({
-                title: field.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
-                dataIndex: field,
-                key: field,
-                width: ['model_number','serial_number','product_name'].includes(field) ? 160 : 120,
-                align: numericFields.has(field) ? 'right' : undefined,
-                render: (text, record) => {
-                    if (editingRowId === record._id) {
-                        if (numericFields.has(field)) {
-                            return <Input type="number" value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: 110, textAlign: 'right' }} />;
+            const derivedColumns = ordered.slice(0, 25).map(field => {
+                const adaptiveWidth = computeAdaptiveWidth(field, sampleProducts);
+                return ({
+                    title: field.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+                    dataIndex: field,
+                    key: field,
+                    width: adaptiveWidth,
+                    align: numericFields.has(field) ? 'right' : undefined,
+                    render: (text, record) => {
+                        if (editingRowId === record._id) {
+                            if (numericFields.has(field)) {
+                                return <Input type="number" value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: adaptiveWidth - 10, textAlign: 'right' }} />;
+                            }
+                            return <Input value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: adaptiveWidth - 10 }} />;
                         }
-                        return <Input value={editingRowData[field] ?? text ?? ''} onChange={e => setEditingRowData(prev => ({...prev,[field]: e.target.value}))} style={{ width: ['model_number','serial_number','product_name'].includes(field)?150:110 }} />;
+                        if (numericFields.has(field) && text !== undefined && text !== null && text !== '') {
+                            const num = Number(text);
+                            if (!isNaN(num)) return `₹${num.toLocaleString('en-IN')}`;
+                        }
+                        return text || 'N/A';
                     }
-                    if (numericFields.has(field) && text !== undefined && text !== null && text !== '') {
-                        const num = Number(text);
-                        if (!isNaN(num)) return `₹${num.toLocaleString('en-IN')}`;
-                    }
-                    return text || 'N/A';
-                }
-            }));
+                });
+            });
 
             // Distributor column
             derivedColumns.push({
@@ -389,17 +474,19 @@ const SearchProduct = () => {
         const dynamicColumns = [];
         
         // Generate columns based on the category's form schema (sorted by display_order)
-        const sortedSchema = [...categoryInfo.form_schema].sort((a,b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    const sortedSchema = [...categoryInfo.form_schema].sort((a,b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    const sampleRows = filteredProducts.length ? filteredProducts : allProducts;
     sortedSchema.forEach(field => {
         const colLabel = field.label || field.field_id.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
         if (field.field_id === 'dealer_price' || field.field_id === 'mrp') {
                 // Special handling for price fields
+                const adaptiveWidth = computeAdaptiveWidth(field.field_id, sampleRows);
                 dynamicColumns.push({
-            title: colLabel,
+                    title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
-            width: 130,
-            align: 'right',
+                    width: adaptiveWidth,
+                    align: 'right',
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             return (
@@ -407,6 +494,7 @@ const SearchProduct = () => {
                                     type="number"
                                     defaultValue={text}
                                     onChange={(e) => record[field.field_id] = e.target.value}
+                                    style={{ width: adaptiveWidth - 10, textAlign: 'right' }}
                                 />
                             );
                         }
@@ -415,15 +503,17 @@ const SearchProduct = () => {
                 });
         } else if (field.field_id === 'star_rating') {
                 // Special handling for star rating
+                const adaptiveWidth = computeAdaptiveWidth(field.field_id, sampleRows);
                 dynamicColumns.push({
-            title: colLabel,
+                    title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
+                    width: adaptiveWidth,
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             return (
                                 <Select
-                                    style={{ width: '100%' }}
+                                    style={{ width: adaptiveWidth - 10 }}
                                     defaultValue={text}
                                     onChange={(value) => record[field.field_id] = value}
                                 >
@@ -440,16 +530,17 @@ const SearchProduct = () => {
                 });
         } else if (field.type === 'dropdown' && field.options) {
                 // For dropdown fields, show the actual value
+                const adaptiveWidth = computeAdaptiveWidth(field.field_id, sampleRows);
                 dynamicColumns.push({
-            title: colLabel,
+                    title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    width: 150,
+                    width: adaptiveWidth,
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             return (
                                 <Select
-                                    style={{ width: 130 }}
+                                    style={{ width: adaptiveWidth - 10 }}
                                     value={editingRowData[field.field_id] || text}
                                     onChange={(value) => {
                                         setEditingRowData(prev => ({
@@ -468,18 +559,68 @@ const SearchProduct = () => {
                             );
                         }
                         if (!text) return 'N/A';
-                        // Find the option label for the value
                         const option = field.options.find(opt => opt.value === text);
                         return option ? option.label : text;
                     },
                 });
         } else {
+                // Special handling for mobile_imei (array -> multiline display)
+                if (field.field_id === 'mobile_imei') {
+                    // Cap width so long IMEI arrays don't allocate excessive horizontal space
+                    const adaptiveWidth = Math.min(
+                        computeAdaptiveWidth(field.field_id, sampleRows),
+                        170 // max width in px for IMEI column
+                    );
+                    dynamicColumns.push({
+                        title: colLabel,
+                        dataIndex: field.field_id,
+                        key: field.field_id,
+                        width: adaptiveWidth,
+                        render: (text, record) => {
+                            // text may be array due to dynamic data shape; ensure we read from record for safety
+                            const value = record[field.field_id];
+                            if (editingRowId === record._id) {
+                                const currentList = Array.isArray(editingRowData[field.field_id])
+                                    ? editingRowData[field.field_id]
+                                    : (Array.isArray(value) ? value : (value ? [value] : []));
+                                return (
+                                    <Input.TextArea
+                                        value={currentList.join('\n')}
+                                        onChange={(e) => {
+                                            const lines = e.target.value
+                                                .split(/\n+/)
+                                                .map(s => s.trim())
+                                                .filter(s => s.length > 0);
+                                            setEditingRowData(prev => ({
+                                                ...prev,
+                                                [field.field_id]: lines
+                                            }));
+                                        }}
+                                        autoSize={{ minRows: 2, maxRows: 4 }}
+                                        style={{ width: adaptiveWidth - 10, fontFamily: 'monospace', lineHeight: '16px' }}
+                                        placeholder="One IMEI per line"
+                                    />
+                                );
+                            }
+                            if (Array.isArray(value) && value.length) {
+                                return (
+                                    <div style={{ whiteSpace: 'pre-line', lineHeight: '14px', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
+                                        {value.join('\n')}
+                                    </div>
+                                );
+                            }
+                            return 'N/A';
+                        }
+                    });
+                    return; // skip default standard column path
+                }
                 // Standard column
+                const adaptiveWidth = computeAdaptiveWidth(field.field_id, sampleRows);
                 dynamicColumns.push({
-            title: colLabel,
+                    title: colLabel,
                     dataIndex: field.field_id,
                     key: field.field_id,
-                    width: field.field_id === 'model_number' || field.field_id === 'serial_number' ? 140 : 110,
+                    width: adaptiveWidth,
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             return (
@@ -491,7 +632,7 @@ const SearchProduct = () => {
                                             [field.field_id]: e.target.value
                                         }));
                                     }}
-                                    style={{ width: field.field_id === 'model_number' || field.field_id === 'serial_number' ? 110 : 90 }}
+                                    style={{ width: adaptiveWidth - 10 }}
                                 />
                             );
                         }
@@ -593,6 +734,25 @@ const SearchProduct = () => {
 
     return (
         <div className="search-product-container">
+                        {/* Compact table styling to reduce row height and handle long serial numbers */}
+                        <style>{`
+                            .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-cell {
+                                font-size: 12px; /* reduced from default ~14px */
+                                line-height: 1.15; /* tighter vertical spacing */
+                                padding: 4px 6px; /* reduce cell padding */
+                                white-space: normal; /* allow wrapping */
+                                word-break: break-word; /* break long serial numbers */
+                            }
+                            .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell {
+                                padding: 6px 6px; /* slightly tighter header */
+                                font-size: 12.5px; /* subtle reduction for consistency */
+                            }
+                            .search-product-container .ant-table-wrapper .ant-table-cell input,
+                            .search-product-container .ant-table-wrapper .ant-table-cell .ant-select-selector,
+                            .search-product-container .ant-table-wrapper .ant-table-cell .ant-input {
+                                font-size: 12px;
+                            }
+                        `}</style>
             <Breadcrumb style={{ margin: '16px 0' }}>
                 <Breadcrumb.Item><Link to="/"><HomeOutlined /></Link></Breadcrumb.Item>
                 <Breadcrumb.Item>Search Products</Breadcrumb.Item>

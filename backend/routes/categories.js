@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
+const CategoryRoot = require('../models/CategoryRoot');
 const { protect, checkPermission } = require('../middleware/auth');
 
 // @route   GET /api/categories/top-level
@@ -29,6 +30,74 @@ router.get('/top-level', protect, async (req, res) => {
             success: false,
             message: error.message || 'Failed to fetch top-level categories'
         });
+    }
+});
+
+// @route GET /api/categories/roots
+// @desc  List root categories (materialized summary)
+router.get('/roots', protect, async (req, res) => {
+    try {
+        const roots = await Category.find({ parent_id: null, isActive: true }).select('_id name').sort({ name: 1 });
+        res.json({ success: true, data: roots.map(r => ({ root_id: r._id, root_key: r.name, name: r.name })) });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// @route GET /api/categories/tree/:rootKey
+// @desc  Get materialized tree for a root (fallback rebuild if absent)
+router.get('/tree/:rootKey', protect, async (req, res) => {
+    try {
+        let rootDoc = await CategoryRoot.findOne({ root_key: req.params.rootKey });
+        if (!rootDoc) {
+            // Attempt rebuild
+            const rootCat = await Category.findOne({ name: req.params.rootKey, parent_id: null });
+            if (!rootCat) return res.status(404).json({ success: false, message: 'Root not found' });
+            await Category.rebuildRootTree(rootCat._id);
+            rootDoc = await CategoryRoot.findOne({ root_key: req.params.rootKey });
+        }
+        res.json({ success: true, data: rootDoc });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// @route POST /api/categories
+// @desc  Create a new category (root or child)
+router.post('/', protect, checkPermission(['create']), async (req, res) => {
+    try {
+        const { name, parent_id, is_leaf, form_schema } = req.body;
+        if (!name) return res.status(400).json({ success: false, message: 'Name required' });
+
+        let level = 0; let field_key = 'main_category'; let field_label = 'Main Category';
+        if (parent_id) {
+            const parent = await Category.findById(parent_id);
+            if (!parent) return res.status(404).json({ success: false, message: 'Parent not found' });
+            level = parent.level + 1;
+            field_key = `sub_category_${level}`;
+            field_label = `Sub Category ${level}`;
+        }
+        const cat = new Category({ name, parent_id: parent_id || null, is_leaf: !!is_leaf, level, field_key, field_label, form_schema: Array.isArray(form_schema)?form_schema:[] });
+        await cat.save();
+        // Rebuild materialized tree for affected root
+        await Category.rebuildRootTree(cat.root_id || cat._id);
+        res.status(201).json({ success: true, data: cat });
+    } catch (e) {
+        if (e.code === 11000) {
+            return res.status(409).json({ success: false, message: 'Duplicate category name under same parent' });
+        }
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// @route POST /api/categories/rebuild/:rootId
+// @desc  Force rebuild of a root materialized tree
+router.post('/rebuild/:rootId', protect, checkPermission(['update']), async (req, res) => {
+    try {
+        const result = await Category.rebuildRootTree(req.params.rootId);
+        res.json({ success: true, data: result });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
     }
 });
 

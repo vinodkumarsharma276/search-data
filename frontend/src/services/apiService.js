@@ -104,7 +104,12 @@ const apiService = {
         getFormSchema: (id) => apiClient.get(`/categories/${id}/full-schema`), // Add this alias
         getCommonFields: () => apiClient.get('/categories/common-fields'), // Get common fields from Electronics category
         updateFieldOptions: (id, data) => apiClient.put(`/categories/${id}/update-field-options`, data),
-        getCategoryPath: (id) => apiClient.get(`/categories/${id}/path`)
+    getCategoryPath: (id) => apiClient.get(`/categories/${id}/path`),
+    // New hybrid tree endpoints
+    getRoots: () => apiClient.get('/categories/roots'),
+    getTree: (rootKey) => apiClient.get(`/categories/tree/${encodeURIComponent(rootKey)}`),
+    create: (data) => apiClient.post('/categories', data),
+    rebuildRoot: (rootId) => apiClient.post(`/categories/rebuild/${rootId}`)
     },
 
     // Dropdown API methods

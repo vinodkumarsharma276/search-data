@@ -115,7 +115,20 @@ const DynamicField = ({ field, productId, form, isMobileCategory, addImeiField, 
                     ...(field.type === 'number' ? [{ type: 'number', message: 'Please enter a valid number' }] : [])
                 ]}
             >
-                {field.type === 'text' && <Input placeholder={field.label} size="large" style={{ fontSize: '14px' }} />}
+                {field.type === 'text' && (
+                    <Input
+                        placeholder={field.label}
+                        size="large"
+                        style={{ fontSize: '14px' }}
+                        onChange={(e) => {
+                            // Auto-uppercase for serial and model number fields
+                            if (field.field_id === 'serial_number' || field.field_id === 'model_number') {
+                                const upper = e.target.value?.toUpperCase();
+                                form.setFieldsValue({ [`${field.field_id}_product_${productId}`]: upper });
+                            }
+                        }}
+                    />
+                )}
                 {field.type === 'number' && <InputNumber placeholder={field.label} style={{ width: '100%', fontSize: '14px' }} size="large" />}
                 {(field.type === 'dropdown' || field.type === 'combobox') && (
                     <Select placeholder={field.label} mode={field.type === 'combobox' ? 'tags' : undefined} allowClear size="large" style={{ fontSize: '14px' }} dropdownStyle={{ fontSize: '14px' }}>
@@ -183,22 +196,21 @@ const AddProduct = () => {
             if (distributorsResponse.data.success) {
                 setDistributors(distributorsResponse.data.distributors || []);
             }
-            await fetchTopLevelCategories();
+            await fetchRootCategories();
         } catch (error) {
             console.error('❌ Error fetching initial data:', error);
         }
     };
 
-    const fetchTopLevelCategories = async () => {
+    const fetchRootCategories = async () => {
         try {
-            const response = await apiService.categories.getTopLevel();
-            if (response.data.success) {
-                const topLevelCategories = response.data.data || [];
-                setProducts(prev => prev.map(p => ({ ...p, categoryLevels: [topLevelCategories] })));
+            const resp = await apiService.categories.getRoots();
+            if (resp.data.success) {
+                const roots = resp.data.data || [];
+                // Treat roots as first level
+                setProducts(prev => prev.map(p => ({ ...p, categoryLevels: [roots.map(r => ({ _id: r.root_id, name: r.name, is_leaf: false }))] })));
             }
-        } catch (error) {
-            console.error('❌ Error fetching top-level categories:', error);
-        }
+        } catch (e) { console.error('❌ Error fetching root categories:', e); }
     };
 
     const handleDistributorSearch = useCallback((value) => {
@@ -319,6 +331,15 @@ const AddProduct = () => {
             message.error('Please select a distributor');
             return;
         }
+        // Frontend validation: for each product ensure dealer_price <= mrp if both present
+        for (const p of products) {
+            const mrpVal = values[`mrp_product_${p.id}`];
+            const dealerVal = values[`dealer_price_product_${p.id}`];
+            if (mrpVal != null && dealerVal != null && Number(dealerVal) > Number(mrpVal)) {
+                message.error(`Dealer Price cannot exceed MRP (Product ${p.id})`);
+                return;
+            }
+        }
         setLoading(true);
         try {
             const productsArray = products.map(p => {
@@ -331,7 +352,9 @@ const AddProduct = () => {
                     if (key.endsWith(`_product_${p.id}`)) {
                         const cleanKey = key.replace(`_product_${p.id}`, '');
                         if (!cleanKey.startsWith('mobile_imei_') && cleanKey !== 'categoryId') {
-                            productData[cleanKey] = values[key];
+                            let v = values[key];
+                            if (cleanKey === 'serial_number' && typeof v === 'string') v = v.toUpperCase();
+                            productData[cleanKey] = v;
                         }
                     }
                 });
@@ -364,7 +387,7 @@ const AddProduct = () => {
                     categoryFormSchema: [],
                     imeiFields: [{ id: 1, value: '' }]
                 }]);
-                await fetchTopLevelCategories();
+                await fetchRootCategories();
             } else {
                 message.error(response.data.message || 'Failed to add products.');
             }
@@ -433,7 +456,8 @@ const AddProduct = () => {
                                 <Row gutter={16}>
                                     {product.categoryLevels.map((levelCategories, levelIndex) => (
                                         <Col key={levelIndex} xs={24} sm={12} md={8} lg={6}>
-                                            <Form.Item label={<span style={{ fontSize: '12px', fontWeight: 500 }}>{levelIndex === 0 ? 'Main Category' : `Category ${levelIndex + 1}`}</span>} style={{ marginBottom: '16px' }}>
+                                            {/* Dynamic level label: root = Main Category, subsequent levels = Sub Category N (1-based) */}
+                                            <Form.Item label={<span style={{ fontSize: '12px', fontWeight: 500 }}>{levelIndex === 0 ? 'Main Category' : `Sub Category ${levelIndex}`}</span>} style={{ marginBottom: '16px' }}>
                                                 <Select
                                                     placeholder={levelIndex === 0 ? 'Select Main' : 'Select Sub'}
                                                     value={product.selectedCategoryPath[levelIndex]}
@@ -472,7 +496,8 @@ const AddProduct = () => {
                                 setDistributorSearchValue('');
                                 setSelectedDistributor(null);
                                 setProducts([{ id: 1, categoryLevels: [], selectedCategoryPath: [], finalCategoryId: null, categoryFormSchema: [], imeiFields: [{ id: 1, value: '' }] }]);
-                                fetchTopLevelCategories();
+                                // Use root categories loader (renamed from legacy top-level fetch)
+                                fetchRootCategories();
                             }}>Reset Form</Button>
                             <Button type="primary" htmlType="submit" size="large" loading={loading} icon={<SaveOutlined />} style={{ backgroundColor: '#fa8c16', borderColor: '#fa8c16', minWidth: '150px' }}>
                                 Save {products.length > 1 ? `All Products (${products.length})` : 'Product'}

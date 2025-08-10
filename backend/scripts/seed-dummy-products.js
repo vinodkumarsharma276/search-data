@@ -6,7 +6,15 @@ const Distributor = require('../models/Distributor');
 
 function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
 function pick(arr){return arr[rand(0,arr.length-1)];}
-function uniqSerial(prefix, idx){return `${prefix}-${Date.now()}-${idx}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;}
+// Generate a shorter, prefix-free unique serial (kept reasonably compact to avoid multi-line wrapping in UI)
+function generateSerial(idx){
+  // base36 timestamp + random + idx segment => typically 12-16 chars
+  return (
+    Date.now().toString(36).toUpperCase() +
+    Math.random().toString(36).slice(2,6).toUpperCase() +
+    idx.toString(36).toUpperCase()
+  );
+}
 
 (async () => {
   try {
@@ -44,31 +52,32 @@ function uniqSerial(prefix, idx){return `${prefix}-${Date.now()}-${idx}-${Math.r
   const mrp = rand(5000,150000); // broad range
   const dealer = mrp - rand(500, Math.min(5000, Math.floor(mrp*0.3))); // ensure less than mrp
 
-  base.mrp = mrp; // renamed from price
+  base.mrp = mrp; // using mrp field (was price previously)
       base.dealer_price = dealer;
-      base.model_number = `MOD-${rand(1000,9999)}`;
+  // Model number without the old 'MOD-' prefix; random 6-char alphanumeric
+  base.model_number = Math.random().toString(36).slice(2,8).toUpperCase();
 
       // Category-specific fields
       if(leaf.name === 'Laptops'){
         base.brand = pick(['Dell','HP','Lenovo','Asus','Acer','Apple']);
-        base.serial_number = uniqSerial('LAP', i);
+        base.serial_number = generateSerial(i);
       } else if(leaf.name === 'Android Phones'){
         base.brand = pick(['Samsung','Xiaomi','OnePlus','Realme','Vivo','Oppo']);
         base.ram_gb = pick(['4','6','8','12']);
         base.storage_gb = pick(['64','128','256','512']);
         base.color = pick(['black','white','blue','red','green','gold','silver']);
-        base.serial_number = uniqSerial('AND', i);
+        base.serial_number = generateSerial(i);
         base.android_version = pick(['11','12','13','14','15']);
       } else if(leaf.name === 'iPhone'){
         base.brand = 'Apple';
         base.ram_gb = pick(['4','6','8']);
         base.storage_gb = pick(['128','256','512','1024']);
         base.color = pick(['black','white','blue','red','green','gold','silver']);
-        base.serial_number = uniqSerial('IOS', i);
+        base.serial_number = generateSerial(i);
         base.ios_version = pick(['16','17','18']);
       } else {
         base.brand = 'Generic';
-        base.serial_number = uniqSerial('GEN', i);
+        base.serial_number = generateSerial(i);
       }
 
       docs.push(base);
@@ -89,11 +98,12 @@ function uniqSerial(prefix, idx){return `${prefix}-${Date.now()}-${idx}-${Math.r
       console.log('All serial numbers are unique.');
     }
 
-    const violPrice = await Product.find({ $expr: { $lte: ['$price','$dealer_price'] } }).countDocuments();
+    // Updated pricing integrity check for mrp vs dealer_price
+    const violPrice = await Product.countDocuments({ $expr: { $lte: ['$mrp','$dealer_price'] } });
     if(violPrice>0){
-      console.warn('Pricing integrity violations (dealer >= price):', violPrice);
+      console.warn('Pricing integrity violations (dealer_price >= mrp):', violPrice);
     } else {
-      console.log('Pricing integrity validated (dealer_price < price for all).');
+      console.log('Pricing integrity validated (dealer_price < mrp for all).');
     }
 
     await mongoose.disconnect();

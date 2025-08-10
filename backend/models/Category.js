@@ -74,6 +74,22 @@ const categorySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    // Root category ancestor id (top-level category); equals _id for level 0
+    root_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        index: true
+    },
+    // Cached path arrays (root -> this)
+    path_ids: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: [],
+        index: true
+    },
+    path_keys: {
+        type: [String],
+        default: []
+    },
     form_schema: [formFieldSchema],
     description: {
         type: String,
@@ -92,6 +108,8 @@ categorySchema.index({ name: 'text', description: 'text' });
 categorySchema.index({ parent_id: 1 });
 categorySchema.index({ is_leaf: 1 });
 categorySchema.index({ 'form_schema.field_id': 1 });
+categorySchema.index({ root_id: 1, level: 1 });
+categorySchema.index({ parent_id: 1, name: 1 }, { unique: true });
 
 // Virtual for getting children
 categorySchema.virtual('children', {
@@ -169,6 +187,41 @@ categorySchema.statics.compileFullFormSchema = async function(leafCategoryId) {
     const mergedSchema = Array.from(fieldMap.values()).sort((a, b) => a.display_order - b.display_order);
     
     return mergedSchema;
+};
+
+// Pre-save hook to populate root_id and path arrays if not already set
+categorySchema.pre('save', async function(next) {
+    if (!this.isModified('parent_id') && this.root_id && this.path_ids && this.path_ids.length) {
+        return next();
+    }
+    if (!this.parent_id) {
+        // Root category
+        this.root_id = this._id; // will be available post-save; keep self for consistency
+        this.path_ids = [this._id];
+        this.path_keys = [this.field_key];
+    } else {
+        const parent = await this.constructor.findById(this.parent_id).lean();
+        if (parent) {
+            this.root_id = parent.root_id || parent._id;
+            this.path_ids = [...(parent.path_ids || [parent._id]), this._id];
+            this.path_keys = [...(parent.path_keys || [parent.field_key]), this.field_key];
+        }
+    }
+    next();
+});
+
+// Static to rebuild materialized root tree document
+categorySchema.statics.rebuildRootTree = async function(rootId) {
+    const CategoryRoot = require('./CategoryRoot');
+    const rootCat = await this.findById(rootId);
+    if (!rootCat) throw new Error('Root category not found: ' + rootId);
+    const nodes = await this.find({ root_id: rootCat._id }).lean();
+    await CategoryRoot.findOneAndUpdate(
+        { root_key: rootCat.name },
+        { root_key: rootCat.name, root_id: rootCat._id, nodes, updatedAt: new Date() },
+        { upsert: true }
+    );
+    return { count: nodes.length };
 };
 
 module.exports = mongoose.model('Category', categorySchema);

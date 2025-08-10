@@ -34,6 +34,7 @@ import SearchDistributor from './SearchDistributor';
 import SearchPage from './SearchPage';
 import AddProduct from './AddProduct';
 import SearchProduct from './SearchProduct';
+import AddCategory from './AddCategory';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -54,8 +55,9 @@ const Dashboard = () => {
         if (path === '/dashboard') return 'dashboard';
         if (path.startsWith('/add-sale')) return 'add-sale';
         if (path.startsWith('/search-sale')) return 'search-sale';
-        if (path.startsWith('/add-product')) return 'add-product';
-        if (path.startsWith('/search-product')) return 'search-product';
+    if (path.startsWith('/add-product')) return 'add-product';
+    if (path.startsWith('/search-product')) return 'search-product';
+    if (path.startsWith('/add-category')) return 'add-category';
         if (path.startsWith('/add-distributor')) return 'add-distributor';
         if (path.startsWith('/search-distributor')) return 'search-distributor';
         if (path.startsWith('/add-customer')) return 'add-customer';
@@ -105,6 +107,11 @@ const Dashboard = () => {
                     key: 'search-product',
                     icon: <SearchOutlined />,
                     label: 'Search Products',
+                },
+                {
+                    key: 'add-category',
+                    icon: <PlusOutlined />,
+                    label: 'Add Category',
                 },
             ],
         },
@@ -188,6 +195,8 @@ const Dashboard = () => {
                 return <SearchDistributor />;
             case 'search-product':
                 return <SearchProduct />;
+            case 'add-category':
+                return <AddCategory />;
             case 'search-customer':
             case 'search-sale':
             case 'search-employee':
@@ -210,6 +219,7 @@ const Dashboard = () => {
             'search-sale': 'Search Sales',
             'add-product': 'Add New Product',
             'search-product': 'Search Products', 
+            'add-category': 'Add / Manage Categories',
             'add-distributor': 'Add New Distributor',
             'search-distributor': 'Search Distributors',
             'add-customer': 'Add New Customer',

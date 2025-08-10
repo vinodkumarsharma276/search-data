@@ -124,6 +124,10 @@ function App() {
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />
                         <Route 
+                            path="/add-category" 
+                            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                        />
+                        <Route 
                             path="/search-product" 
                             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
                         />

@@ -289,6 +289,27 @@ router.post('/', protect, checkPermission('create'), async (req, res) => {
                     if (/^[a-z0-9_]+$/.test(key)) cleanProductData[key] = productData[key];
                 });
 
+                // Normalize serial number fields to uppercase (both serial_number & serialNumber just in case)
+                if (cleanProductData.serial_number && typeof cleanProductData.serial_number === 'string') {
+                    cleanProductData.serial_number = cleanProductData.serial_number.toUpperCase();
+                }
+                // Normalize model_number to uppercase
+                if (cleanProductData.model_number && typeof cleanProductData.model_number === 'string') {
+                    cleanProductData.model_number = cleanProductData.model_number.toUpperCase();
+                }
+                if (cleanProductData.serialNumber && typeof cleanProductData.serialNumber === 'string') {
+                    cleanProductData.serialNumber = cleanProductData.serialNumber.toUpperCase();
+                }
+
+                // Validate pricing rule: dealer_price <= mrp (if both present as numbers)
+                if (cleanProductData.dealer_price != null && cleanProductData.mrp != null) {
+                    const dp = Number(cleanProductData.dealer_price);
+                    const mrpVal = Number(cleanProductData.mrp);
+                    if (!isNaN(dp) && !isNaN(mrpVal) && dp > mrpVal) {
+                        throw new Error(`Product ${i + 1}: Dealer Price (₹${dp}) cannot exceed MRP (₹${mrpVal})`);
+                    }
+                }
+
                 console.log(`🧹 Cleaned product data ${i + 1}:`, cleanProductData);
                 const product = new Product(cleanProductData);
                 const savedProduct = await product.save();
@@ -452,6 +473,20 @@ router.post('/bulk', protect, checkPermission('create'), async (req, res) => {
                     isActive: true,
                     lastPurchaseDate: new Date()
                 };
+
+                // Normalize serial number to uppercase if present
+                if (newProductData.serialNumber && typeof newProductData.serialNumber === 'string') {
+                    newProductData.serialNumber = newProductData.serialNumber.toUpperCase();
+                }
+
+                // If dealer_price & mrp both present ensure dealer_price <= mrp
+                if (productData.dealer_price != null && newProductData.mrp != null) {
+                    const dp = Number(productData.dealer_price);
+                    const mrpVal = Number(newProductData.mrp);
+                    if (!isNaN(dp) && !isNaN(mrpVal) && dp > mrpVal) {
+                        throw new Error(`Product ${i + 1}: Dealer Price (₹${dp}) cannot exceed MRP (₹${mrpVal})`);
+                    }
+                }
 
                 // Add any additional fields (loose schema support)
                 Object.keys(productData).forEach(key => {

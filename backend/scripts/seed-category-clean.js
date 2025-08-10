@@ -99,7 +99,7 @@ async function seedCategoryHierarchy() {
         await electronics.save();
         console.log(`✅ Created ROOT: Electronics (${COMMON_PRODUCT_FIELDS.length} common fields)`);
 
-        // Level 1 categories
+    // Level 1 categories (Electronics)
         const level1Meta = buildCategoryMeta(1);
         const smartphones = new Category({
             name: 'Smartphones',
@@ -257,6 +257,14 @@ async function seedCategoryHierarchy() {
                     is_required: false,
                     enabled: true,
                     display_order: 15
+                },
+                {
+                    field_id: 'mobile_imei',
+                    label: 'IMEI',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 16
                 }
             ],
             description: 'Android-based smartphones',
@@ -347,6 +355,14 @@ async function seedCategoryHierarchy() {
                     is_required: false,
                     enabled: true,
                     display_order: 15
+                },
+                {
+                    field_id: 'mobile_imei',
+                    label: 'IMEI',
+                    type: 'text',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 16
                 }
             ],
             description: 'Apple iPhone devices',
@@ -355,6 +371,88 @@ async function seedCategoryHierarchy() {
         previewCategory(iphone);
         await iphone.save();
         console.log(`✅ Created LEAF: iPhone (${iphone.form_schema.length} specific fields)`);
+
+        // SECOND ROOT: Appliances (demonstrate multi-root capability)
+        const appliances = new Category({
+            name: 'Appliances',
+            parent_id: null,
+            is_leaf: false,
+            level: 0,
+            field_key: rootMeta.field_key,
+            field_label: rootMeta.field_label,
+            form_schema: [
+                // Common fields for Appliances root
+                {
+                    field_id: 'dealer_price',
+                    label: 'Dealer Price (₹)',
+                    type: 'number',
+                    is_required: false,
+                    enabled: true,
+                    display_order: 9 // ensure it appears before MRP but after leaf-specific low numbers
+                },
+                {
+                    field_id: 'mrp',
+                    label: 'MRP (₹)',
+                    type: 'number',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 10
+                },
+                {
+                    field_id: 'model_number',
+                    label: 'Model Number',
+                    type: 'text',
+                    is_required: true,
+                    enabled: true,
+                    display_order: 11
+                }
+            ],
+            description: 'Home appliances root',
+            isActive: true
+        });
+        previewCategory(appliances);
+        await appliances.save();
+        console.log(`✅ Created ROOT: Appliances (${appliances.form_schema.length} common fields)`);
+
+        const appliancesLevel1Meta = buildCategoryMeta(1);
+        const refrigerators = new Category({
+            name: 'Refrigerators',
+            parent_id: appliances._id,
+            is_leaf: true,
+            level: 1,
+            field_key: appliancesLevel1Meta.field_key,
+            field_label: appliancesLevel1Meta.field_label,
+            form_schema: [
+                { field_id: 'brand', label: 'Brand', type: 'dropdown', options: [ { value: 'LG', label: 'LG' }, { value: 'Samsung', label: 'Samsung' }, { value: 'Whirlpool', label: 'Whirlpool' }, { value: 'Bosch', label: 'Bosch' } ], is_required: true, enabled: true, display_order: 1 },
+                { field_id: 'capacity_l', label: 'Capacity (L)', type: 'number', is_required: false, enabled: true, display_order: 3 },
+                { field_id: 'door_type', label: 'Door Type', type: 'dropdown', options: [ { value: 'single_door', label: 'Single Door' }, { value: 'double_door', label: 'Double Door' } ], is_required: false, enabled: true, display_order: 2 },
+                { field_id: 'serial_number', label: 'Serial Number', type: 'text', is_required: false, enabled: true, display_order: 4 }
+            ],
+            description: 'Home refrigerators',
+            isActive: true
+        });
+        previewCategory(refrigerators);
+        await refrigerators.save();
+        console.log('✅ Created Refrigerators');
+
+        const washingMachines = new Category({
+            name: 'Washing Machines',
+            parent_id: appliances._id,
+            is_leaf: true,
+            level: 1,
+            field_key: appliancesLevel1Meta.field_key,
+            field_label: appliancesLevel1Meta.field_label,
+            form_schema: [
+                { field_id: 'brand', label: 'Brand', type: 'dropdown', options: [ { value: 'LG', label: 'LG' }, { value: 'Samsung', label: 'Samsung' }, { value: 'IFB', label: 'IFB' }, { value: 'Bosch', label: 'Bosch' } ], is_required: true, enabled: true, display_order: 1 },
+                { field_id: 'load_type', label: 'Load Type', type: 'dropdown', options: [ { value: 'front', label: 'Front Load' }, { value: 'top', label: 'Top Load' } ], is_required: false, enabled: true, display_order: 2 },
+                { field_id: 'serial_number', label: 'Serial Number', type: 'text', is_required: false, enabled: true, display_order: 3 }
+            ],
+            description: 'Washing machines',
+            isActive: true
+        });
+        previewCategory(washingMachines);
+        await washingMachines.save();
+        console.log('✅ Created Washing Machines');
 
         // Display complete hierarchy
         console.log('\n📊 Complete Category Hierarchy:');
@@ -366,8 +464,17 @@ async function seedCategoryHierarchy() {
             const leafStatus = category.is_leaf ? '🍃 LEAF' : '📁 PARENT';
             console.log(`   ${leafStatus} [L${category.level}] ${pathString} (${category.form_schema.length} fields) key=${category.field_key}`);
         }
+        // Rebuild materialized trees for both roots
+        for (const root of [electronics, appliances]) {
+            try {
+                const rebuild = await Category.rebuildRootTree(root._id);
+                console.log(`\n🛠 Rebuilt materialized tree for root '${root.name}' with ${rebuild.count} nodes.`);
+            } catch (reErr) {
+                console.error(`⚠️ Failed to rebuild materialized tree for root ${root.name}:`, reErr.message);
+            }
+        }
 
-        console.log('\n🎉 Clean category hierarchy seeded successfully with hierarchical metadata!');
+        console.log('\n🎉 Clean category hierarchy seeded successfully with hierarchical metadata & materialized tree!');
     } catch (error) {
         console.error('❌ Error seeding categories:', error.message);
         console.error(error.stack);
