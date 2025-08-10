@@ -16,7 +16,9 @@ import {
     Tag,
     Empty,
     Spin,
-    message
+    message,
+    Radio,
+    Divider
 } from 'antd';
 import {
     SearchOutlined,
@@ -25,7 +27,8 @@ import {
     BarcodeOutlined,
     MobileOutlined,
     DesktopOutlined,
-    HomeOutlined
+    HomeOutlined,
+    GlobalOutlined
 } from '@ant-design/icons';
 import apiService from '../services/apiService';
 
@@ -48,6 +51,12 @@ const SearchProduct = () => {
     
     // State for new search/filter logic
     const [searchQuery, setSearchQuery] = useState('');
+    // Global field search mode state
+    const [searchMode, setSearchMode] = useState('category'); // 'category' | 'global'
+    const [globalField, setGlobalField] = useState('serial');
+    const [globalValue, setGlobalValue] = useState('');
+    const [globalResults, setGlobalResults] = useState([]);
+    const [globalLoading, setGlobalLoading] = useState(false);
     const [allProducts, setAllProducts] = useState([]); // Holds all products for the category
     const [filteredProducts, setFilteredProducts] = useState([]); // Holds products for display
     const [currentPage, setCurrentPage] = useState(1);
@@ -390,10 +399,20 @@ const SearchProduct = () => {
     };
 
     // Generate dynamic table columns based on category form schema
+    const highlight = (text) => {
+        if (searchMode !== 'global') return text;
+        const term = globalValue.trim();
+        if (!term || typeof text !== 'string') return text;
+        const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'ig');
+        return text.split(re).map((part,i)=> re.test(part) ? <mark key={i} style={{ background:'#ffe58f', padding:0 }}>{part}</mark> : part);
+    };
+
     const generateDynamicColumns = () => {
         if (!categoryInfo || !categoryInfo.form_schema) {
             // Auto-derive columns from fetched products when no category schema is available
-            const sampleProducts = (filteredProducts && filteredProducts.length ? filteredProducts : allProducts) || [];
+            const sampleProducts = searchMode === 'global'
+                ? (globalResults && globalResults.length ? globalResults : [])
+                : ((filteredProducts && filteredProducts.length ? filteredProducts : allProducts) || []);
             const keySet = new Set();
             sampleProducts.slice(0, 200).forEach(p => {
                 Object.keys(p || {}).forEach(k => keySet.add(k));
@@ -416,6 +435,7 @@ const SearchProduct = () => {
                     key: field,
                     width: adaptiveWidth,
                     align: numericFields.has(field) ? 'right' : undefined,
+                    ellipsis: true,
                     render: (text, record) => {
                         if (editingRowId === record._id) {
                             if (numericFields.has(field)) {
@@ -427,7 +447,9 @@ const SearchProduct = () => {
                             const num = Number(text);
                             if (!isNaN(num)) return `₹${num.toLocaleString('en-IN')}`;
                         }
-                        return text || 'N/A';
+                        const content = text || 'N/A';
+                        if (['brand','model_number','serial_number'].includes(field)) return <span>{highlight(content)}</span>;
+                        return content;
                     }
                 });
             });
@@ -648,7 +670,9 @@ const SearchProduct = () => {
                                 />
                             );
                         }
-                        return text || 'N/A';
+                        const content = text || 'N/A';
+                        if (['brand','model_number','serial_number'].includes(field.field_id)) return <span>{highlight(content)}</span>;
+                        return content;
                     },
                 });
             }
@@ -750,34 +774,67 @@ const SearchProduct = () => {
 
     const columns = useMemo(() => {
         return generateDynamicColumns();
-    }, [categoryInfo, editingRowId, editingRowData, distributors, filteredProducts, allProducts]);
+    }, [categoryInfo, editingRowId, editingRowData, distributors, filteredProducts, allProducts, globalResults, searchMode]);
 
     const paginatedProducts = useMemo(() => {
+        const source = searchMode === 'global' ? globalResults : filteredProducts;
         const startIndex = (currentPage - 1) * pageSize;
-        return filteredProducts.slice(startIndex, startIndex + pageSize);
-    }, [filteredProducts, currentPage, pageSize]);
+        return source.slice(startIndex, startIndex + pageSize);
+    }, [filteredProducts, globalResults, currentPage, pageSize, searchMode]);
+
+    // Global search executor
+    const runGlobalSearch = useCallback(async () => {
+        const val = globalValue.trim();
+        if (!val) { setGlobalResults([]); return; }
+        // For non-IMEI fields require at least 2 chars
+        if (globalField !== 'imei' && val.length < 2) { setGlobalResults([]); return; }
+        setGlobalLoading(true);
+        try {
+            const resp = await apiService.products.globalSearch({ field: globalField, value: val, limit: 200 });
+            if (resp.data.success) {
+                setGlobalResults(resp.data.results || []);
+                setCurrentPage(1);
+            } else {
+                message.error(resp.data.message || 'Global search failed');
+            }
+        } catch (err) {
+            console.error('Global search error', err);
+            message.error('Global search error');
+        } finally {
+            setGlobalLoading(false);
+        }
+    }, [globalField, globalValue]);
+
+    // Debounce global search
+    useEffect(() => {
+        if (searchMode !== 'global') return;
+        const t = setTimeout(() => { runGlobalSearch(); }, 400);
+        return () => clearTimeout(t);
+    }, [searchMode, globalField, globalValue, runGlobalSearch]);
+
+    // Reset pagination when switching mode
+    useEffect(() => { setCurrentPage(1); }, [searchMode]);
+
+    // (old paginatedProducts replaced by new definition above)
 
     return (
         <div className="search-product-container">
-                        {/* Compact table styling to reduce row height and handle long serial numbers */}
-                        <style>{`
-                            .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-cell {
-                                font-size: 12px; /* reduced from default ~14px */
-                                line-height: 1.15; /* tighter vertical spacing */
-                                padding: 4px 6px; /* reduce cell padding */
-                                white-space: normal; /* allow wrapping */
-                                word-break: break-word; /* break long serial numbers */
-                            }
-                            .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell {
-                                padding: 6px 6px; /* slightly tighter header */
-                                font-size: 12.5px; /* subtle reduction for consistency */
-                            }
-                            .search-product-container .ant-table-wrapper .ant-table-cell input,
-                            .search-product-container .ant-table-wrapper .ant-table-cell .ant-select-selector,
-                            .search-product-container .ant-table-wrapper .ant-table-cell .ant-input {
-                                font-size: 12px;
-                            }
-                        `}</style>
+            {/* Enhanced styling */}
+            <style>{`
+                .search-product-container .mode-toggle .ant-radio-button-wrapper { padding: 4px 18px; font-size:13px; }
+                .search-product-container .mode-toggle .ant-radio-button-wrapper-checked { background:#f6ffed; border-color:#52c41a; color:#237804; }
+                /* summary bar removed */
+                .search-product-container mark { background:#ffe58f; padding:0 2px; border-radius:2px; }
+                .search-product-container .ant-table-wrapper .ant-table { font-size:12px; }
+                .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:nth-child(even) td { background:#fcfcfc; }
+                .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:hover td { background:#e6f7ff !important; }
+                .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell { background:#fafafa; font-weight:600; }
+                .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-cell { padding:4px 6px; line-height:1.2; }
+                .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell { padding:6px 6px; }
+                .search-product-container .ant-input, .search-product-container .ant-select-selector { border-radius:6px !important; }
+                .search-product-container .global-search-btn-col { display:flex; align-items:flex-end; }
+                .search-product-container .global-search-btn-col .ant-btn { height:40px; }
+            `}</style>
             <Breadcrumb style={{ margin: '16px 0' }}>
                 <Breadcrumb.Item><Link to="/"><HomeOutlined /></Link></Breadcrumb.Item>
                 <Breadcrumb.Item>Search Products</Breadcrumb.Item>
@@ -790,89 +847,155 @@ const SearchProduct = () => {
             >
                 <Spin spinning={loading}>
                     <Form form={form} layout="vertical">
-                        <Row gutter={[16, 16]}>
-                            {categoryLevels.map((level, levelIndex) => (
-                                <Col xs={24} sm={12} md={8} lg={6} key={levelIndex}>
-                                    <Form.Item
-                                        label={getCategoryLevelLabel(levelIndex)}
-                                        required={levelIndex === 0}
-                                    >
-                                        <Select
-                                            showSearch
-                                            placeholder={`Select ${getCategoryLevelLabel(levelIndex)}`}
-                                            onChange={(value) => handleCategorySelection(value, levelIndex)}
-                                            value={selectedCategoryPath[levelIndex]}
-                                            filterOption={(input, option) =>
-                                                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                            }
-                                        >
-                                            {level.map(cat => (
-                                                <Option key={cat._id} value={cat._id}>{cat.name}</Option>
-                                            ))}
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-                            ))}
+                        <Row style={{ marginBottom: 8 }}>
+                            <Col span={24}>
+                                <Radio.Group value={searchMode} onChange={e => setSearchMode(e.target.value)} className="mode-toggle">
+                                    <Radio.Button value="category">Browse By Category</Radio.Button>
+                                    <Radio.Button value="global"><GlobalOutlined /> Global Field Search</Radio.Button>
+                                </Radio.Group>
+                            </Col>
                         </Row>
-
-                        {isLeafCategory && (
-                            <Row gutter={16}>
-                                <Col xs={24}>
-                                    <Form.Item label="Filter Products by Name, Model, or Serial Number">
-                                        <Input
-                                            placeholder="Type at least 3 characters to filter results..."
-                                            value={searchQuery}
-                                            onChange={handleSearchQueryChange}
-                                            prefix={<FilterOutlined />}
-                                            disabled={!isLeafCategory || searchLoading}
-                                            allowClear
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                        {searchMode === 'global' && (
+                            <>
+                                <Row gutter={16} align="bottom">
+                                    <Col xs={24} sm={8} md={6} lg={4}>
+                                        <Form.Item style={{ marginBottom: 0 }}>
+                                            <Select value={globalField} onChange={setGlobalField}>
+                                                <Option value="brand">Brand</Option>
+                                                <Option value="model">Model Number</Option>
+                                                <Option value="serial">Serial Number</Option>
+                                                <Option value="imei">IMEI Number</Option>
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12} md={8} lg={6}>
+                                        <Form.Item style={{ marginBottom: 0 }}>
+                                            <Input value={globalValue} onChange={e => setGlobalValue(e.target.value)} placeholder="Enter value (auto-search)" allowClear />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={6} md={4} lg={3} className="global-search-btn-col">
+                                        <Form.Item noStyle>
+                                            <Button type="primary" block icon={<SearchOutlined />} onClick={runGlobalSearch} loading={globalLoading}>
+                                                Search
+                                            </Button>
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                                <Divider style={{ margin: '8px 0 16px' }} />
+                            </>
+                        )}
+                        {searchMode === 'category' && (
+                            <>
+                                <Row gutter={[16, 16]}>
+                                    {categoryLevels.map((level, levelIndex) => (
+                                        <Col xs={24} sm={12} md={8} lg={6} key={levelIndex}>
+                                            <Form.Item
+                                                label={getCategoryLevelLabel(levelIndex)}
+                                                required={levelIndex === 0}
+                                            >
+                                                <Select
+                                                    showSearch
+                                                    placeholder={`Select ${getCategoryLevelLabel(levelIndex)}`}
+                                                    onChange={(value) => handleCategorySelection(value, levelIndex)}
+                                                    value={selectedCategoryPath[levelIndex]}
+                                                    filterOption={(input, option) =>
+                                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                                    }
+                                                >
+                                                    {level.map(cat => (
+                                                        <Option key={cat._id} value={cat._id}>{cat.name}</Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    ))}
+                                </Row>
+                                {isLeafCategory && (
+                                    <Row gutter={16}>
+                                        <Col xs={24}>
+                                            <Form.Item label="Filter Products by Name, Model, or Serial Number">
+                                                <Input
+                                                    placeholder="Type at least 3 characters to filter results..."
+                                                    value={searchQuery}
+                                                    onChange={handleSearchQueryChange}
+                                                    prefix={<FilterOutlined />}
+                                                    disabled={!isLeafCategory || searchLoading}
+                                                    allowClear
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                )}
+                            </>
                         )}
                     </Form>
                 </Spin>
             </Card>
 
             <Card 
-                title="Product List" 
+                title={searchMode === 'global' ? 'Global Search Results' : 'Product List'} 
                 style={{ marginTop: '24px' }}
-                extra={searchPerformed && <Text>{filteredProducts.length} of {allProducts.length} products shown</Text>}
+                extra={searchMode === 'global'
+                    ? <Text>{globalResults.length} result(s)</Text>
+                    : (searchPerformed && <Text>{filteredProducts.length} of {allProducts.length} products shown</Text>)}
             >
-                <Spin spinning={searchLoading}>
-                    {searchPerformed && filteredProducts.length > 0 ? (
-                        <div style={{ overflowX: 'auto', marginTop: '20px' }}>
-                            <Table
-                                columns={columns}
-                                dataSource={paginatedProducts}
-                                rowKey="_id"
-                                pagination={false}
-                                scroll={{ 
-                                    x: 'max-content',
-                                    y: 600 
-                                }}
-                                tableLayout="fixed"
-                                size="small"
-                                style={{ minWidth: '900px' }}
-                            />
-                            <Pagination
-                                current={currentPage}
-                                pageSize={pageSize}
-                                total={filteredProducts.length}
-                                onChange={handlePageChange}
-                                style={{ marginTop: '20px', textAlign: 'right' }}
-                                showSizeChanger={false}
-                            />
-                        </div>
+                <Spin spinning={searchMode === 'global' ? globalLoading : searchLoading}>
+                    {searchMode === 'global' ? (
+                        globalResults.length > 0 ? (
+                            <div style={{ overflowX: 'auto', marginTop: '20px' }}>
+                                <Table
+                                    columns={columns}
+                                    dataSource={paginatedProducts}
+                                    rowKey="_id"
+                                    pagination={false}
+                                    scroll={{ x: 'max-content', y: 600 }}
+                                    tableLayout="fixed"
+                                    size="small"
+                                    style={{ minWidth: '900px' }}
+                                />
+                                <Pagination
+                                    current={currentPage}
+                                    pageSize={pageSize}
+                                    total={globalResults.length}
+                                    onChange={handlePageChange}
+                                    style={{ marginTop: '20px', textAlign: 'right' }}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        ) : (
+                            <Empty description={globalLoading ? 'Searching...' : 'No results yet. Enter a value above.'} />
+                        )
                     ) : (
-                        <Empty
-                            description={
-                                searchPerformed
-                                    ? "No products found matching your filter."
-                                    : "Please select a final product category to see the list of products."
-                            }
-                        />
+                        searchPerformed && filteredProducts.length > 0 ? (
+                            <div style={{ overflowX: 'auto', marginTop: '20px' }}>
+                                <Table
+                                    columns={columns}
+                                    dataSource={paginatedProducts}
+                                    rowKey="_id"
+                                    pagination={false}
+                                    scroll={{ x: 'max-content', y: 600 }}
+                                    tableLayout="fixed"
+                                    size="small"
+                                    style={{ minWidth: '900px' }}
+                                />
+                                <Pagination
+                                    current={currentPage}
+                                    pageSize={pageSize}
+                                    total={filteredProducts.length}
+                                    onChange={handlePageChange}
+                                    style={{ marginTop: '20px', textAlign: 'right' }}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        ) : (
+                            <Empty
+                                description={
+                                    searchPerformed
+                                        ? 'No products found matching your filter.'
+                                        : 'Please select a final product category to see the list of products.'
+                                }
+                            />
+                        )
                     )}
                 </Spin>
             </Card>

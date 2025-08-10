@@ -68,7 +68,14 @@ const apiService = {
         getLowStock: () => apiClient.get('/products/reports/low-stock'),
         search: (params) => apiClient.get('/products/search-test', { params }),
         searchTest: (params) => apiClient.get('/products/search-test', { params }),
-        globalSearch: (query) => apiClient.get(`/products/global-search?searchQuery=${encodeURIComponent(query)}`),
+        // Global search (field-specific or fuzzy). Preferred: pass { field, value }.
+        globalSearch: (params) => {
+            if (typeof params === 'string') {
+                // legacy usage treat as fuzzy q
+                return apiClient.get('/products/global-search', { params: { q: params } });
+            }
+            return apiClient.get('/products/global-search', { params });
+        },
         getDistributors: () => apiClient.get('/products/distributors')
     ,getDeleted: (params) => apiClient.get('/products/deleted', { params })
     ,restore: (id) => apiClient.patch(`/products/${id}/restore`)

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AppLayout from './AppLayout';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Layout,
@@ -348,18 +349,16 @@ const Dashboard = () => {
                 </Header>
 
                 {/* Content */}
-                <Content
-                    style={{
-                        margin: '80px 16px 16px',
-                        padding: 24,
+                <AppLayout headerOffset={64} padding={16} maxWidth={1500}>
+                    <div style={{
                         background: colorBgContainer,
+                        padding: 16,
                         borderRadius: borderRadiusLG,
-                        minHeight: 'calc(100vh - 96px)',
-                        overflow: 'auto'
-                    }}
-                >
-                    {renderContent()}
-                </Content>
+                        minHeight: 'calc(100vh - 140px)'
+                    }}>
+                        {renderContent()}
+                    </div>
+                </AppLayout>
             </Layout>
         </Layout>
     );

@@ -41,69 +41,7 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
-// @desc    Global search products by serial number or other fields (TEST VERSION - NO AUTH)
-// @route   GET /api/products/global-search
-// @access  Public (for testing only)
-router.get('/global-search', async (req, res) => {
-    try {
-        const { searchQuery, page = 1, limit = 1000 } = req.query;
-        
-        console.log('🔍 Global product search request (TEST):', { searchQuery, page, limit });
-        
-        if (!searchQuery || searchQuery.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'Search query must be at least 3 characters long'
-            });
-        }
-        
-        // Build global search query across all products (exclude deleted by default)
-        let query = {
-            deleted: { $ne: true }, // Exclude soft-deleted products
-            $or: [
-                { 'dynamic_fields.model_number': { $regex: searchQuery, $options: 'i' } },
-                { 'dynamic_fields.serial_number': { $regex: searchQuery, $options: 'i' } },
-                { 'dynamic_fields.brand': { $regex: searchQuery, $options: 'i' } },
-                { product_name: { $regex: searchQuery, $options: 'i' } },
-                // Legacy fields (in case some products still have them at root level)
-                { model_number: { $regex: searchQuery, $options: 'i' } },
-                { modelNumber: { $regex: searchQuery, $options: 'i' } },
-                { serial_number: { $regex: searchQuery, $options: 'i' } },
-                { serialNumber: { $regex: searchQuery, $options: 'i' } },
-                { brand: { $regex: searchQuery, $options: 'i' } }
-            ]
-        };
-        
-        console.log('📋 MongoDB global search query (TEST):', JSON.stringify(query, null, 2));
-        
-        // Execute search with pagination
-        const products = await Product.find(query)
-            .populate('supplierId', 'name companyName gstNumber')
-            .limit(parseInt(limit))
-            .skip((parseInt(page) - 1) * parseInt(limit))
-            .sort({ createdAt: -1 });
-        
-        const total = await Product.countDocuments(query);
-        
-        console.log('✅ Global search results (TEST):', products.length, 'of', total, 'total');
-        
-        res.json({
-            success: true,
-            products: products,
-            total: total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(total / parseInt(limit))
-        });
-        
-    } catch (error) {
-        console.error('❌ Global product search error (TEST):', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error while searching products'
-        });
-    }
-});
+// Removed legacy unauthenticated /global-search test endpoint. Consolidated into protected version below.
 
 // @desc    Search products by category and query (TEST VERSION - NO AUTH)
 // @route   GET /api/products/search-test
@@ -212,6 +150,145 @@ router.get('/distributors', async (req, res) => {
             success: false,
             message: error.message || 'Server error while fetching distributors'
         });
+    }
+});
+
+// @desc    Global search across products with optional field filtering
+// @route   GET /api/products/global-search?field=brand|model|serial|imei&value=TEXT
+//          or legacy fuzzy: /api/products/global-search?q=term
+// @access  Protected
+router.get('/global-search', protect, async (req, res) => {
+    try {
+        const { field, value, q, limit = 50 } = req.query;
+        const maxLimit = Math.min(parseInt(limit) || 50, 200);
+
+        // Field-based explicit search takes precedence if both provided
+        if (field && value) {
+            const f = String(field).toLowerCase();
+            const rawVal = String(value).trim();
+            if (!rawVal) return res.json({ success: true, results: [], total: 0, query: rawVal, mode: 'field' });
+
+            // Mapping
+            const fieldMap = {
+                brand: 'brand',
+                model: 'model_number',
+                model_number: 'model_number',
+                serial: 'serial_number',
+                serial_number: 'serial_number',
+                imei: 'mobile_imei',
+                mobile_imei: 'mobile_imei'
+            };
+            const target = fieldMap[f];
+            if (!target) {
+                return res.status(400).json({ success: false, message: 'Invalid field parameter' });
+            }
+
+            let query;
+            if (target === 'mobile_imei') {
+                // IMEI: exact match if 15 digits, else partial contains
+                if (/^\d{15}$/.test(rawVal)) {
+                    query = { mobile_imei: rawVal };
+                } else {
+                    // partial: any element containing substring
+                    query = { mobile_imei: { $regex: rawVal, $options: 'i' } };
+                }
+            } else if (target === 'serial_number' || target === 'model_number') {
+                // Normalize to uppercase for exact style, but also allow partial
+                const upper = rawVal.toUpperCase();
+                // If length >= 3 do partial regex, plus exact equality OR for prioritization later
+                query = { $or: [ { [target]: upper }, { [target]: { $regex: rawVal, $options: 'i' } } ] };
+            } else { // brand
+                query = { brand: { $regex: rawVal, $options: 'i' } };
+            }
+
+            // Always exclude soft deleted
+            const finalQuery = { deleted: { $ne: true }, ... (query.$or ? {} : query) };
+            if (query.$or) finalQuery.$and = [{ deleted: { $ne: true } }, { $or: query.$or }];
+
+            const projection = {
+                brand: 1, model_number: 1, serial_number: 1, dealer_price: 1, mrp: 1,
+                sold: 1, deleted: 1, updatedAt: 1, category_path: 1, mobile_imei: 1
+            };
+
+            const docs = await Product.find(finalQuery, projection)
+                .limit(maxLimit)
+                .sort({ updatedAt: -1 });
+
+            const results = docs.map(d => {
+                const o = d.toObject();
+                return {
+                    _id: o._id,
+                    brand: o.brand || null,
+                    model_number: o.model_number || null,
+                    serial_number: o.serial_number || o.serialNumber || null,
+                    dealer_price: o.dealer_price ?? null,
+                    mrp: o.mrp ?? null,
+                    sold: o.sold === true,
+                    deleted: o.deleted === true,
+                    updatedAt: o.updatedAt,
+                    category_path: o.category_path || [],
+                    mobile_imei: o.mobile_imei || []
+                };
+            });
+
+            // Prioritize exact matches when applicable
+            const upperVal = rawVal.toUpperCase();
+            const scored = results.sort((a,b)=> {
+                const score = (r)=> {
+                    let s=0;
+                    if (target==='mobile_imei' && r.mobile_imei.includes(rawVal)) s+=50;
+                    if (target==='serial_number' && r.serial_number && r.serial_number.toUpperCase()===upperVal) s+=40;
+                    if (target==='model_number' && r.model_number && r.model_number.toUpperCase()===upperVal) s+=30;
+                    if (target==='brand' && r.brand && r.brand.toUpperCase()===upperVal) s+=20;
+                    return -s;
+                };
+                return score(a)-score(b);
+            });
+
+            return res.json({ success: true, results: scored, total: scored.length, query: rawVal, field: target, mode: 'field' });
+        }
+
+        // Legacy fuzzy quick search fallback
+        const term = String(q||'').trim();
+        if (!term || (term.length < 3 && !/^\d{15}$/.test(term))) {
+            return res.json({ success: true, results: [], total: 0, query: term, mode: 'fuzzy' });
+        }
+        const upper = term.toUpperCase();
+        const isImei = /^\d{15}$/.test(term);
+        const isLikelySerial = !isImei && /^[A-Z0-9]{8,20}$/.test(upper);
+        const exactClauses = [];
+        if (isImei) exactClauses.push({ mobile_imei: term });
+        if (isLikelySerial) exactClauses.push({ serial_number: upper });
+        exactClauses.push({ model_number: upper });
+        const safeRegex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const fuzzyClauses = [
+            { brand: safeRegex }, { model_number: safeRegex }, { serial_number: safeRegex }, { product_name: safeRegex }, { mobile_imei: term }
+        ];
+        const query = exactClauses.length ? { $or: [...exactClauses, ...fuzzyClauses] } : { $or: fuzzyClauses };
+        const projection = { brand:1, model_number:1, serial_number:1, dealer_price:1, mrp:1, sold:1, deleted:1, updatedAt:1, category_path:1, category_path_ids:1, mobile_imei:1 };
+        const docs = await Product.find(query, projection).limit(maxLimit).sort({ updatedAt: -1 });
+        const results = docs.map(d=>{
+            const o=d.toObject();
+            return {
+                _id:o._id,
+                brand:o.brand||o.mobile_brand||o.tv_brand||o.fridge_brand||o.ac_brand||null,
+                model_number:o.model_number||null,
+                serial_number:o.serial_number||o.serialNumber||null,
+                dealer_price:o.dealer_price??null,
+                mrp:o.mrp??null,
+                sold:o.sold===true,
+                deleted:o.deleted===true,
+                updatedAt:o.updatedAt,
+                category_path:o.category_path||[],
+                mobile_imei:o.mobile_imei||[]
+            };
+        });
+        const score=(r)=>{let s=0; if(isImei&&r.mobile_imei.includes(term))s+=50; if(r.serial_number&&r.serial_number.toUpperCase()===upper)s+=40; if(r.model_number&&r.model_number.toUpperCase()===upper)s+=30; if(r.brand&&r.brand.toUpperCase()===upper)s+=20; return -s;};
+        results.sort((a,b)=>score(a)-score(b));
+        res.json({ success:true, results, total:results.length, query:term, analysis:{ isImei, isLikelySerial }, mode:'fuzzy' });
+    } catch (error) {
+        console.error('Global product search error:', error);
+        res.status(500).json({ success:false, message:error.message||'Server error running global search' });
     }
 });
 

@@ -73,4 +73,10 @@ productSchema.index({ deleted: 1 });
 // Compound index for non-deleted active products
 productSchema.index({ deleted: 1, createdAt: -1 });
 
+// Search-oriented indexes
+productSchema.index({ serial_number: 1 });
+productSchema.index({ model_number: 1 });
+productSchema.index({ brand: 1 });
+productSchema.index({ mobile_imei: 1 }); // multikey for IMEI lookups
+
 module.exports = mongoose.model('Product', productSchema);
