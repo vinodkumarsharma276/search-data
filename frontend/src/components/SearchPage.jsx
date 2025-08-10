@@ -281,7 +281,8 @@ const SearchPage = () => {
     const [dataStats, setDataStats] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
 
-    console.log('🔍 SearchPageFixed render');    useEffect(() => {
+    console.log('🔍 SearchPage render');
+    useEffect(() => {
         loadData();
         loadUserData();
         loadStats();
