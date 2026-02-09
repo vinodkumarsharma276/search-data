@@ -823,12 +823,19 @@ const SearchProduct = () => {
             <style>{`
                 .search-product-container .mode-toggle .ant-radio-button-wrapper { padding: 4px 18px; font-size:13px; }
                 .search-product-container .mode-toggle .ant-radio-button-wrapper-checked { background:#f6ffed; border-color:#52c41a; color:#237804; }
-                /* summary bar removed */
                 .search-product-container mark { background:#ffe58f; padding:0 2px; border-radius:2px; }
                 .search-product-container .ant-table-wrapper .ant-table { font-size:12px; }
-                .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:nth-child(even) td { background:#fcfcfc; }
-                .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:hover td { background:#e6f7ff !important; }
-                .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell { background:#fafafa; font-weight:600; }
+                /* Light mode table styles */
+                .theme-light .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:nth-child(even) td { background:#fcfcfc; }
+                .theme-light .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:hover td { background:#e6f7ff !important; }
+                .theme-light .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell { background:#fafafa; font-weight:600; }
+                /* Dark mode table styles */
+                .theme-dark .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:nth-child(even) td { background:#262626 !important; color:#e0e0e0 !important; }
+                .theme-dark .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:nth-child(odd) td { background:#1f1f1f !important; color:#e0e0e0 !important; }
+                .theme-dark .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-row:hover td { background:#363636 !important; }
+                .theme-dark .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell { background:#2a2a2a !important; color:#e0e0e0 !important; font-weight:600; }
+                .theme-dark .search-product-container .mode-toggle .ant-radio-button-wrapper-checked { background:#1a3a1a; border-color:#52c41a; color:#73d13d; }
+                .theme-dark .search-product-container mark { background:#614700; color:#ffe58f; }
                 .search-product-container .ant-table-wrapper .ant-table-tbody .ant-table-cell { padding:4px 6px; line-height:1.2; }
                 .search-product-container .ant-table-wrapper .ant-table-thead .ant-table-cell { padding:6px 6px; }
                 .search-product-container .ant-input, .search-product-container .ant-select-selector { border-radius:6px !important; }
@@ -847,14 +854,14 @@ const SearchProduct = () => {
             >
                 <Spin spinning={loading}>
                     <Form form={form} layout="vertical">
-                        <Row style={{ marginBottom: 8 }}>
+                        {/* <Row style={{ marginBottom: 8 }}>
                             <Col span={24}>
                                 <Radio.Group value={searchMode} onChange={e => setSearchMode(e.target.value)} className="mode-toggle">
                                     <Radio.Button value="category">Browse By Category</Radio.Button>
                                     <Radio.Button value="global"><GlobalOutlined /> Global Field Search</Radio.Button>
                                 </Radio.Group>
                             </Col>
-                        </Row>
+                        </Row> */}
                         {searchMode === 'global' && (
                             <>
                                 <Row gutter={16} align="bottom">

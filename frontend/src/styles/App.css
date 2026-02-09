@@ -85,19 +85,22 @@ h1, h2, h3 {
 .login-container button {
   width: 100%;
   padding: 14px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
+  background-color: #1890ff !important;
+  background: #1890ff !important;
+  color: white !important;
+  border: none !important;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 10px;
+  opacity: 1 !important;
 }
 
 .login-container button:hover {
-  background-color: var(--primary-hover);
+  background-color: #40a9ff !important;
+  background: #40a9ff !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(64, 150, 255, 0.3);
 }
